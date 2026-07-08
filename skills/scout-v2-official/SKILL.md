@@ -1,0 +1,52 @@
+---
+name: scout-v2-official
+description: "V2 scout: Official AI lab blogs. Returns JSON array."
+---
+
+# Scout V2 — Official Blogs
+
+## Sources (fetch and scan for in-window posts)
+- https://www.anthropic.com/news
+- https://openai.com/blog
+- https://deepmind.google/discover/blog/
+- https://ai.meta.com/blog/
+- https://mistral.ai/news/
+- https://x.ai/news
+
+## Method
+web_fetch each URL above. Scan for posts dated within [yesterday, today].
+
+## Output contract
+Return ONLY a JSON array (no prose, no fences). Each element:
+```json
+{"title":"…","summary":"1–2 factual sentences","source":"Lab name",
+ "url":"https://…","date":"YYYY-MM-DD","beat":"official","signal":1-5}
+```
+
+## Signal guide
+- Official blog posts are HIGH signal by default (3+). These are announcements, not rumours.
+- Major model releases / policy announcements: 4–5
+- Minor feature updates: 3
+
+## Rules
+- Every `url` MUST come from the actual fetched page. Never synthesize URLs.
+- If a blog is unreachable, skip it silently.
+- Return `[]` if nothing found in-window. All content in ENGLISH.
+
+## Link-Source Validation (MANDATORY — run before writing final JSON)
+
+After gathering all items but BEFORE writing the final JSON, validate EVERY item:
+
+1. **Domain consistency:** Extract the domain from `url`. The `source` field and the URL domain must be aligned:
+   - ✓ source="TechCrunch", url="https://techcrunch.com/..." — domain "techcrunch.com" matches
+   - ✓ source="Hacker News", url="https://news.ycombinator.com/..." — "ycombinator" in URL
+   - ✓ source="arXiv", url="https://arxiv.org/abs/..." — "arxiv" in both
+   - ✓ source="@karpathy" / "Karpathy", url="https://x.com/..." — exception for X/Twitter users
+   - ✗ source="Hacker News", url="https://medium.com/..." — domain doesn't match
+   - ✗ source="TechCrunch", url="https://someothersite.com/..." — domain doesn't match
+
+2. **Auto-fix on mismatch (max 3 attempts per item):** If source and URL domain don't align, use `web_search` with the article title + source name to find the real URL. Each attempt = one search cycle.
+
+3. **Discard unfixable items:** After 3 failed attempts, REMOVE the item from your array. Do NOT keep items with mismatched source↔url.
+
+4. **No placeholder URLs:** Never use "#", empty strings, or null as URLs. If a real URL can't be found after 3 attempts, discard the item entirely.

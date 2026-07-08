@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LVX IN TENEBRIS — AI dispatches · {{DATE_HUMAN}}</title>
+  <meta name="description" content="A daily dark-broadsheet recap of the most disruptive AI news from the last 24 hours.">
+  <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+  <div class="container">
+
+  <header class="masthead">
+    <div class="topline"></div>
+    <div class="ears">
+      <span class="left">Est. MMXXVI</span>
+      <span class="right">No. {{ISSUE_NO}} <a href="/luxintenebris-ai-news/archive/" class="ar" title="Browse past issues">◆ Archive</a></span>
+    </div>
+    <div class="nameplate">LVX IN <span class="lux">TENEBRIS</span></div>
+      <hr class="rule-double">
+      <div class="dateline">
+        <span>{{DATE_HUMAN}}</span>
+        <span class="dot">◆</span>
+        <span class="tag">AI dispatches from the dark</span>
+        <span class="dot">◆</span>
+        <span>{{COUNT}} stories</span>
+      </div>
+      <hr class="rule-thin">
+    </header>
+
+    {{NOTICE}}
+
+    <div class="lead-zone">
+      {{LEAD}}
+    </div>
+
+    {{TOP_STORIES}}
+
+    <div class="sections">
+      {{SECTIONS}}
+    </div>
+
+    {{TRENDING}}
+
+    {{QUICK_HITS}}
+
+    <footer class="colophon">
+      <p class="mark">Per aspera ad astra</p>
+      <p class="meta">Compiled by Hermes Agent · {{DATE_ISO}} · <a href="https://github.com/NTTLuke/luxintenebris-ai-news" target="_blank" rel="noopener">source</a></p>
+    </footer>
+
+  </div>
+</body>
+</html>

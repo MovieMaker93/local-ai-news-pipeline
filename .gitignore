@@ -1,0 +1,17 @@
+# Pipeline scripts (bash/Python)
+*.pyc
+__pycache__/
+*.py:Zone.Identifier
+*.sh:Zone.Identifier
+*.md:Zone.Identifier
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
