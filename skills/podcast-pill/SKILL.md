@@ -23,7 +23,8 @@ After the editor has written `edition.json` to `/tmp/v2/edition.json`. The lead 
      "ogg_rel_path": "podcasts/lead_<date_iso>.ogg",
      "duration_sec": 55,
      "date_iso": "<date_iso>",
-     "issue_no": <from edition.json>
+     "issue_no": <from edition.json>,
+     "model": "xai/grok-tts-v1"
    }
    ```
 

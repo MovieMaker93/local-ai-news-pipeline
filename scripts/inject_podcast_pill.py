@@ -18,11 +18,15 @@ import json
 from pathlib import Path
 
 
-def make_podcast_pill_html(ogg_rel_path: str, duration_sec: int) -> str:
+def make_podcast_pill_html(ogg_rel_path: str, duration_sec: int, model: str = "") -> str:
     """Generate the podcast pill HTML block with inline audio player."""
     minutes = duration_sec // 60
     seconds = duration_sec % 60
     duration_str = f"{minutes}:{seconds:02d}"
+
+    model_span = ""
+    if model:
+        model_span = f'\n    <span class="pill-divider">·</span>\n    <span class="pill-model">{model}</span>'
 
     return f"""
 <div class="podcast-pill">
@@ -37,7 +41,7 @@ def make_podcast_pill_html(ogg_rel_path: str, duration_sec: int) -> str:
     <span class="pill-label">Podcast Pill</span>
     <span class="pill-divider">·</span>
     <span class="pill-show">The Divide</span>
-    <span class="pill-duration">{duration_str}</span>
+    <span class="pill-duration">{duration_str}</span>{model_span}
   </button>
   <audio class="pill-audio" preload="none">
     <source src="{ogg_rel_path}" type="audio/ogg">
@@ -118,7 +122,7 @@ def make_podcast_css() -> str:
 .podcast-pill .pill-divider { color: var(--muted); margin: 0 1px; }
 .podcast-pill .pill-show { color: var(--ember); font-weight: 600; }
 .podcast-pill .pill-duration { color: var(--muted); font-weight: 400; }
-.podcast-pill .pill-label { color: var(--type-dim); }
+.podcast-pill .pill-model { color: var(--lux-soft); font-weight: 400; font-size: 9px; letter-spacing: .04em; text-transform: none; }
 /* Progress bar */
 .podcast-pill .pill-progress {
   width: 100%;
@@ -215,14 +219,14 @@ def make_podcast_js() -> str:
 </script>"""
 
 
-def inject_podcast(html_content: str, ogg_rel_path: str, duration_sec: int) -> str:
+def inject_podcast(html_content: str, ogg_rel_path: str, duration_sec: int, model: str = "") -> str:
     """Inject podcast pill, CSS, and JS into the rendered HTML."""
     # 1. Inject CSS before </head>
     css_block = f"<style>\n{make_podcast_css().strip()}\n</style>"
     html_content = html_content.replace("</head>", f"{css_block}\n</head>", 1)
 
     # 2. Inject podcast pill before </article> (the lead article close)
-    pill_html = make_podcast_pill_html(ogg_rel_path, duration_sec)
+    pill_html = make_podcast_pill_html(ogg_rel_path, duration_sec, model)
     html_content = html_content.replace(
         "</article>",
         f"{pill_html}\n</article>",
@@ -240,7 +244,7 @@ def main():
     if len(sys.argv) < 4:
         print(json.dumps({
             "status": "error",
-            "error": "Usage: inject_podcast_pill.py <index.html> <ogg_rel_path> <duration_sec> [--output OUTFILE]"
+            "error": "Usage: inject_podcast_pill.py <index.html> <ogg_rel_path> <duration_sec> [--output OUTFILE] [--model MODEL]"
         }))
         sys.exit(1)
 
@@ -258,12 +262,18 @@ def main():
         if idx + 1 < len(sys.argv):
             output_path = Path(sys.argv[idx + 1])
 
+    model = ""
+    if "--model" in sys.argv:
+        idx = sys.argv.index("--model")
+        if idx + 1 < len(sys.argv):
+            model = sys.argv[idx + 1]
+
     if not html_path.exists():
         print(json.dumps({"status": "error", "error": f"HTML file not found: {html_path}"}))
         sys.exit(1)
 
     content = html_path.read_text(encoding="utf-8")
-    result = inject_podcast(content, ogg_rel_path, duration_sec)
+    result = inject_podcast(content, ogg_rel_path, duration_sec, model)
 
     output_path.write_text(result, encoding="utf-8")
 
@@ -273,6 +283,7 @@ def main():
         "output": str(output_path),
         "ogg": ogg_rel_path,
         "duration_sec": duration_sec,
+        "model": model,
         "player": "inline"
     }))
 

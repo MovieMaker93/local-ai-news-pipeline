@@ -264,14 +264,17 @@ with open('$PODCAST_META') as f:
     m = json.load(f)
 print(m.get('ogg_rel_path', ''))
 print(m.get('duration_sec', 0))
+print(m.get('model', 'xai-tts'))
 ")
-    OGG_REL=$(echo "$META" | head -1)
-    DUR=$(echo "$META" | tail -1)
+    OGG_REL=$(echo "$META" | sed -n '1p')
+    DUR=$(echo "$META" | sed -n '2p')
+    MODEL=$(echo "$META" | sed -n '3p')
     if [ -n "$OGG_REL" ] && [ "$DUR" -gt 0 ]; then
         python3 "$PODCAST_INJECT" \
             "$OUTPUT_DIR/index.html" \
             "$OGG_REL" \
             "$DUR" \
+            --model "$MODEL" \
             --output "$OUTPUT_DIR/index.html" \
             2>>"$LOGFILE" && echo "  ✓ podcast pill injected" || echo "  ⚠ podcast pill injection failed"
     else
