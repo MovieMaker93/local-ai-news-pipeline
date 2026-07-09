@@ -23,7 +23,6 @@ These are **editorial illustrations**, NOT visual descriptions of the article co
 - "A single candle on a vast stone balcony, the only warm light in a cold city of towers"
 - "A flock of origami cranes emerging from the pages of an open book, some still half-folded"
 - "A watchmaker's hands assembling a gear train from translucent soap bubbles"
-
 The image should make the reader pause and think "what does this mean?" — then realize it means everything about the story. The leap from image to idea is where the art lives.
 
 ## Image style (MANDATORY — always include this base)
@@ -47,6 +46,21 @@ Faint coffee-stain or foxing marks (tiny age spots) can appear in non-critical a
 The colors should feel muted and time-worn — not fresh and saturated, as if the illustration has been aging in a leather-bound book for centuries.
 Overall mood: an ancient manuscript illustration reinterpreted through modern ink art — the bridge between old-world craftsmanship and contemporary street art sensibility.
 ```
+
+### DUNE AESTHETIC (optional signature touch — use when the story's ideality aligns with desert, monumentality, ancient-future, or celestial themes)
+
+The Dune aesthetic transforms the watercolor/ink base with a monumental desert atmosphere:
+
+- **VAST SCALE:** massive geometric structures (half-temple, half-machine) rising from endless amber dunes, edges softened by wind and time
+- **ATMOSPHERE:** dust-filled air, long golden light rays, deep warm-brown shadows, hazy horizons
+- **COLOR PALETTE SHIFT:** terracotta, amber, burnt sienna, dusty gold, ochre, pale moon-silver — against deep warm-brown shadows. A single accent of deep indigo in the upper sky
+- **ANCIENT-FUTURE:** technology that feels like it has been here for millennia, becoming part of the landscape. Ritual, sacred, prophetic undertones
+- **FIGURES:** lone robed figures in vast landscapes, scale emphasizing the monumental
+- **TEXTURE:** sand-worn surfaces, wind-carved stone, eroded edges
+- **CELESTIAL MOTIFS:** when the story involves multiple entities or variants (e.g. model families), represent them as celestial bodies (sun, moon, earth) floating in the desert sky
+- **SCENE TYPE:** prophecies being fulfilled, ancient rituals, discoveries in the desert, solitary figures contemplating cosmic forces
+
+**How to apply:** APPEND the Dune Aesthetic block to the base style before the chosen approach. Rotate Dune-infused images across different approaches as the story's ideality permits — not every image needs it, but when it fits, lean in hard. The result should feel like pages from a lost manuscript found in the deep desert — ancient, warm, monumental.
 
 Then append ONE of the metaphor prompts below. Rotate — never use the same approach twice in one run.
 
@@ -84,6 +98,11 @@ An animal, plant, or organism that embodies the concept.
 **Prompt pattern:** "A naturalist's illustration of [imaginary organism] whose anatomy encodes [concept]. Rendered with the clinical precision of an Audubon plate, but the subject is entirely invented."
 **Example for multi-agent orchestration:** "Audubon-style plate of a creature with seven heads, each a different size and posture, all facing inward toward a small central light source. Tentacles extend from the base connecting to scattered objects in the margins. Ink wash with muted ochre and sienna watercolor."
 
+### G. Monumental Desert — the ancient-future threshold (Dune-inspired)
+A scene set in a vast desert landscape where the AI concept is rendered as a monumental structure, celestial phenomenon, or ritual artifact. Combines the base watercolor/ink style with the Dune Aesthetic block above.
+**Prompt pattern:** "A [vast desert landscape] where [AI concept] is represented as [monumental/celestial/ritual element]. A lone [figure/observer] stands at the [threshold/edge] in [flowing robes]. The [element] feels simultaneously ancient and futuristic — as if it has been here for millennia. Golden light through dust-filled air. Massive scale emphasizing the smallness of the observer."
+**Example for GPT-5.6 Sol/Terra/Luna:** "Three massive celestial orbs — a burning sun, a fertile earth, and a pale moon — float in a haze above an endless desert of amber dunes. Below them, a lone figure in flowing desert robes stands at the base of a monolithic stone structure, half-buried in sand, its surface carved with ancient geometric patterns. The figure raises one arm toward the orbs, as if in ritual acknowledgment. Golden light streams through dust-filled air, creating long solemn rays. The scene feels like a prophecy being fulfilled — ancient, sacred, and technological all at once."
+
 ## Aspect ratios
 - Lead: `landscape` (16:9)
 - Section hero: `landscape` (standard landscape)
@@ -92,18 +111,19 @@ An animal, plant, or organism that embodies the concept.
 
 1. Read `/tmp/v2/edition.json`.
 2. For each image target (lead + each non-empty section):
-   a. **Pick ONE** approach from the rotator (A-F). Each image in the same run MUST use a different approach.
+   a. **Pick ONE** approach from the rotator (A-G). Each image in the same run MUST use a different approach.
    b. **Extract the core idea** of the article — NOT the subject, the IDEALITY (e.g., for "OpenAI launches restricted model" → the idea is *access*, *gatekeeping*, *scarcity of intelligence*).
-   c. Build prompt = **style base** + **chosen approach pattern** + **specific details** tied to the article's ideality. Balanced composition (40-60% negative space). Multiple watercolor colors. Light street art texture (spray grain, drips, splatter) — refined, not aggressive.
-   d. **CRITICAL**: Include ink outline contours (handmade, organic). Multiple watercolor hues. Light street art urban texturing (spray paint grain, subtle drips/splatter). Refined and elegant — gallery-ready.
-   e. Call `image_generate` with the appropriate aspect_ratio.
-   f. Copy to `/tmp/v2/images/` with deterministic name:
+   c. **Decide whether to use Dune Aesthetic** — consider if the story's ideality aligns with desert, monumentality, celestial motifs, or ancient-future themes. If yes, append the Dune Aesthetic block to the base style before the chosen approach prompt.
+   d. Build prompt = **style base** + **(optional Dune Aesthetic block)** + **chosen approach pattern** + **specific details** tied to the article's ideality. Balanced composition (40-60% negative space). Multiple watercolor colors. Light street art texture (spray grain, drips, splatter) — refined, not aggressive.
+   e. **CRITICAL**: Include ink outline contours (handmade, organic). Multiple watercolor hues. Light street art urban texturing (spray paint grain, subtle drips/splatter). Refined and elegant — gallery-ready.
+   f. Call `image_generate` with the appropriate aspect_ratio.
+   g. Copy to `/tmp/v2/images/` with deterministic name:
       ```bash
       cp "<tool-path>" /tmp/v2/images/lead_<date_iso>.jpg
       cp "<tool-path>" /tmp/v2/images/section_<slug>_<date_iso>.jpg
       ```
       Slug = lowercase hyphenated section title.
-   g. Update edition.json — add `"image": "images/<filename>"` to lead or to first item in each section.
+   h. Update edition.json — add `"image": "images/<filename>"` to lead or to first item in each section.
 
 ## Anti-patterns (NEVER do these)
 
@@ -129,7 +149,7 @@ If `image_generate` errors for any item, OMIT the `image` field and continue. Th
 See `references/metaphor-lookbook.md` for:
 - Anti-pattern catalog (literal AI clichés to avoid)
 - Curated ideality → metaphor mappings from past runs
-- Extended examples for each of the 6 approaches
+- Extended examples for each of the 7 approaches
 - The ideality-extraction rule (always abstract the idea BEFORE choosing the image)
 
 ## Layout rule

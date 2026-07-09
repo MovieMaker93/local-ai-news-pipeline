@@ -331,6 +331,8 @@ cp "$OUTPUT_DIR/index.html" "$DEPLOY_DIR/index.html"
 cp -r "$OUTPUT_DIR/fonts"/* "$DEPLOY_DIR/fonts/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/images"
 cp "$IMAGES_DIR"/*.jpg "$DEPLOY_DIR/images/" 2>/dev/null || true
+mkdir -p "$DEPLOY_DIR/podcasts"
+cp /tmp/v2/podcasts/*.ogg "$DEPLOY_DIR/podcasts/" 2>/dev/null || true
 echo "  ✓ files copied to deploy dir"
 
 # Save edition.json for archive & headline dedup
