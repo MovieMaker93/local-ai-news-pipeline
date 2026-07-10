@@ -160,10 +160,25 @@ Today is $TODAY ($TODAY_HUMAN). Window: $YESTERDAY to $TODAY." \
 
 echo "  ✓ phase 4 complete"
 
+# --- Phase 5: Italia AI Spotlight Scout ---
+echo "[step 2] scouts phase 5 (italia)..."
+"$HERMES_BIN" chat -q \
+    "You are the Italia AI Spotlight Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
+Load skill scout-v2-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
+Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
+All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
+    --profile "$PROFILE" \
+    -s scout-v2-italia \
+    -t "web,file" \
+    -Q --yolo \
+    >"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1
+
+echo "  ✓ phase 5 complete"
+
 # ── Step 3: Validate all scout files ────────────────────────
 echo "[step 3] validating scout files..."
 SCOUT_COUNT=0
-SCOUT_NAMES="x research official opensource tools funding hardware youtube"
+SCOUT_NAMES="x research official opensource tools funding hardware youtube italia"
 for scout in $SCOUT_NAMES; do
     f="$SCOUTS_DIR/scout_${scout}.json"
     if [ -f "$f" ] && python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
@@ -174,7 +189,7 @@ for scout in $SCOUT_NAMES; do
         SCOUT_COUNT=$((SCOUT_COUNT + 1))
     fi
 done
-echo "  ✓ $SCOUT_COUNT/8 scout files ready"
+echo "  ✓ $SCOUT_COUNT/9 scout files ready"
 
 # ── Step 4: Editor ──────────────────────────────────────────
 echo "[step 4] editor..."
@@ -193,7 +208,7 @@ echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
 "$HERMES_BIN" chat -q \
     "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
 Today is $TODAY ($TODAY_HUMAN). Issue #$NEXT_ISSUE.
-Read all 7 scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
+Read all 8 scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup (step 4b), read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
@@ -361,7 +376,7 @@ echo "════════════════════════�
 echo "✅ V2 PIPELINE COMPLETE — $(date '+%H:%M:%S')"
 echo "  Issue:   #$NEXT_ISSUE"
 echo "  Date:    $TODAY"
-echo "  Scouts:  $SCOUT_COUNT/8"
+echo "  Scouts:  $SCOUT_COUNT/9"
 echo "  Wire:    $WIRE_COUNT articles"
 echo "  Images:  $IMG_COUNT"
 echo "  Deploy:  $DEPLOY_DIR"

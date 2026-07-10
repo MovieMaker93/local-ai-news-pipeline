@@ -6,7 +6,7 @@ description: "V2 editor-in-chief. Merges scout JSONs into edition.json. Run afte
 # Editor V2 — Assembly
 
 ## When to use
-After all 7 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. The orchestrator calls you.
+After all 8 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. The orchestrator calls you.
 
 ## Files to read
 - `/tmp/v2/scouts/scout_x.json` (array)
@@ -17,6 +17,7 @@ After all 7 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. Th
 - `/tmp/v2/scouts/scout_funding.json` (array)
 - `/tmp/v2/scouts/scout_hardware.json` (array)
 - `/tmp/v2/scouts/scout_youtube.json` (array)
+- `/tmp/v2/scouts/scout_italia.json` (array)
 - **`headlines_history.json`** — `$DEPLOY_DIR/headlines_history.json` (path passed in the prompt).
   Contiene storico di tutte le headline pubblicate. Lo usi per **deduplicazione
   cross-day** (step 4b) — eviti di ripubblicare la stessa storia già coperta
@@ -26,14 +27,14 @@ After all 7 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. Th
 ## Workflow
 
 1. Read metadata JSON → get `today`, `yesterday`, `today_human`, next issue number.
-2. Read all 7 scout files.
+2. Read all 8 scout files.
 3. **Special case for opensource:** split into `editorial` array (treat like other scouts) and `trending` object (pass through to output unchanged).
 4. **Merge & dedup** all editorial arrays:
    - Drop duplicates by URL and near-identical headline (keep most authoritative source)
    - Discard items clearly dated outside [yesterday, today]
    - **Tag every item with its origin:** while reading, augment each item with
      `"scout_source": "<scout_name>"` (e.g., `"research"`, `"x"`, `"official"`,
-     `"tools"`, `"funding"`, `"hardware"`, `"youtube"`). Opensource editorial items
+     `"tools"`, `"funding"`, `"hardware"`, `"youtube"`, `"italia"`). Opensource editorial items
      get `"opensource"`. This tag is used in step 5 for tiering.
 4b. **🔴 Cross-day dedup — CRITICAL** (run this BEFORE step 5):
    - **Read `headlines_history.json`** from `$DEPLOY_DIR/headlines_history.json`
@@ -74,10 +75,12 @@ After all 7 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. Th
      3. YouTube & Video (youtube beat)
      4. Hardware & Robotics (hardware beat)
      5. Tools & Startups (tools beat)
-     6. Money & Markets (funding beat)
+     6. Italia AI Spotlight (italia beat)
+     7. Money & Markets (funding beat)
      Skip empty sections.
        - YouTube & Video: show if ≥2 items (collapse into quick_hits only if <2).
-       - All other sections: show if ≥3 items (collapse into quick_hits if <3).
+             - Italia AI Spotlight: show if ≥2 items (collapse into quick_hits if <2).
+             - All other sections: show if ≥3 items (collapse into quick_hits if <3).
      ~3–5 items per section, best first. YouTube: 2–3 items, video cards.
    - `quick_hits` (8–12): real but minor. One headline + source, no summary.
    - `trending`: pass through from opensource scout unchanged.
