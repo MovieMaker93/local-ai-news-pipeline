@@ -117,12 +117,14 @@ A scene set in a vast desert landscape where the AI concept is rendered as a mon
    d. Build prompt = **style base** + **(optional Dune Aesthetic block)** + **chosen approach pattern** + **specific details** tied to the article's ideality. Balanced composition (40-60% negative space). Multiple watercolor colors. Light street art texture (spray grain, drips, splatter) — refined, not aggressive.
    e. **CRITICAL**: Include ink outline contours (handmade, organic). Multiple watercolor hues. Light street art urban texturing (spray paint grain, subtle drips/splatter). Refined and elegant — gallery-ready.
    f. Call `image_generate` with the appropriate aspect_ratio.
-   g. Copy to `/tmp/v2/images/` with deterministic name:
-      ```bash
-      cp "<tool-path>" /tmp/v2/images/lead_<date_iso>.jpg
-      cp "<tool-path>" /tmp/v2/images/section_<slug>_<date_iso>.jpg
-      ```
-      Slug = lowercase hyphenated section title.
+   g. Save image to `/tmp/v2/images/` with deterministic name.
+      **Check the `image` field returned by `image_generate`** — it may be a local file path
+      (e.g. `/home/.../cache/images/...`) **OR a remote URL** (e.g. `https://files-cdn.x.ai/...`).
+      - If local path → `cp "<path>" /tmp/v2/images/lead_<date_iso>.jpg`
+      - If remote URL → `curl -sL "<url>" -o /tmp/v2/images/lead_<date_iso>.jpg`
+      Repeat for sections: `section_<slug>_<date_iso>.jpg`.
+      **CRITICAL: never skip this download/copy step.** The image exists only in the cloud
+      or cache until you save it to `/tmp/v2/images/`.
    h. Update edition.json — add `"image": "images/<filename>"` to lead or to first item in each section.
 
 ## Anti-patterns (NEVER do these)
@@ -163,6 +165,6 @@ When called as `hermes chat -q` from orchestrator-v2 or from a cron-triggered pi
 hermes chat -q "..." --profile luke -s image-gen-v2 -t file,image_gen,terminal -Q --yolo
 ```
 
-**Why this matters:** `image_generate` returns a path inside the Hermes cache (e.g. `/home/nttluke/.hermes/profiles/luke/cache/images/xai_grok-*.jpg`). To copy it to `/tmp/v2/images/lead_<date>.jpg`, the agent needs `terminal` access. Without it, the agent cannot run `cp` — it will write a help script asking someone else to copy the files, and the images will be missing from the output. This happened in the 2026-06-28 test run: 5 images were generated correctly but never made it to `/tmp/v2/images/` because `terminal` was absent from the toolset.
+**Why this matters:** `image_generate` returns either a Hermes cache path (e.g. `/home/nttluke/.hermes/profiles/luke/cache/images/xai_grok-*.jpg`) or a remote URL (e.g. `https://files-cdn.x.ai/...`). The agent MUST check which type it received and use the appropriate command (`cp` for local, `curl` for remote) to copy/download it to `/tmp/v2/images/lead_<date>.jpg`. Without this step, images are generated but never reach the output directory — the HTML references non-existent files. This happened on 2026-07-10: 5 images were generated correctly but never downloaded from the xAI CDN.
 
 **Rule:** any orchestration that calls image-gen-v2 outside interactive chat (bash orchestrator, cron, pipeline) must pass `-t file,image_gen,terminal` — NOT `-t file,image_gen`.
