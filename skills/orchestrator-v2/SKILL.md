@@ -23,8 +23,9 @@ Phase 1: 3 scouts in parallel (x, research, official)
 Phase 2: 3 scouts in parallel (opensource, tools, funding)
 Phase 3: 1 scout (hardware)
 Phase 4: YouTube (Python RSS fetch + dedicated LLM scout)
+Phase 5: Italia AI Spotlight (web + RSS, Italian-specific)
   ↓
-Editor (merge 8 scout JSONs → edition.json)
+Editor (merge 9 scout JSONs → edition.json)
   ↓
 Image-gen (lead + section images via xAI Grok)
   ↓
@@ -616,10 +617,10 @@ Publisher feeds include non-AI articles that mention \"AI\" incidentally (\"Dyso
 The ticker sits between `</header>` and `<div class=\"lead-zone\">`. NOT above the masthead, NOT inside the lead article. Visual hierarchy: masthead → ticker → lead image → lead headline/grid.
 
 #### 6. Deploy dir may have stale index.html
-`~/ai-news-deploy/index.html` on disk may differ from `git HEAD:index.html` (e.g. uncommitted overwrites from a different tool/script). Always verify with `git show HEAD:index.html` before injecting, or checkout the committed version first.
+# Editor V2 — Assembly
 
-### When to Use
-
+## When to use
+After all 8 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. The orchestrator calls you.
 - Testing the RSS + LLM writing approach without breaking production
 - Experimenting with new rendering patterns (scrolling ticker, modal articles)
 - Evaluating Google News coverage vs the existing scout sources
