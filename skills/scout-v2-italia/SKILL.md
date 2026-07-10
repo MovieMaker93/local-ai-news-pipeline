@@ -6,35 +6,40 @@ description: "V2 scout: Italian AI startups, news, and community — RSS + web. 
 # Scout V2 — Italia AI Spotlight
 
 ## Focus
-Italian AI ecosystem: startups, funding rounds, community news, research from Italian institutions.
+Italian AI ecosystem: **startups, funding rounds, community projects, university spin-offs**.
+NOT general business AI news from large corporations (IBM, Microsoft Italia, etc. — those are not startup news).
 NOT general international AI news (those have their own scouts).
 
 ## Sources
 
 ### 📡 RSS feeds (fetch and scan for AI-related posts)
-- `https://www.ai4business.it/feed/` — AI4Business (daily AI news, Italian perspective)
+- `https://www.ai4business.it/feed/` — AI4Business (pick ONLY startup/innovation/funding articles)
+- `https://www.latechmadeinitaly.com/` — La Tech Made in Italy (deep tech and startup focus)
 
-### 🔍 Web Search (for startup funding and launches)
-- `web_search: "AI startup Italy fundraise <recent>"`, `web_search: "intelligenza artificiale startup italiana <recent>"`
-- `web_search: site:sifted.eu Italy AI startup <recent>`
-- `web_search: site:techcrunch.com Italy AI <recent>`
+### 🔍 Web Search (primary method — startup funding and launches)
+- `web_search: "AI startup" Italy fundraise OR series OR seed OR round <recent>`
+- `web_search: site:sifted.eu "Italy" startup "AI" <recent>`
+- `web_search: site:techcrunch.com Italy startup AI <recent>`
+- `web_search: "startup" "intelligenza artificiale" Italia round OR funding 2026`
 
-### 💰 Funding rounds (dealflow tracking)
-- `web_search: "italian AI startup" funding OR series OR round 2026`
-- Search for specific Italian AI startups from sources like MDOTM, iGenius, Aindo, Principled Intelligence
+### 💰 Funding rounds (specific Italian AI startups)
+- Search for specific startups: iGenius, Aindo, MDOTM, Alia Mentis, Principled Intelligence, Domyn, Lexroom
+- `web_search: "Italian AI startup" raises OR closes OR secures funding 2026`
 
-### 🌐 Community & Events
-- `web_search: AIxIA OR "Forum AI" OR "AI4I" italia`
-- Optional: `x_search: #AIitalia OR #startupitaliane`
+### 🌐 Community & Spinoffs
+- `web_search: "spin-off" OR "università" AI startup Italy 2026`
+- `x_search: (from:AI4I_italy OR from:StartupItalia OR #AIitalia) funding OR round OR launch`
+- `web_search: "Club degli Investitori" OR "Italian Founders Fund" AI startup`
 
 ## Method
-1. Fetch RSS feed from AI4Business
-2. Scan for AI-related posts (about AI, machine learning, data science)
-3. Filter Italian-specific content: startups, Italian companies, Italian institutions, Italian events
-4. Search web for Italian AI startup funding and launches
+1. Fetch RSS feeds and web search for Italian AI startup content
+2. **Prefer startup-specific sources** over general business news
+3. Exclude articles about large corporations (IBM, Microsoft, Google Italia, etc.)
+4. Scan for Italian AI startup funding rounds, launches, and community projects
 5. **Translate headline to English** — the source is Italian, the output MUST be English
 6. Keep the link pointing to the original Italian source
 7. Write a factual 1-2 sentence summary in English
+8. If no startup-specific news is found, return `[]` rather than filling with general business articles
 
 ## Output contract
 Return ONLY a JSON array (no prose, no fences). Each element:
