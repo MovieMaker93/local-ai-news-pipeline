@@ -74,8 +74,8 @@ DENY = [
     'allen iverson', 'air india', 'ai-ais', 'said ai',  # extend as you see noise
 ]
 
-MODEL = 'deepseek/deepseek-v4-flash'   # AI model used for writing
-PROVIDER = 'openrouter'                # provider
+MODEL = 'GLM-5.2'   # AI model used for writing
+PROVIDER = 'localAIServer'                # provider
 USE_Z = False       # True -> use `hermes -z` (purest stdout) instead of `chat -q`
 
 MAX_ITEMS = 5            # how many articles to write per run
