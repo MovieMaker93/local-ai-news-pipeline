@@ -6,7 +6,7 @@ Every `hermes chat -q` call in the pipeline uses one of three model sources:
 
 ```yaml
 model:
-  default: glm-5.2
+  default: glm-5.2-openai
   provider: openrouter
   base_url: https://your-litellm-server.example/v1
   api_key: sk-…  # Friend's LiteLLM server
@@ -28,7 +28,7 @@ These inherit whatever the profile default is. Changing the default in `config.y
 
 | Step | Model | Lines |
 |------|-------|-------|
-| **YouTube scout** (Phase 4) | `glm-5.2` | 168-175 |
+| **YouTube scout** (Phase 4) | `glm-5.2-openai` | 168-175 |
 | **Editor** | *(none — inherits default)* | — |
 
 The YouTube model is **pinned** so it doesn't drift if the profile default changes.
@@ -36,7 +36,7 @@ The YouTube model is **pinned** so it doesn't drift if the profile default chang
 ## 3. Hardcoded in Python (`wire_articles.py`)
 
 ```python
-MODEL = 'glm-5.2'      # line 77
+MODEL = 'glm-5.2-openai'      # line 77
 PROVIDER = 'openrouter' # line 78
 # Overridable via env var WIRE_MODEL     # line 288
 ```
