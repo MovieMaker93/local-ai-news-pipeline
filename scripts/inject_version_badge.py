@@ -63,25 +63,25 @@ CSS = """<style>
   line-height: 1.5;
 }
 .vs-badge-ds {
-  color: #00d4aa;
-  border-color: #00d4aa;
+  color: var(--lux);
+  border-color: var(--lux-soft);
   background: transparent;
 }
 .vs-badge-ds:hover {
-  background: rgba(0, 212, 170, 0.1);
-  color: #00e6b5;
+  background: rgba(240, 162, 60, 0.08);
+  color: var(--lux);
 }
 .vs-badge-k3 {
-  color: #a855f7;
-  border-color: #a855f7;
+  color: var(--ember);
+  border-color: var(--ember);
   background: transparent;
 }
 .vs-badge-k3:hover {
-  background: rgba(168, 85, 247, 0.1);
-  color: #c084fc;
+  background: rgba(255, 107, 53, 0.08);
+  color: var(--ember);
 }
 .vs-badge-current {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: default;
   pointer-events: none;
 }
