@@ -40,7 +40,7 @@ header.masthead {
   color: #000 !important;
 }
 .nameplate .lux {
-  color: #000 !important;
+  color: #f0a23c !important;
 }
 .dateline, .dateline span, .dateline .tag {
   color: #333 !important;
@@ -63,26 +63,19 @@ header.masthead {
   background-color: var(--ink) !important;
   color: var(--type) !important;
 }
-/* Text colors — full black for readability */
+/* Text colors — all articles same as lead */
 .lead-story, .story, .top-story, .quick-hit, .section-content, .qh-item {
   color: #000 !important;
 }
-.lead a, .lead a:link, .lead h1, .lead a h1 {
+.lead a, .lead a:link, .lead h1, .lead a h1,
+.lead .deck, .top-story .summary, .item .summary,
+.section .item .summary, .lead-story .deck,
+.top-story a, .top-story a:link, .top-story h3 a,
+.item a, .item a:link, .item h3 a {
   color: #000 !important;
 }
 .lead .kicker {
   color: #333 !important;
-}
-.lead .deck, .top-story .summary, .item .summary,
-.section .item .summary, .lead-story .deck {
-  color: #111 !important;
-}
-.lead a:hover h1 {
-  color: #333 !important;
-}
-.top-story a, .top-story a:link, .top-story h3 a,
-.item a, .item a:link, .item h3 a {
-  color: #000 !important;
 }
 .section-header {
   color: #000 !important;
