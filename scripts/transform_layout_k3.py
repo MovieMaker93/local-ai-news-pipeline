@@ -100,10 +100,11 @@ a:hover, a:focus, a:active {
 }
 
 /* Wire news: keep dark (AFTER nuclear, overrides it) */
-.wire-widget, .wire-widget *,
-[class*="wire"], [class*="ticker"], [class*="breaking"],
-[class*="wire"] a, [class*="ticker"] a, [class*="breaking"] a,
-[class*="wire"] a:link, [class*="ticker"] a:link, [class*="breaking"] a:link {
+.wt, .wt *,
+.wtt, .wtt *,
+.ti, .tih, .tis,
+.wt a, .wtt a, .ti a, .ti a:link,
+[class*="wire"], [class*="ticker"], [class*="breaking"] {
   background-color: var(--ink) !important;
   color: var(--type) !important;
 }
