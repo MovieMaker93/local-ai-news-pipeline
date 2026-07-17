@@ -36,7 +36,7 @@ Same as editor-v2: all scout JSONs from `/tmp/v2/scouts/`, `headlines_history.js
    
    - **quick_hits** (5-7): real but minor. One headline + source + brief context (2-5 words), no summary.
    
-   - **trending**: pass through from opensource scout unchanged.
+   - **trending**: SKIP — set to null. GitHub/HF leaderboards are shown in the DeepSeek edition. K3 is lean, curated, no filler.
 
 6. **Rewrite for The Lens**: 
    - Headlines should be intriguing, not just factual

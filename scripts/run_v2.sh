@@ -353,6 +353,15 @@ if [ -f "$K3_OUTPUT_DIR/index.html" ] && [ -f "$BADGE_SCRIPT" ]; then
 fi
 echo "  ✓ version badges injected"
 
+# ── Step 6e: Transform K3 layout to Magazine ─────────────────
+echo "[step 6e] transforming k3 layout to magazine..."
+LAYOUT_SCRIPT="$SCRIPT_DIR/transform_layout_magazine.py"
+if [ -f "$K3_OUTPUT_DIR/index.html" ] && [ -f "$LAYOUT_SCRIPT" ]; then
+    python3 "$LAYOUT_SCRIPT" "$K3_OUTPUT_DIR/index.html" \
+        --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || true
+    echo "  ✓ k3 layout transformed to magazine"
+fi
+
 # ── Step 7: Podcast Pill ─────────────────────────────────────
 echo "[step 7] podcast pill..."
 SKIP_PODCAST=false
