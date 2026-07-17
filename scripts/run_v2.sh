@@ -239,13 +239,13 @@ check_timeout
 # ── Step 4b: Editor (Kimi K3 edition) ────────────────────────
 echo "[step 4b] editor kimi-k3..."
 ISSUE_DS=$(python3 -c "import json; print(json.load(open('$V2_DIR/edition.json')).get('issue_no','$NEXT_ISSUE'))" 2>/dev/null || echo "$NEXT_ISSUE")
-"$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
+"$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2-k3 and follow it exactly.
 Today is $TODAY. Issue #$ISSUE_DS.
 Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup (step 4b), read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition_k3.json using write_file. ENGLISH ONLY." \
-    --profile "$PROFILE" -s editor-v2 -t file -m kimi-k3 --provider localAIServer -Q --yolo \
+    --profile "$PROFILE" -s editor-v2-k3 -t file -m kimi-k3 --provider localAIServer -Q --yolo \
     >"$LOG_DIR/editor_k3_${TODAY}.log" 2>&1 || true
 
 if [ -f "$V2_DIR/edition_k3.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition_k3.json'))" 2>/dev/null 2>&1; then
