@@ -371,7 +371,17 @@ def main():
                     help='Stage 1 only: list selected items, skip the LLM.')
     ap.add_argument('--max', type=int, default=MAX_ITEMS)
     ap.add_argument('--out', default=OUTPUT_PATH)
+    ap.add_argument('--model', default=None,
+                    help='Override model (default: deepseek-v4-flash)')
+    ap.add_argument('--provider', default=None,
+                    help='Override provider (default: localAIServer)')
     args = ap.parse_args()
+
+    # Override model/provider from args if provided
+    if args.model:
+        globals()['MODEL'] = args.model
+    if args.provider:
+        globals()['PROVIDER'] = args.provider
 
     grounded = collect(args.max)
 

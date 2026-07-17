@@ -413,31 +413,42 @@ check_timeout
 
 # ── Step 8: Wire Articles ────────────────────────────────────
 echo "[step 7] wire articles..."
-WIRE_COUNT=0
 WIRE_SCRIPT="$SCRIPT_DIR/wire_articles.py"
 if [ -f "$WIRE_SCRIPT" ]; then
-    python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" 2>>"$LOGFILE" || \
-        echo "  ⚠ wire articles script failed (non-fatal)"
-    WIRE_COUNT=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire.json'));print(len(d))" 2>/dev/null || echo "0")
-    echo "  ✓ $WIRE_COUNT wire articles written"
+    # Wire articles for DeepSeek edition
+    python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire_ds.json" 2>>"$LOGFILE" || \
+        echo "  ⚠ wire articles DS failed (non-fatal)"
+    WIRE_COUNT_DS=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire_ds.json'));print(len(d))" 2>/dev/null || echo "0")
+    echo "  ✓ $WIRE_COUNT_DS wire articles (DS) written"
+    
+    # Wire articles for Kimi K3 edition
+    python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire_k3.json" --model kimi-k3 --provider localAIServer 2>>"$LOGFILE" || \
+        echo "  ⚠ wire articles K3 failed (non-fatal)"
+    WIRE_COUNT_K3=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire_k3.json'));print(len(d))" 2>/dev/null || echo "0")
+    echo "  ✓ $WIRE_COUNT_K3 wire articles (K3) written"
 else
     echo "  - wire_articles.py not found, skipping"
 fi
 # This step renamed because we numbered incorrectly
 echo "[step 8] inject wire ticker..."
 INJECT_SCRIPT="$SCRIPT_DIR/inject_wire_ticker.py"
-if [ "$WIRE_COUNT" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$OUTPUT_DIR/index.html" ]; then
-    python3 "$INJECT_SCRIPT" "$OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire.json" --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
-        echo "  ⚠ ticker injection failed (non-fatal)"
-    echo "  ✓ ticker injected"
-    # Also inject into k3 version
-    if [ -f "$K3_OUTPUT_DIR/index.html" ]; then
-        python3 "$INJECT_SCRIPT" "$K3_OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire.json" --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
-            echo "  ⚠ k3 ticker injection failed (non-fatal)"
-        echo "  ✓ ticker injected into k3"
-    fi
+
+# Inject DS wire into main index.html
+if [ "${WIRE_COUNT_DS:-0}" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$OUTPUT_DIR/index.html" ]; then
+    python3 "$INJECT_SCRIPT" "$OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire_ds.json" --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
+        echo "  ⚠ DS ticker injection failed (non-fatal)"
+    echo "  ✓ DS ticker injected"
 else
-    echo "  - no wire articles or injector missing, skipping"
+    echo "  - no DS wire articles, skipping DS ticker"
+fi
+
+# Inject K3 wire into k3/index.html
+if [ "${WIRE_COUNT_K3:-0}" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$K3_OUTPUT_DIR/index.html" ]; then
+    python3 "$INJECT_SCRIPT" "$K3_OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire_k3.json" --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
+        echo "  ⚠ K3 ticker injection failed (non-fatal)"
+    echo "  ✓ K3 ticker injected"
+else
+    echo "  - no K3 wire articles, skipping K3 ticker"
 fi
 check_timeout
 
@@ -509,7 +520,7 @@ echo "  Date:    $TODAY"
 echo "  Scouts:  $SCOUT_COUNT/9"
 echo "  DS edition: ✅ ($([ -f "$V2_DIR/edition.json" ] && echo 'generated' || echo 'failed'))"
 echo "  K3 edition: $([ -f "$V2_DIR/edition_k3.json" ] && [ -f "$OUTPUT_DIR/k3/index.html" ] && echo '✅ rendered' || echo '⏭ skipped')"
-echo "  Wire:    $WIRE_COUNT articles"
+echo "  Wire:    DS:${WIRE_COUNT_DS:-0}  K3:${WIRE_COUNT_K3:-0} articles"
 echo "  Images:  $IMG_COUNT ($([ "$SKIP_IMAGES" = true ] && echo 'skipped - no xAI credits' || echo 'generated'))"
 echo "  Podcast: $([ "$SKIP_PODCAST" = true ] && echo 'skipped - no xAI credits' || echo 'attempted')"
 echo "  Deploy:  $DEPLOY_DIR"
