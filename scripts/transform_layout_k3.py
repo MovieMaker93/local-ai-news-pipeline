@@ -108,6 +108,48 @@ a:hover, a:focus, a:active {
   background-color: var(--ink) !important;
   color: var(--type) !important;
 }
+
+/* Wire modal: white bg, black text, amber accent */
+.mo {
+  background: rgba(0,0,0,0.4) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.mb {
+  background: #fff !important;
+  border-color: #d4d0c8 !important;
+}
+.mh {
+  color: #000 !important;
+}
+.mm {
+  color: #666 !important;
+}
+.mm a {
+  color: #000 !important;
+}
+.mm a:hover {
+  color: #f0a23c !important;
+}
+.mbd {
+  color: #000 !important;
+}
+.mbd .en {
+  color: #f0a23c !important;
+  border-left-color: #f0a23c !important;
+}
+.mbd .as {
+  color: #999 !important;
+  border-top-color: #d4d0c8 !important;
+}
+.mbd .as .al {
+  color: #f0a23c !important;
+}
+.mc {
+  color: #999 !important;
+}
+.mc:hover {
+  color: #000 !important;
+}
 .section-header {
   color: #000 !important;
   border-bottom-color: #000 !important;
