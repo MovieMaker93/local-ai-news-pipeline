@@ -236,6 +236,26 @@ else
 fi
 check_timeout
 
+# ── Step 4b: Editor (Kimi K3 edition) ────────────────────────
+echo "[step 4b] editor kimi-k3..."
+ISSUE_DS=$(python3 -c "import json; print(json.load(open('$V2_DIR/edition.json')).get('issue_no','$NEXT_ISSUE'))" 2>/dev/null || echo "$NEXT_ISSUE")
+"$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
+Today is $TODAY. Issue #$ISSUE_DS.
+Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
+For cross-day dedup (step 4b), read $DEPLOY_DIR/headlines_history.json via read_file.
+Assemble edition.json following the skill instructions.
+Write the result to $V2_DIR/edition_k3.json using write_file. ENGLISH ONLY." \
+    --profile "$PROFILE" -s editor-v2 -t file -m kimi-k3 --provider localAIServer -Q --yolo \
+    >"$LOG_DIR/editor_k3_${TODAY}.log" 2>&1 || true
+
+if [ -f "$V2_DIR/edition_k3.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition_k3.json'))" 2>/dev/null 2>&1; then
+    echo "  ✓ edition_k3.json written"
+else
+    echo "  ✗ edition_k3.json MISSING or INVALID — k3 edition will be skipped"
+    echo "{}" > "$V2_DIR/edition_k3.json"
+fi
+check_timeout
+
 # ── Step 5: Image Gen (with pre-check for xAI credits) ──────
 echo "[step 5] image gen..."
 SKIP_IMAGES=false
@@ -272,6 +292,66 @@ else
     echo "  ✗ render.py or edition.json missing"
     exit 1
 fi
+
+# ── Step 6b: Copy image paths from DS edition to K3 edition ──
+echo "[step 6b] copying image paths to k3 edition..."
+if [ -f "$V2_DIR/edition_k3.json" ]; then
+    python3 -c "
+import json
+# Read ds edition (has image paths from step 5)
+with open('$V2_DIR/edition.json') as f:
+    ds = json.load(f)
+# Read k3 edition
+with open('$V2_DIR/edition_k3.json') as f:
+    k3 = json.load(f)
+# Copy lead image
+ds_lead = ds.get('lead') or {}
+k3_lead = k3.get('lead') or {}
+if ds_lead and k3_lead and ds_lead.get('image'):
+    k3_lead['image'] = ds_lead['image']
+# Copy section images
+ds_sections = {s['title']: s for s in ds.get('sections', []) if s.get('image')}
+for sec in k3.get('sections', []):
+    if sec['title'] in ds_sections:
+        sec['image'] = ds_sections[sec['title']]['image']
+with open('$V2_DIR/edition_k3.json', 'w') as f:
+    json.dump(k3, f, indent=2)
+print('  ✓ image paths copied')
+" 2>>"$LOGFILE" || echo "  ⚠ image copy for k3 failed (non-fatal)"
+fi
+
+# ── Step 6c: Render K3 edition ───────────────────────────────
+echo "[step 6c] render k3 edition..."
+K3_OUTPUT_DIR="$OUTPUT_DIR/k3"
+mkdir -p "$K3_OUTPUT_DIR"
+if [ -f "$RENDER_PY" ] && [ -f "$V2_DIR/edition_k3.json" ]; then
+    K3_CHECK=$(python3 -c "import json; d=json.load(open('$V2_DIR/edition_k3.json')); print('ok' if d.get('lead') or d.get('sections') or d.get('quick_hits') else 'empty')" 2>/dev/null || echo "invalid")
+    if [ "$K3_CHECK" = "ok" ]; then
+        python3 "$RENDER_PY" "$V2_DIR/edition_k3.json" "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE"
+        echo "  ✓ rendered → $K3_OUTPUT_DIR/index.html"
+    else
+        echo "  - k3 edition empty or invalid, skipping render"
+    fi
+else
+    echo "  - render.py or edition_k3.json missing, skipping k3"
+fi
+
+# ── Step 6d: Inject version badges ───────────────────────────
+echo "[step 6d] injecting version badges..."
+BADGE_SCRIPT="$SCRIPT_DIR/inject_version_badge.py"
+
+# Inject DS badge into main index.html
+if [ -f "$OUTPUT_DIR/index.html" ] && [ -f "$BADGE_SCRIPT" ]; then
+    python3 "$BADGE_SCRIPT" "$OUTPUT_DIR/index.html" ds \
+        --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || true
+fi
+
+# Inject K3 badge into k3/index.html
+if [ -f "$K3_OUTPUT_DIR/index.html" ] && [ -f "$BADGE_SCRIPT" ]; then
+    python3 "$BADGE_SCRIPT" "$K3_OUTPUT_DIR/index.html" k3 \
+        --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || true
+fi
+echo "  ✓ version badges injected"
 
 # ── Step 7: Podcast Pill ─────────────────────────────────────
 echo "[step 7] podcast pill..."
@@ -311,6 +391,15 @@ print(m.get('duration_sec', 0))
                 "$DUR" \
                 --output "$OUTPUT_DIR/index.html" \
                 2>>"$LOGFILE" && echo "  ✓ podcast pill injected" || echo "  ⚠ podcast pill injection failed"
+            # Also inject into k3 version if it exists
+            if [ -f "$K3_OUTPUT_DIR/index.html" ]; then
+                python3 "$PODCAST_INJECT" \
+                    "$K3_OUTPUT_DIR/index.html" \
+                    "$OGG_REL" \
+                    "$DUR" \
+                    --output "$K3_OUTPUT_DIR/index.html" \
+                    2>>"$LOGFILE" && echo "  ✓ podcast pill injected into k3" || echo "  ⚠ k3 podcast injection failed"
+            fi
         else
             echo "  - podcast meta incomplete, skipping injection"
         fi
@@ -341,6 +430,12 @@ if [ "$WIRE_COUNT" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$OUTPUT_DIR/index
     python3 "$INJECT_SCRIPT" "$OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire.json" --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
         echo "  ⚠ ticker injection failed (non-fatal)"
     echo "  ✓ ticker injected"
+    # Also inject into k3 version
+    if [ -f "$K3_OUTPUT_DIR/index.html" ]; then
+        python3 "$INJECT_SCRIPT" "$K3_OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire.json" --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
+            echo "  ⚠ k3 ticker injection failed (non-fatal)"
+        echo "  ✓ ticker injected into k3"
+    fi
 else
     echo "  - no wire articles or injector missing, skipping"
 fi
@@ -357,6 +452,11 @@ git reset --hard origin/main --quiet 2>/dev/null || true
 # ── Step 10: Copy files ───────────────────────────────────────
 echo "[step 10] copying files..."
 cp "$OUTPUT_DIR/index.html" "$DEPLOY_DIR/index.html"
+if [ -d "$OUTPUT_DIR/k3" ]; then
+    mkdir -p "$DEPLOY_DIR/k3"
+    cp "$OUTPUT_DIR/k3/index.html" "$DEPLOY_DIR/k3/index.html"
+    echo "  ✓ k3 edition copied"
+fi
 cp -r "$OUTPUT_DIR/fonts"/* "$DEPLOY_DIR/fonts/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/images"
 cp "$IMAGES_DIR"/*.jpg "$DEPLOY_DIR/images/" 2>/dev/null || true
@@ -373,6 +473,10 @@ fi
 
 cp "$V2_DIR/edition.json" "$DEPLOY_DIR/edition.json"
 echo "  ✓ edition.json saved to deploy dir"
+if [ -f "$V2_DIR/edition_k3.json" ]; then
+    cp "$V2_DIR/edition_k3.json" "$DEPLOY_DIR/k3/edition.json"
+    echo "  ✓ k3 edition.json saved to deploy dir"
+fi
 
 # ── Step 11: Archive ─────────────────────────────────────────
 echo "[step 11] archiving current issue..."
@@ -403,6 +507,8 @@ echo "✅ V2 PIPELINE COMPLETE — $(date '+%H:%M:%S')"
 echo "  Issue:   #$NEXT_ISSUE"
 echo "  Date:    $TODAY"
 echo "  Scouts:  $SCOUT_COUNT/9"
+echo "  DS edition: ✅ ($([ -f "$V2_DIR/edition.json" ] && echo 'generated' || echo 'failed'))"
+echo "  K3 edition: $([ -f "$V2_DIR/edition_k3.json" ] && [ -f "$OUTPUT_DIR/k3/index.html" ] && echo '✅ rendered' || echo '⏭ skipped')"
 echo "  Wire:    $WIRE_COUNT articles"
 echo "  Images:  $IMG_COUNT ($([ "$SKIP_IMAGES" = true ] && echo 'skipped - no xAI credits' || echo 'generated'))"
 echo "  Podcast: $([ "$SKIP_PODCAST" = true ] && echo 'skipped - no xAI credits' || echo 'attempted')"
