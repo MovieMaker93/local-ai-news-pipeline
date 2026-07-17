@@ -18,7 +18,10 @@ import argparse
 
 WHITE_CSS = """<style>
 /* ── K3 White Edition ── */
-/* Content area: white, header stays dark */
+/* Full page background: white, header stays dark */
+html, body {
+  background: #faf8f5 !important;
+}
 .container {
   background: #faf8f5 !important;
   border-left: 3px solid #e0dcd4 !important;
@@ -26,13 +29,26 @@ WHITE_CSS = """<style>
 header.masthead {
   background: var(--ink) !important;
 }
-/* Text colors for light background */
+/* Text colors — darker for readability on white */
 .lead-story, .story, .top-story, .quick-hit, .section-content, .qh-item {
   color: #1a1a1a !important;
 }
+.lead a, .lead a:link, .lead h1, .lead a h1 {
+  color: #1a1a1a !important;
+}
+.lead .kicker {
+  color: #555 !important;
+}
 .lead .deck, .top-story .summary, .item .summary,
 .section .item .summary, .lead-story .deck {
-  color: #333 !important;
+  color: #222 !important;
+}
+.top-story a, .top-story a:link, .top-story h3 a,
+.item a, .item a:link, .item h3 a {
+  color: #1a1a1a !important;
+}
+.section-header {
+  color: #1a1a1a !important;
 }
 .byline, .item .byline, .meta-text, .qh-src {
   color: #666 !important;
