@@ -38,15 +38,12 @@ header.masthead {
   color: var(--type) !important;
 }
 
-/* 3. ALL LINKS BLACK by default, amber on hover */
+/* 3. ALL LINKS BLACK by default */
 a, a:link {
   color: #000 !important;
 }
-a:hover {
-  color: #f0a23c !important;
-}
 
-/* 4. HEADER exceptions (override general hover) */
+/* 4. HEADER exceptions (override general) */
 .masthead .topline {
   border-color: #d4d0c8 !important;
 }
@@ -81,26 +78,28 @@ a:hover {
   border-color: #ccc !important;
 }
 
-/* 5. ALL ARTICLE TEXT BLACK */
-.lead a, .lead a:link, .lead h1, .lead a h1,
-.lead .deck, .lead-story .deck,
-.top-story, .top-story .summary, .top-story a, .top-story a:link, .top-story h3 a,
-.story, .story p,
-.item, .item .summary, .item p, .item a, .item a:link, .item h3 a,
-.section .item, .section .item .summary,
-.section-content, .section-header, .section-head h2,
-.quick-hit, .quick-hit a, .qh-item, .qh-title, .qh-src,
-.lead-story, .story, .top-story, .quick-hit, .section-content, .qh-item,
-.byline, .byline .src, .meta-text,
-.inbrief, .inbrief a, .inbrief h2,
-.colophon, .colophon p, .colophon .meta, .colophon a {
+/* 5. ALL ARTICLE TEXT BLACK — nuclear */
+.lead, .lead *, .lead a, .lead a:link, .lead a:visited, .lead h1, .lead a h1,
+.topstories, .topstories *, .top-stories, .top-story,
+.story, .story *, .story p, .story h3,
+.section, .section *, .section .item, .section .items,
+.item, .item *, .item p, .item a, .item a:link, .item h3, .item h3 a,
+.section-content, .section-header, .section-head, .section-head h2,
+.quick-hits, .quick-hits *, .quick-hit, .quick-hit *,
+.qh-item, .qh-item *, .qh-title, .qh-src,
+.byline, .byline *, .byline .src, .meta-text,
+.inbrief, .inbrief *, .inbrief a, .inbrief h2,
+.sections, .sections *, .lead-head, .lead-body, .lead-grid,
+.colophon, .colophon *, .colophon p, .colophon .meta, .colophon a,
+h1, h2, h3, h4, h5, p, a, span, div, article, section {
   color: #000 !important;
 }
-/* Hover: amber like Lux */
+/* Hover: amber like Lux (AFTER nuclear rule) */
 .lead a:hover h1, .lead a:hover .lead-title,
 .top-story a:hover h3, .top-story a:hover .top-title,
 .item a:hover h3, .item a:hover .item-title,
-.quick-hit a:hover, .qh-item a:hover {
+.quick-hit a:hover, .qh-item a:hover,
+a:hover, a:focus, a:active {
   color: #f0a23c !important;
 }
 .section-header {
