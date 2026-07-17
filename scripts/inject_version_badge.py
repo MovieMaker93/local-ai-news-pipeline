@@ -25,14 +25,14 @@ def build_badge_html(mode: str) -> str:
         return (
             '<div class="version-selector">\n'
             '  <span class="vs-badge vs-badge-current vs-badge-ds">\U0001f40b DeepSeek V4 Flash</span>\n'
-            '  <a href="k3/" class="vs-badge vs-badge-k3">\U0001f52e Kimi K3 Edition (The Lens)</a>\n'
+            '  <a href="k3/index.html" class="vs-badge vs-badge-k3">\U0001f52e Kimi K3 Edition (The Lens)</a>\n'
             '</div>'
         )
     elif mode == "k3":
         # Kimi is current, link to ../ (parent = deepseek default)
         return (
             '<div class="version-selector">\n'
-            '  <a href="../" class="vs-badge vs-badge-ds">\U0001f40b DeepSeek V4 Flash</a>\n'
+            '  <a href="../index.html" class="vs-badge vs-badge-ds">\U0001f40b DeepSeek V4 Flash</a>\n'
             '  <span class="vs-badge vs-badge-current vs-badge-k3">\U0001f52e Kimi K3 Edition (The Lens)</span>\n'
             '</div>'
         )
