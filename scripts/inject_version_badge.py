@@ -94,6 +94,13 @@ CSS = """<style>
 def inject(html: str, mode: str) -> str:
     badge_html = build_badge_html(mode)
 
+    # Fix CSS path for subdirectory versions (k3 is in k3/ subdir)
+    if mode == "k3":
+        html = html.replace('href="style.css"', 'href="../style.css"', 1)
+        html = html.replace('href="fonts/', 'href="../fonts/', 1)
+        html = html.replace('src="images/', 'src="../images/', 1)
+        html = html.replace('src="podcasts/', 'src="../podcasts/', 1)
+
     # Insert CSS before </head>
     html = html.replace("</head>", CSS + "\n</head>", 1)
 
