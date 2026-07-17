@@ -18,7 +18,8 @@ import argparse
 
 WHITE_CSS = """<style>
 /* ── K3 White Edition ── */
-/* Full page background: white */
+
+/* 1. BACKGROUNDS */
 html, body {
   background: #faf8f5 !important;
 }
@@ -26,10 +27,23 @@ html, body {
   background: #faf8f5 !important;
   border-left: 3px solid #e0dcd4 !important;
 }
-/* Header: white bg, black text */
 header.masthead {
   background: #faf8f5 !important;
 }
+
+/* 2. WIRE NEWS — keep dark */
+.wire-widget, .wire-widget *,
+[class*="wire"], [class*="ticker"], [class*="breaking"] {
+  background-color: var(--ink) !important;
+  color: var(--type) !important;
+}
+
+/* 3. ALL LINKS BLACK by default */
+a, a:link {
+  color: #000 !important;
+}
+
+/* 4. HEADER exceptions (after general a rule) */
 .masthead .topline {
   border-color: #d4d0c8 !important;
 }
@@ -57,37 +71,31 @@ header.masthead {
 .masthead .rule-double {
   border-color: #ccc !important;
 }
-/* Wire widget: keep dark bg (override white) */
-.wire-widget, .wire-widget *,
-[class*="wire"], [class*="ticker"], [class*="breaking"] {
-  background-color: var(--ink) !important;
-  color: var(--type) !important;
-}
-/* Text colors — all articles same as lead */
-.lead-story, .story, .top-story, .quick-hit, .section-content, .qh-item {
-  color: #000 !important;
-}
+
+/* 5. ALL ARTICLE TEXT BLACK */
 .lead a, .lead a:link, .lead h1, .lead a h1,
-.lead .deck, .top-story .summary, .item .summary,
-.section .item .summary, .lead-story .deck,
-.top-story a, .top-story a:link, .top-story h3 a,
-.item a, .item a:link, .item h3 a {
+.lead .deck, .lead-story .deck,
+.top-story, .top-story .summary, .top-story a, .top-story a:link, .top-story h3 a,
+.story, .story p,
+.item, .item .summary, .item p, .item a, .item a:link, .item h3 a,
+.section .item, .section .item .summary,
+.section-content, .section-header, .section-head h2,
+.quick-hit, .quick-hit a, .qh-item, .qh-title, .qh-src,
+.lead-story, .story, .top-story, .quick-hit, .section-content, .qh-item,
+.byline, .byline .src, .meta-text,
+.inbrief, .inbrief a, .inbrief h2,
+.colophon, .colophon p, .colophon .meta, .colophon a {
   color: #000 !important;
-}
-.lead .kicker {
-  color: #333 !important;
 }
 .section-header {
   color: #000 !important;
   border-bottom-color: #000 !important;
 }
 .byline, .item .byline, .meta-text, .qh-src {
-  color: #555 !important;
+  color: #000 !important;
 }
-a, a:link {
-  color: #1a56db !important;
-}
-/* Version badges on white bg */
+
+/* 6. VERSION BADGES (after general a rule) */
 .vs-badge-ds {
   color: #1a1a1a !important;
   border-color: #1a1a1a !important;
@@ -109,7 +117,8 @@ a, a:link {
 .vs-badge-current {
   opacity: 0.4 !important;
 }
-/* Article horizontal rules — consistent spacing */
+
+/* 7. ARTICLE RULES */
 .section .item {
   border-bottom: 1px solid #d4d0c8 !important;
   border-left: none !important;
@@ -119,12 +128,10 @@ a, a:link {
 .section .item:last-child {
   border-bottom: none !important;
 }
-/* Override Lux nth-child rules that create inconsistent borders */
 .item:nth-child(3n+1), .item:nth-child(2n+1) {
   border-left: none !important;
   padding-left: 0 !important;
 }
-/* Top stories */
 .topstories .story {
   border-left: none !important;
   border-top: 1px solid #d4d0c8 !important;
@@ -133,19 +140,20 @@ a, a:link {
 .topstories .story:first-child {
   border-top: none !important;
 }
-/* Horizontal rules */
 hr.rule-thin {
   border-color: #d4d0c8 !important;
 }
 hr.rule-double {
   border-color: #c8c4bc !important;
 }
-/* Remove images (not relevant for K3) */
+
+/* 8. REMOVE IMAGES */
 .section-hero, .section-hero-img, .lead-image,
 .item img, .top-story img {
   display: none !important;
 }
-/* Clean section headers */
+
+/* 9. SECTION HEADERS */
 .section-header {
   border-bottom: 2px solid #1a1a1a !important;
   color: #1a1a1a !important;
@@ -155,21 +163,18 @@ hr.rule-double {
 .section-header .count {
   color: #999 !important;
 }
-/* Quick hits */
+
+/* 10. QUICK HITS + COLOPHON */
 .quick-hits a {
-  color: #1a1a1a !important;
+  color: #000 !important;
 }
-/* Colophon */
 .colophon {
-  color: #777 !important;
+  color: #000 !important;
   border-top-color: #d4d0c8 !important;
 }
 .colophon a {
-  color: #2563eb !important;
-}
-/* Topline (ember line at top of header) */
-.topline {
-  border-color: #e0dcd4 !important;
+  color: #000 !important;
+  border-bottom-color: #d4d0c8 !important;
 }
 </style>"""
 
