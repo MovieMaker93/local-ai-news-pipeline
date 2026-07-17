@@ -123,6 +123,15 @@ def archive_issue(deploy_dir: str) -> dict:
 
     (archive_dir / "index.html").write_text(archived_html, encoding="utf-8")
 
+    # 7. podcasts/ (audio per il podcast pill — solo quelli referenziati nell'HTML)
+    audio_refs = re.findall(r'src="((?:podcasts/)?[^"]+\.ogg)"', archived_html)
+    for ref in audio_refs:
+        ref_path = ref.replace("podcasts/", "")  # normalize path
+        src_ogg = deploy / "podcasts" / ref_path
+        if src_ogg.exists():
+            (archive_dir / "podcasts").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(src_ogg), str(archive_dir / "podcasts" / ref_path))
+
     # Rigenera archive/index.html
     regenerate_archive_index(deploy)
 
