@@ -108,19 +108,19 @@ SCOUT_DATE_BRIEF="Window: from $YESTERDAY to $TODAY. Today is $TODAY, yesterday 
 
 # --- Phase 1: 3 scouts in parallel ---
 echo "[step 2] scouts phase 1 (parallel: x, research, official)..."
-run_scout "x" "scout-v2-x" "x_search,file" \
+run_scout "x" "scout-v2-x" "x_search,file,terminal" \
     "You are the X Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-x and follow it exactly. Use from_date=$YESTERDAY to_date=$TODAY in x_search calls.
 Write the JSON array to $SCOUTS_DIR/scout_x.json using write_file. ENGLISH ONLY." &
 PID_X=$!
 
-run_scout "research" "scout-v2-research" "web,file" \
+run_scout "research" "scout-v2-research" "web,file,terminal" \
     "You are the Research Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-research and follow it exactly. Search arXiv and HuggingFace daily papers.
 Write the JSON array to $SCOUTS_DIR/scout_research.json using write_file. ENGLISH ONLY." &
 PID_RESEARCH=$!
 
-run_scout "official" "scout-v2-official" "web,file" \
+run_scout "official" "scout-v2-official" "web,file,terminal" \
     "You are the Official Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-official and follow it exactly. Scrape official AI lab blogs.
 Write the JSON array to $SCOUTS_DIR/scout_official.json using write_file. ENGLISH ONLY." &
@@ -131,19 +131,19 @@ echo "  ✓ phase 1 complete"
 
 # --- Phase 2: 3 scouts in parallel ---
 echo "[step 2] scouts phase 2 (parallel: opensource, tools, funding)..."
-run_scout "opensource" "scout-v2-opensource" "web,x_search,file" \
+run_scout "opensource" "scout-v2-opensource" "web,x_search,file,terminal" \
     "You are the Open Source Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-opensource and follow it exactly. Search GitHub Trending and HuggingFace Trending.
 Write the JSON object (with editorial array + trending object) to $SCOUTS_DIR/scout_opensource.json using write_file. ENGLISH ONLY." &
 PID_OS=$!
 
-run_scout "tools" "scout-v2-tools" "web,file" \
+run_scout "tools" "scout-v2-tools" "web,file,terminal" \
     "You are the Tools Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-tools and follow it exactly. Search Product Hunt, Hacker News, tool launches.
 Write the JSON array to $SCOUTS_DIR/scout_tools.json using write_file. ENGLISH ONLY." &
 PID_TOOLS=$!
 
-run_scout "funding" "scout-v2-funding" "web,file" \
+run_scout "funding" "scout-v2-funding" "web,file,terminal" \
     "You are the Funding Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-funding and follow it exactly. Search TechCrunch, Crunchbase for AI funding.
 Write the JSON array to $SCOUTS_DIR/scout_funding.json using write_file. ENGLISH ONLY." &
@@ -154,7 +154,7 @@ echo "  ✓ phase 2 complete"
 
 # --- Phase 3: 1 scout ---
 echo "[step 2] scouts phase 3 (hardware)..."
-run_scout "hardware" "scout-v2-hardware" "web,x_search,file" \
+run_scout "hardware" "scout-v2-hardware" "web,x_search,file,terminal" \
     "You are the Hardware Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-hardware and follow it exactly. Search for robots, chips, datacenter hardware news.
 Write the JSON array to $SCOUTS_DIR/scout_hardware.json using write_file. ENGLISH ONLY."
@@ -183,7 +183,7 @@ echo "[step 2] scouts phase 5 (italia)..."
 Load skill scout-v2-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
 Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
 All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
-    --profile "$PROFILE" -s scout-v2-italia -t web,file -m deepseek-v4-flash --provider localAIServer -Q --yolo \
+    --profile "$PROFILE" -s scout-v2-italia -t web,file,terminal -m deepseek-v4-flash --provider localAIServer -Q --yolo \
     >"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
 echo "  ✓ phase 5 complete"
 check_timeout
@@ -370,6 +370,13 @@ cp "$IMAGES_DIR"/*.jpg "$DEPLOY_DIR/images/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/podcasts"
 cp /tmp/v2/podcasts/*.ogg "$DEPLOY_DIR/podcasts/" 2>/dev/null || true
 echo "  ✓ files copied to deploy dir"
+TEMPLATE_DIR="/home/nttluke/lux-in-tenebris-pipeline/template"
+if [ -f "$TEMPLATE_DIR/style.css" ]; then
+    cp "$TEMPLATE_DIR/style.css" "$DEPLOY_DIR/style.css"
+    echo "  ✓ style.css copied from template"
+else
+    echo "  ⚠ template style.css not found"
+fi
 
 cp "$V2_DIR/edition.json" "$DEPLOY_DIR/edition.json"
 echo "  ✓ edition.json saved to deploy dir"
