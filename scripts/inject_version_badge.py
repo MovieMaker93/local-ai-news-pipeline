@@ -104,27 +104,21 @@ def inject(html: str, mode: str) -> str:
     # Insert CSS before </head>
     html = html.replace("</head>", CSS + "\n</head>", 1)
 
-    # Insert badge after the dateline div (which ends with </div>)
-    # The dateline is: <div class="dateline">...</div>
-    # We inject right after its closing </div>, before the next element.
-    # Pattern: find the dateline closing tag, insert after it.
-    # Safer: inject after </div>\n      <div class="devocracy-credit"
-    # Because the template has:
-    #       <div class="dateline">...</div>
-    #       <div class="devocracy-credit">...</div>
+    # Insert badge AFTER the dateline closing </div>, before devocracy-credit
+    # This ensures badge sits between dateline and credit, not inside dateline
     html = re.sub(
-        r'(</div>\s*\n\s*<div class="devocracy-credit")',
-        badge_html + "\n      \\1",
+        r'(</div>)(\s*\n\s*<div class="devocracy-credit")',
+        "\\1\n" + badge_html + "\\2",
         html,
         count=1,
     )
 
     # If template has different spacing, try a more general fallback
     if badge_html not in html:
-        # Try after dateline with different whitespace
+        # Try with minimal whitespace between tags
         html = re.sub(
-            r'(</div>\s*<div class="devocracy-credit")',
-            badge_html + "\n      \\1",
+            r'(</div>)(\s*<div class="devocracy-credit")',
+            "\\1\n" + badge_html + "\\2",
             html,
             count=1,
         )
