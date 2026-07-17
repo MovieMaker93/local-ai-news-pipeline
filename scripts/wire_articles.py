@@ -74,7 +74,7 @@ DENY = [
     'allen iverson', 'air india', 'ai-ais', 'said ai',  # extend as you see noise
 ]
 
-MODEL = 'GLM-5.2-openai'   # AI model used for writing
+MODEL = 'GLM-5.2'   # AI model used for writing
 PROVIDER = 'localAIServer'                # provider
 USE_Z = False       # True -> use `hermes -z` (purest stdout) instead of `chat -q`
 

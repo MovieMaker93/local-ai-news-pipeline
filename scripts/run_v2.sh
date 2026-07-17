@@ -83,7 +83,7 @@ run_scout() {
         --profile "$PROFILE" \
         -s "$skill" \
         -t "$toolsets" \
-        -m GLM-5.2-openai --provider localAIServer \
+        -m GLM-5.2 --provider localAIServer \
         -Q --yolo \
         2>>"$LOG_DIR/scout_${name}_${TODAY}.err" \
         >"$LOG_DIR/scout_${name}_${TODAY}.out" || true
@@ -172,7 +172,7 @@ Extract newsworthy items from the video data.
 Write the JSON array to /tmp/v2/scouts/scout_youtube.json using write_file.
 ENGLISH ONLY. Today is '"$TODAY"' ('"$TODAY_HUMAN"'). Window: '"$YESTERDAY"' to '"$TODAY"'."' \
     --profile "$PROFILE" -s scout-v2-youtube -t file \
-    -m GLM-5.2-openai --provider localAIServer \
+    -m GLM-5.2 --provider localAIServer \
     -Q --yolo >"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
 echo "  ✓ phase 4 complete"
 check_timeout
@@ -183,7 +183,7 @@ echo "[step 2] scouts phase 5 (italia)..."
 Load skill scout-v2-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
 Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
 All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
-    --profile "$PROFILE" -s scout-v2-italia -t web,file -m GLM-5.2-openai --provider localAIServer -Q --yolo \
+    --profile "$PROFILE" -s scout-v2-italia -t web,file -m GLM-5.2 --provider localAIServer -Q --yolo \
     >"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
 echo "  ✓ phase 5 complete"
 check_timeout
@@ -224,7 +224,7 @@ Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup (step 4b), read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
-    --profile "$PROFILE" -s editor-v2 -t file -m GLM-5.2-openai --provider localAIServer -Q --yolo \
+    --profile "$PROFILE" -s editor-v2 -t file -m GLM-5.2 --provider localAIServer -Q --yolo \
     >"$LOG_DIR/editor_${TODAY}.log" 2>&1 || true
 
 if [ -f "$V2_DIR/edition.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition.json'))" 2>/dev/null 2>&1; then
@@ -250,7 +250,7 @@ if [ "$SKIP_IMAGES" = false ]; then
 Today is $TODAY. Read $V2_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $V2_DIR/images/. Update edition.json. ENGLISH ONLY." \
-        --profile "$PROFILE" -s image-gen-v2 -t file,image_gen,terminal -m GLM-5.2-openai --provider localAIServer -Q --yolo \
+        --profile "$PROFILE" -s image-gen-v2 -t file,image_gen,terminal -m GLM-5.2 --provider localAIServer -Q --yolo \
         >"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 
@@ -290,7 +290,7 @@ Today is $TODAY. Issue #$NEXT_ISSUE.
 Read $V2_DIR/edition.json. Generate Castor/Luna dialogue from lead.
 Produce TTS audio, concat with ffmpeg, write metadata to $V2_DIR/podcast_meta.json.
 Use text_to_speech tool. Use terminal for ffmpeg. ENGLISH ONLY." \
-        --profile "$PROFILE" -s podcast-pill -t file,terminal -m GLM-5.2-openai --provider localAIServer -Q --yolo \
+        --profile "$PROFILE" -s podcast-pill -t file,terminal -m GLM-5.2 --provider localAIServer -Q --yolo \
         >"$LOG_DIR/podcast_${TODAY}.log" 2>&1 || true
     
     # Inject podcast pill into HTML (if metadata was generated)
