@@ -38,16 +38,22 @@ header.masthead {
   color: var(--type) !important;
 }
 
-/* 3. ALL LINKS BLACK by default */
+/* 3. ALL LINKS BLACK by default, amber on hover */
 a, a:link {
   color: #000 !important;
 }
+a:hover {
+  color: #f0a23c !important;
+}
 
-/* 4. HEADER exceptions (after general a rule) */
+/* 4. HEADER exceptions (override general hover) */
 .masthead .topline {
   border-color: #d4d0c8 !important;
 }
 .ears .left, .ears .right, .ears a {
+  color: #333 !important;
+}
+.ears a:hover {
   color: #333 !important;
 }
 .nameplate {
@@ -63,6 +69,9 @@ a, a:link {
   color: #999 !important;
 }
 .devocracy-credit, .devocracy-credit a {
+  color: #666 !important;
+}
+.devocracy-credit a:hover {
   color: #666 !important;
 }
 .masthead .rule-thin {
@@ -86,6 +95,13 @@ a, a:link {
 .inbrief, .inbrief a, .inbrief h2,
 .colophon, .colophon p, .colophon .meta, .colophon a {
   color: #000 !important;
+}
+/* Hover: amber like Lux */
+.lead a:hover h1, .lead a:hover .lead-title,
+.top-story a:hover h3, .top-story a:hover .top-title,
+.item a:hover h3, .item a:hover .item-title,
+.quick-hit a:hover, .qh-item a:hover {
+  color: #f0a23c !important;
 }
 .section-header {
   color: #000 !important;
@@ -116,6 +132,9 @@ a, a:link {
 }
 .vs-badge-current {
   opacity: 0.4 !important;
+}
+.vs-badge-current:hover {
+  color: #1a1a1a !important;
 }
 
 /* 7. ARTICLE RULES */
