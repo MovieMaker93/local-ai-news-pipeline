@@ -31,12 +31,8 @@ header.masthead {
   background: #faf8f5 !important;
 }
 
-/* 2. WIRE NEWS — keep dark */
-.wire-widget, .wire-widget *,
-[class*="wire"], [class*="ticker"], [class*="breaking"] {
-  background-color: var(--ink) !important;
-  color: var(--type) !important;
-}
+/* 2. WIRE NEWS — keep dark (AFTER nuclear override) */
+/* moved to after section 5 below */
 
 /* 3. ALL LINKS BLACK by default */
 a, a:link {
@@ -101,6 +97,15 @@ h1, h2, h3, h4, h5, p, a, span, div, article, section {
 .quick-hit a:hover, .qh-item a:hover,
 a:hover, a:focus, a:active {
   color: #f0a23c !important;
+}
+
+/* Wire news: keep dark (AFTER nuclear, overrides it) */
+.wire-widget, .wire-widget *,
+[class*="wire"], [class*="ticker"], [class*="breaking"],
+[class*="wire"] a, [class*="ticker"] a, [class*="breaking"] a,
+[class*="wire"] a:link, [class*="ticker"] a:link, [class*="breaking"] a:link {
+  background-color: var(--ink) !important;
+  color: var(--type) !important;
 }
 .section-header {
   color: #000 !important;
