@@ -21,6 +21,7 @@ WHITE_CSS = """<style>
 /* Content area: white, header stays dark */
 .container {
   background: #faf8f5 !important;
+  border-left: 3px solid #e0dcd4 !important;
 }
 header.masthead {
   background: var(--ink) !important;
@@ -31,10 +32,10 @@ header.masthead {
 }
 .lead .deck, .top-story .summary, .item .summary,
 .section .item .summary, .lead-story .deck {
-  color: #444 !important;
+  color: #333 !important;
 }
 .byline, .item .byline, .meta-text, .qh-src {
-  color: #777 !important;
+  color: #666 !important;
 }
 h1, h2, h3, h4, .section-header, .lead .lead-title,
 .top-story h3 a, .item h3 a, .quick-hit a, .qh-item a {
@@ -43,15 +44,31 @@ h1, h2, h3, h4, .section-header, .lead .lead-title,
 a, a:link {
   color: #2563eb !important;
 }
-/* Rules consistent */
+/* Article horizontal rules — consistent spacing */
 .section .item {
   border-bottom: 1px solid #d4d0c8 !important;
-  padding: 0.5rem 0 !important;
+  border-left: none !important;
+  padding: 0.75rem 0 !important;
   margin: 0 !important;
 }
 .section .item:last-child {
   border-bottom: none !important;
 }
+/* Override Lux nth-child rules that create inconsistent borders */
+.item:nth-child(3n+1), .item:nth-child(2n+1) {
+  border-left: none !important;
+  padding-left: 0 !important;
+}
+/* Top stories */
+.topstories .story {
+  border-left: none !important;
+  border-top: 1px solid #d4d0c8 !important;
+  padding: 0.75rem 0 !important;
+}
+.topstories .story:first-child {
+  border-top: none !important;
+}
+/* Horizontal rules */
 hr.rule-thin {
   border-color: #d4d0c8 !important;
 }
@@ -68,6 +85,7 @@ hr.rule-double {
   border-bottom: 2px solid #1a1a1a !important;
   color: #1a1a1a !important;
   margin-bottom: 0.75rem !important;
+  padding-bottom: 0.25rem !important;
 }
 .section-header .count {
   color: #999 !important;
@@ -83,6 +101,10 @@ hr.rule-double {
 }
 .colophon a {
   color: #2563eb !important;
+}
+/* Topline (ember line at top of header) */
+.topline {
+  border-color: #e0dcd4 !important;
 }
 </style>"""
 
