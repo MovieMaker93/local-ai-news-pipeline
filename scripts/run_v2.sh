@@ -354,15 +354,8 @@ cd "$DEPLOY_DIR"
 git fetch origin --quiet 2>/dev/null || true
 git reset --hard origin/main --quiet 2>/dev/null || true
 
-# ── Step 10: Archive ─────────────────────────────────────────
-echo "[step 10] archiving current issue..."
-ARCHIVE_SCRIPT="$SCRIPT_DIR/archive_issue.py"
-if [ -f "$ARCHIVE_SCRIPT" ]; then
-    python3 "$ARCHIVE_SCRIPT" "$DEPLOY_DIR" 2>>"$LOGFILE" || echo "  ⚠ archive failed (non-fatal)"
-    echo "  ✓ archived"
-fi
-
-# Copy files
+# ── Step 10: Copy files ───────────────────────────────────────
+echo "[step 10] copying files..."
 cp "$OUTPUT_DIR/index.html" "$DEPLOY_DIR/index.html"
 cp -r "$OUTPUT_DIR/fonts"/* "$DEPLOY_DIR/fonts/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/images"
@@ -380,6 +373,14 @@ fi
 
 cp "$V2_DIR/edition.json" "$DEPLOY_DIR/edition.json"
 echo "  ✓ edition.json saved to deploy dir"
+
+# ── Step 11: Archive ─────────────────────────────────────────
+echo "[step 11] archiving current issue..."
+ARCHIVE_SCRIPT="$SCRIPT_DIR/archive_issue.py"
+if [ -f "$ARCHIVE_SCRIPT" ]; then
+    python3 "$ARCHIVE_SCRIPT" "$DEPLOY_DIR" 2>>"$LOGFILE" || echo "  ⚠ archive failed (non-fatal)"
+    echo "  ✓ archived"
+fi
 
 python3 "$SCRIPT_DIR/update_headlines_history.py" \
     "$V2_DIR/edition.json" \
