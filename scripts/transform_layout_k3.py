@@ -18,7 +18,7 @@ import argparse
 
 WHITE_CSS = """<style>
 /* ── K3 White Edition ── */
-/* Full page background: white, header stays dark */
+/* Full page background: white */
 html, body {
   background: #faf8f5 !important;
 }
@@ -26,39 +26,95 @@ html, body {
   background: #faf8f5 !important;
   border-left: 3px solid #e0dcd4 !important;
 }
+/* Header: white bg, black text */
 header.masthead {
-  background: var(--ink) !important;
+  background: #faf8f5 !important;
 }
-/* Text colors — darker for readability on white */
+.masthead .topline {
+  border-color: #d4d0c8 !important;
+}
+.ears .left, .ears .right, .ears a {
+  color: #333 !important;
+}
+.nameplate {
+  color: #000 !important;
+}
+.nameplate .lux {
+  color: #000 !important;
+}
+.dateline, .dateline span, .dateline .tag {
+  color: #333 !important;
+}
+.dateline .dot {
+  color: #999 !important;
+}
+.devocracy-credit, .devocracy-credit a {
+  color: #666 !important;
+}
+.masthead .rule-thin {
+  border-color: #d4d0c8 !important;
+}
+.masthead .rule-double {
+  border-color: #ccc !important;
+}
+/* Wire widget: keep dark bg (override white) */
+.wire-widget, .wire-widget *,
+[class*="wire"], [class*="ticker"], [class*="breaking"] {
+  background-color: var(--ink) !important;
+  color: var(--type) !important;
+}
+/* Text colors — full black for readability */
 .lead-story, .story, .top-story, .quick-hit, .section-content, .qh-item {
-  color: #1a1a1a !important;
+  color: #000 !important;
 }
 .lead a, .lead a:link, .lead h1, .lead a h1 {
-  color: #1a1a1a !important;
+  color: #000 !important;
 }
 .lead .kicker {
-  color: #555 !important;
+  color: #333 !important;
 }
 .lead .deck, .top-story .summary, .item .summary,
 .section .item .summary, .lead-story .deck {
-  color: #222 !important;
+  color: #111 !important;
+}
+.lead a:hover h1 {
+  color: #333 !important;
 }
 .top-story a, .top-story a:link, .top-story h3 a,
 .item a, .item a:link, .item h3 a {
-  color: #1a1a1a !important;
+  color: #000 !important;
 }
 .section-header {
-  color: #1a1a1a !important;
+  color: #000 !important;
+  border-bottom-color: #000 !important;
 }
 .byline, .item .byline, .meta-text, .qh-src {
-  color: #666 !important;
-}
-h1, h2, h3, h4, .section-header, .lead .lead-title,
-.top-story h3 a, .item h3 a, .quick-hit a, .qh-item a {
-  color: #1a1a1a !important;
+  color: #555 !important;
 }
 a, a:link {
-  color: #2563eb !important;
+  color: #1a56db !important;
+}
+/* Version badges on white bg */
+.vs-badge-ds {
+  color: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+  background: transparent !important;
+}
+.vs-badge-ds:hover {
+  background: rgba(0,0,0,0.05) !important;
+  color: #000 !important;
+}
+.vs-badge-k3 {
+  color: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+  background: transparent !important;
+}
+.vs-badge-k3:hover {
+  background: rgba(0,0,0,0.05) !important;
+  color: #000 !important;
+}
+.vs-badge-current {
+  opacity: 0.4 !important;
 }
 /* Article horizontal rules — consistent spacing */
 .section .item {
