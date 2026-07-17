@@ -285,7 +285,7 @@ def collect(max_items):
 
 def build_prompt(item):
     """The model sees ONLY this: instructions + the fetched facts. Nothing else."""
-    model_name = os.environ.get('WIRE_MODEL', 'deepseek/deepseek-v4-flash')
+    model_name = os.environ.get('WIRE_MODEL', MODEL)
     return f"""You are a tech-news writer for an AI daily called "Lux in Tenebris".
 Write ONE original short article in ENGLISH based ONLY on the source text below.
 
