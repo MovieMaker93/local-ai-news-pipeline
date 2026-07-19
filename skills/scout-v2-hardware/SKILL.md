@@ -48,6 +48,10 @@ After gathering all items but BEFORE writing the final JSON, validate EVERY item
 
 2. **Auto-fix on mismatch (max 3 attempts per item):** If source and URL domain don't align, use `web_search` with the article title + source name to find the real URL. Each attempt = one search cycle.
 
-3. **Discard unfixable items:** After 3 failed attempts, REMOVE the item from your array. Do NOT keep items with mismatched source↔url.
+3. **HTTP 200 check (CRITICAL):** For EVERY URL in your array, run `curl -sI -o /dev/null -w "%{http_code}" --max-time 5 <url>` via the `terminal` tool. If the response is NOT 200 (or 301/302 redirect), discard the item entirely. Do NOT keep items with 404, 403, 500, or any error status.
 
-4. **No placeholder URLs:** Never use "#", empty strings, or null as URLs. If a real URL can't be found after 3 attempts, discard the item entirely.
+4. **Discard unfixable items:** After 3 failed attempts, REMOVE the item from your array. Do NOT keep items with mismatched source↔url or broken HTTP status.
+
+5. **No placeholder URLs:** Never use "#", empty strings, or null as URLs. If a real URL can't be found after 3 attempts, discard the item entirely.
+
+6. **API unavailable fallback:** If `web_search` and `web_extract` are both unavailable (403/432), do NOT fabricate URLs from `curl` output. Return `[]` immediately — empty array is better than broken links.
