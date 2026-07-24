@@ -24,9 +24,9 @@ from pathlib import Path
 
 
 # ── Percorso assoluto dell'archivio su GitHub Pages ──────────
-# Il sito è hosted su https://nttluke.github.io/luxintenebris-ai-news/
-ARCHIVE_URL = "/luxintenebris-ai-news/archive/"
-HOME_URL = "/luxintenebris-ai-news/"
+# Il sito è hosted su luxintenebris.news (GitHub Pages)
+ARCHIVE_URL = "/archive/"
+HOME_URL = "/"
 
 
 def extract_issue_no(html_path: str) -> int | None:

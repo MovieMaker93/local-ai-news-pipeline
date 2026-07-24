@@ -152,6 +152,55 @@ PID_FUNDING=$!
 wait $PID_OS $PID_TOOLS $PID_FUNDING 2>/dev/null || true
 echo "  ✓ phase 2 complete"
 
+# ── Trending fallback: if opensource scout failed, fetch via curl ──
+TRENDING_FALLBACK="$SCRIPT_DIR/fetch_trending.py"
+if [ -f "$TRENDING_FALLBACK" ]; then
+    SCOUT_OS="$SCOUTS_DIR/scout_opensource.json"
+    has_trending=$(python3 -c "
+import json
+try:
+    d = json.load(open('$SCOUT_OS'))
+    if isinstance(d, dict):
+        gh = len(d.get('trending',{}).get('github',{}).get('items',[]))
+        hf = len(d.get('trending',{}).get('huggingface',{}).get('items',[]))
+        print(gh + hf)
+    else:
+        print(0)
+except: print(0)
+" 2>/dev/null || echo "0")
+    if [ "$has_trending" -lt 3 ]; then
+        echo "  → trending data missing (${has_trending} items), fetching via curl fallback..."
+        TMP_TRENDING=$(mktemp)
+        python3 "$TRENDING_FALLBACK" --output-json "$TMP_TRENDING" 2>>"$LOGFILE" || true
+        if [ -f "$TMP_TRENDING" ] && python3 -c "import json; json.load(open('$TMP_TRENDING'))" 2>/dev/null 2>&1; then
+            python3 -c "
+import json
+try:
+    # Read existing scout file (may be [] or {editorial:..., trending:...})
+    with open('$SCOUT_OS') as f:
+        existing = json.load(f)
+    if not isinstance(existing, dict):
+        existing = {'editorial': []}
+    # Read trending data
+    with open('$TMP_TRENDING') as f:
+        trending_data = json.load(f)
+    existing['trending'] = trending_data.get('trending', {})
+    with open('$SCOUT_OS', 'w') as f:
+        json.dump(existing, f, indent=2)
+    gh = len(existing['trending'].get('github',{}).get('items',[]))
+    hf = len(existing['trending'].get('huggingface',{}).get('items',[]))
+    print(f'  ✓ trending fallback: {gh} GitHub + {hf} HF items written')
+except Exception as e:
+    print(f'  ⚠ trending fallback failed: {e}')
+" 2>>"$LOGFILE" || true
+            rm -f "$TMP_TRENDING"
+        else
+            echo "  ⚠ trending fallback fetch failed"
+            rm -f "$TMP_TRENDING"
+        fi
+    fi
+fi
+
 # --- Phase 3: 1 scout ---
 echo "[step 2] scouts phase 3 (hardware)..."
 run_scout "hardware" "scout-v2-hardware" "web,x_search,file,terminal" \
@@ -216,7 +265,7 @@ elif [ -f "$V2_DIR/.issue" ]; then
 fi
 NEXT_ISSUE=$((PREV_ISSUE + 1))
 echo "$NEXT_ISSUE" > "$V2_DIR/.issue"
-echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
+# NOTE: $DEPLOY_DIR/.issue is written AFTER git reset (step 9) to avoid revert
 
 "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
 Today is $TODAY. Issue #$NEXT_ISSUE.
@@ -468,6 +517,9 @@ echo "[step 9] deploying to production..."
 cd "$DEPLOY_DIR"
 git fetch origin --quiet 2>/dev/null || true
 git reset --hard origin/main --quiet 2>/dev/null || true
+
+# Write issue number AFTER git reset so it survives the commit
+echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
 
 # ── Step 10: Copy files ───────────────────────────────────────
 echo "[step 10] copying files..."

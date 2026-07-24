@@ -63,6 +63,19 @@ Git sync → Archive → Copy → git add → commit → push
 - Each edition gets its own wire articles written by its respective model
 - **CRITICAL:** `build_prompt` uses `os.environ.get('WIRE_MODEL', MODEL)`. If `MODEL` global is overridden via `--model`, the prompt's `model_name` follows correctly. Was `deepseek/deepseek-v4-flash` hardcoded (fix applied 2026-07-17).
 
+### fetch_trending.py
+- `python3 fetch_trending.py [--output-json PATH]`
+- Fetches GitHub Trending (15 repos) and HuggingFace Trending (10 models) via **curl** (bypasses Firecrawl/Tavily)
+- Used as auto-fallback when the opensource scout fails (web_extract connection errors)
+- Outputs JSON matching the scout-v2-opensource `trending` contract
+- **Location:** `~/.hermes/profiles/luke/scripts/v2/fetch_trending.py`
+
+### fix_archive_issue_numbers.py
+- `python3 fix_archive_issue_numbers.py`
+- Fixes incorrect issue numbers in archived HTML files and regenerates the archive listing
+- Also sets `.issue` to the correct value for the next pipeline run
+- **Location:** `~/.hermes/profiles/luke/scripts/v2/fix_archive_issue_numbers.py`
+
 ## Per-model components
 
 | Component | DeepSeek | Kimi K3 |
@@ -107,3 +120,7 @@ Git sync → Archive → Copy → git add → commit → push
 6. **Dual wire articles** — DS wire uses deepseek, K3 wire uses kimi-k3. Separate files: `scout_wire_ds.json` and `scout_wire_k3.json`. Each injected into its respective edition. Report shows both counts.
 
 7. **Badge position** — Must sit BETWEEN the dateline closing `</div>` and the devocracy-credit. Regex: `(</div>)(\s*\n\s*<div class="devocracy-credit")` → `\1\n` + badge + `\2`. Do NOT use the regex that matches the entire `</div>...<div class="devocracy-credit"` as one group — the badge ends up inside the dateline div.
+
+8. **Issue number stuck at previous value** — The `.issue` read/increment MUST happen AFTER `git reset --hard origin/main` (step 9). If it runs before, the git reset reverts `$DEPLOY_DIR/.issue` to the committed value. Fixed 2026-07-24: write to `$DEPLOY_DIR/.issue` moved to after the reset.
+
+9. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract` (Firecrawl) which can fail with `Connection error`. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
