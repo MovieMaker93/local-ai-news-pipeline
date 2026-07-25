@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-update_headlines_history.py — Estrae headline da edition.json e le appende
-allo storico per deduplicazione futura da parte dell'editor.
+update_headlines_history.py — Extract headlines from edition.json and append them
+to the headline history for cross-day deduplication by the editor.
 
 Usage:
     python3 update_headlines_history.py <edition.json> <headlines_history.json>
@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 def extract_headlines(edition: dict) -> list[dict]:
-    """Estrae tutte le headline da un edition.json."""
+    """Extract all headlines from an edition.json dict."""
     today = edition.get("date_iso", "")
     issue = edition.get("issue_no", 0)
     entries = []
@@ -70,20 +70,20 @@ def main():
 
     edition = json.loads(edition_path.read_text())
 
-    # Leggi storico esistente o crea nuovo
+    # Read existing history or create new
     if history_path.exists():
         history = json.loads(history_path.read_text())
     else:
         history = {"meta": {"name": "LVX IN TENEBRIS Headline History"}, "headlines": []}
 
-    # Estrai nuove headline
+    # Extract new headlines
     new_entries = extract_headlines(edition)
     history["headlines"].extend(new_entries)
 
-    # Mantieni solo ultimi 2000 (circa 2+ anni di daily)
+    # Keep only the last 2000 entries (~2+ years of daily editions)
     history["headlines"] = history["headlines"][-2000:]
 
-    # Scrivi
+    # Write
     history_path.write_text(json.dumps(history, indent=2))
     print(json.dumps({"status": "ok", "added": len(new_entries), "total": len(history["headlines"])}))
 

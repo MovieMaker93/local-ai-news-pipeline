@@ -1,29 +1,30 @@
 # Setup — Lux in Tenebris Pipeline
 
-## Prerequisiti
+## Prerequisites
 
 - WSL / Linux
-- Hermes Agent configurato (profilo `luke`)
-- GitHub SSH keys configurate
+- [Hermes Agent](https://hermes-agent.nousresearch.com) configured (profile `luke`)
+- GitHub SSH keys configured
 - Git
+- Python 3.13+
 
-## Installazione
+## Installation
 
-### 1. Clona il pipeline repo
+### 1. Clone the pipeline repo
 
 ```bash
 git clone git@github.com:NTTLuke/lux-in-tenebris-pipeline.git
 ```
 
-### 2. Symlink ai path originali
+### 2. Symlink to Hermes paths
 
-Il pipeline repo contiene TUTTO il codice, ma Hermes si aspetta i file
-nei path originali. I symlink risolvono questo problema:
+The pipeline repo contains ALL code, but Hermes expects files at original paths.
+Symlinks bridge this gap:
 
 ```bash
-# Scripts pipeline
+# Pipeline scripts
 cd ~/.hermes/profiles/luke/scripts
-rm -rf v2   # elimina la directory originale (backup prima!)
+rm -rf v2   # remove original directory (backup first!)
 ln -s ~/lux-in-tenebris-pipeline/scripts v2
 
 # Skills
@@ -32,7 +33,7 @@ rm -rf ai-news-v2
 ln -s ~/lux-in-tenebris-pipeline/skills ai-news-v2
 ```
 
-### 3. Verifica
+### 3. Verify
 
 ```bash
 ls -la ~/.hermes/profiles/luke/scripts/v2
@@ -44,7 +45,7 @@ ls -la ~/.hermes/profiles/luke/skills/ai-news-v2
 
 ### 4. Cron job
 
-Il cron job `29fa53d809c4` è già configurato. Se serve ricrearlo:
+The cron job `29fa53d809c4` is already configured. To recreate it:
 
 ```bash
 hermes cron create \
@@ -55,19 +56,35 @@ hermes cron create \
   --deliver telegram
 ```
 
-## Flusso di lavoro aggiornamenti
+### 5. LiteLLM private server
 
-1. Lavori sempre dentro `~/lux-in-tenebris-pipeline/`
+The pipeline uses a private LiteLLM server running at `https://your-litellm-server.example/v1`.
+Configure it in `~/.hermes/profiles/luke/config.yaml`:
+
+```yaml
+custom_providers:
+  - name: localAIServer
+    base_url: https://your-litellm-server.example/v1
+    api_key: sk-...
+    models:
+      - deepseek-v4-flash
+      - kimi-k3
+```
+
+## Update Workflow
+
+1. Always work inside `~/lux-in-tenebris-pipeline/`
 2. `git add`, `git commit`, `git push`
-3. I symlink fanno sì che Hermes veda subito le modifiche
-4. Il cron job usa i symlink → le modifiche sono attive al prossimo run
+3. Symlinks mean Hermes sees changes immediately
+4. The cron job uses symlinks → changes are active on the next run
 
-## Deploy repo separato
+## Separate Deploy Repository
 
-Il deploy (output HTML) vive in un repo separato:
+The output HTML lives in a separate deploy repo:
 - **Repo:** `NTTLuke/luxintenebris-ai-news`
-- **Locale:** `~/ai-news-deploy/`
-- **URL:** `https://nttluke.github.io/luxintenebris-ai-news/`
+- **Local:** `~/ai-news-deploy/`
+- **URL:** `https://luxintenebris.news` (custom domain via Cloudflare)
+- **K3 edition:** `https://luxintenebris.news/k3/`
 
-La pipeline pusha automaticamente su quel repo ad ogni run.
-Non modificare manualmente il deploy repo — le modifiche vengono sovrascritte.
+The pipeline automatically pushes to the deploy repo on every run.
+Do not manually modify the deploy repo — changes will be overwritten.

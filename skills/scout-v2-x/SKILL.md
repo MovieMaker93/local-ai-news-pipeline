@@ -31,6 +31,32 @@ allowed_x_handles: ["OpenAI","AnthropicAI","GoogleDeepMind","xai","NousResearch"
 ```
 Same handles and dates.
 
+## 🔴 FIRECRAWL FALLBACK — when x_search and web tools fail
+
+If `x_search` is unavailable (no OAuth) AND `web_search`/`web_extract` fail with "Payment Required":
+
+1. **Search X via Google (site-scoped):**
+```bash
+curl -sL "https://html.duckduckgo.com/html/?q=site%3Ax.com+AI+July+2026" | python3 -c "
+import sys, re; html = sys.stdin.read()
+for m in re.findall(r'<a[^>]*class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>', html, re.DOTALL):
+    u = m[0]; t = re.sub(r'<[^>]+>', '', m[1]).strip()
+    print(f'{t} | {u}')
+" 2>/dev/null | head -20
+```
+
+2. **Search via Bing (free):**
+```bash
+curl -sL "https://www.bing.com/search?q=site%3Ax.com+AI+news+2026" | python3 -c "
+import sys, re; html = sys.stdin.read()
+for m in re.findall(r'<h2><a[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a></h2>', html, re.DOTALL):
+    u = m[0]; t = re.sub(r'<[^>]+>', '', m[1]).strip()
+    print(f'{t} | {u}')
+" 2>/dev/null | head -20
+```
+
+3. If ALL fallbacks fail, return `[]`.
+
 ## Rules
 - Every `url` MUST come from a real x_search result permalink. Never synthesize URLs.
 - `signal`: 5=field-shifting, 1=minor. Honest assessment.

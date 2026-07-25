@@ -98,6 +98,30 @@ Git sync → Archive → Copy → git add → commit → push
 - Quick hits: 5-7 with brief context (2-5 words)
 - Trending: SKIP (null) — shown in DeepSeek edition only
 
+## 🔴 FIRECRAWL FALLBACK — when web_search/web_extract fail
+
+### Root cause
+`web_search` uses `search_backend: ddgs` (DuckDuckGo, free).  
+`web_extract` uses `extract_backend: firecrawl` (paid API with credit limits).
+
+When Firecrawl credits are exhausted, `web_extract` returns `"Payment Required"`.  
+In some sessions DuckDuckGo may also be rate-limited, causing `web_search` to cascade to Firecrawl and fail too.
+
+### Solution — curl-based fallback
+Each scout skill now includes a **🔴 FIRECRAWL FALLBACK** section with `terminal` + `curl` commands that bypass Firecrawl entirely.
+
+Key free API fallbacks used across scouts:
+- **TechCrunch**: WordPress JSON API (`wp-json/wp/v2/posts`)
+- **HuggingFace Papers**: direct HTML scraping via `curl`
+- **arXiv**: `export.arxiv.org/api/query` (free XML API)
+- **Hacker News**: `hn.algolia.com/api/v1` (free JSON API)
+- **Product Hunt**: HTML regex parsing from Next.js props
+- **DuckDuckGo / Bing**: direct HTML search via `curl`
+- **Generic page fetch**: `curl` + regex title/body extraction
+
+### When to use
+If a scout returns `[]` and the pipeline log shows Firecrawl/credit errors, the scout agent will automatically attempt the curl fallbacks described in its skill before emitting `[]`.
+
 ## Pitfalls
 
 1. **Badge injector duplicates** — Do NOT run `inject_version_badge.py` twice on the same file. Re-render with `render.py` first, then inject ONCE.

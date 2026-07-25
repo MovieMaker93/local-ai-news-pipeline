@@ -34,6 +34,42 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 - Only items dated [yesterday, today].
 - Return `[]` if nothing found. All content in ENGLISH.
 
+## 🔴 FIRECRAWL FALLBACK — when web tools fail with "Payment Required"
+
+If `web_search` or `web_extract` fail with "Payment Required" / "Insufficient credits":
+
+1. **Product Hunt via curl:**
+```bash
+curl -sL "https://www.producthunt.com/" | python3 -c "
+import sys, re; html = sys.stdin.read()
+# Extract product names and descriptions from Next.js props
+for m in re.finditer(r'\"name\":\"([^\"]+)\"[^}]*\"tagline\":\"([^\"]+)\"[^}]*\"url\":\"([^\"]+)\"', html):
+    print('PH:', m.group(1), '|', m.group(2), '|', m.group(3))
+" 2>/dev/null | head -20
+```
+
+2. **Hacker News Show HN via Algolia API (free):**
+```bash
+curl -s "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn,story&hitsPerPage=20&numericFilters=created_at_i>$(date -d '2 days ago' +%s)" | python3 -c "
+import sys, json; data = json.load(sys.stdin)
+for h in data.get('hits', []):
+    print('HN:', h.get('title',''), '|', h.get('url') or 'https://news.ycombinator.com/item?id='+str(h.get('objectID','')), '|', h.get('points',''), 'pts')
+"
+```
+
+3. **Generic site fetch (replaces web_extract):**
+```bash
+curl -sL "URL" | python3 -c "
+import sys, re; html = sys.stdin.read()
+m = re.search(r'<title>(.*?)</title>', html, re.DOTALL)
+print('TITLE:', m.group(1).strip() if m else 'N/A')
+text = re.sub(r'<[^>]+>', ' ', html); text = re.sub(r'\s+', ' ', text).strip()[:3000]
+print('BODY:', text)
+"
+```
+
+4. If ALL fallbacks fail, return `[]`.
+
 ## Link-Source Validation (MANDATORY — run before writing final JSON)
 
 After gathering all items but BEFORE writing the final JSON, validate EVERY item:

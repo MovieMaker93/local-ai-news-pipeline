@@ -18,7 +18,7 @@ SCOUTS_DIR="$V2_DIR/scouts"
 IMAGES_DIR="$V2_DIR/images"
 OUTPUT_DIR="$V2_DIR/output"
 HERMES_BIN="/home/nttluke/.local/bin/hermes"
-RENDER_PY="/home/nttluke/.hermes/profiles/luke/skills/ai-news-24h/render.py"
+RENDER_PY="/home/nttluke/lux-in-tenebris-pipeline/scripts/render.py"
 SCRIPT_DIR="/home/nttluke/.hermes/profiles/luke/scripts/v2"
 CLEANUP_SH="$V2_DIR/cleanup.sh"
 DEPLOY_DIR="/home/nttluke/ai-news-deploy"
@@ -470,7 +470,7 @@ fi
 check_timeout
 
 # ── Step 8: Wire Articles ────────────────────────────────────
-echo "[step 7] wire articles..."
+echo "[step 8] wire articles..."
 WIRE_SCRIPT="$SCRIPT_DIR/wire_articles.py"
 if [ -f "$WIRE_SCRIPT" ]; then
     # Wire articles for DeepSeek edition

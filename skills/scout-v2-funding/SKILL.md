@@ -38,6 +38,30 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 - Put key facts in summary: amount, stage, lead investor, sector.
 - Return `[]` if nothing found. All content in ENGLISH.
 
+## 🔴 FIRECRAWL FALLBACK — when web tools fail with "Payment Required"
+
+If `web_search` or `web_extract` fail with "Payment Required" / "Insufficient credits", fall back to `terminal` + `curl`:
+
+1. **TechCrunch funding via WordPress API:**
+```bash
+curl -s "https://techcrunch.com/wp-json/wp/v2/posts?per_page=10&search=funding+AI" | python3 -c "import sys,json; posts=json.load(sys.stdin); [print(p['title']['rendered'], '|', p['link']) for p in posts]"
+```
+
+2. **Generic site fetch (replaces web_extract):**
+```bash
+curl -sL "URL" | python3 -c "
+import sys, re; html = sys.stdin.read()
+m = re.search(r'<title>(.*?)</title>', html, re.DOTALL)
+print('TITLE:', m.group(1).strip() if m else 'N/A')
+m = re.search(r'<meta\s+name=[\"\\']description[\"\\']\s+content=[\"\\'](.*?)[\"\\']', html, re.DOTALL)
+print('DESC:', m.group(1).strip() if m else 'N/A')
+text = re.sub(r'<[^>]+>', ' ', html); text = re.sub(r'\s+', ' ', text).strip()[:3000]
+print('BODY:', text)
+"
+```
+
+3. **If ALL fallbacks fail**, return `[]`.
+
 ## Link-Source Validation (MANDATORY — run before writing final JSON)
 
 After gathering all items but BEFORE writing the final JSON, validate EVERY item:

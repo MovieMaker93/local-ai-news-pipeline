@@ -32,6 +32,48 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 - Only items dated [yesterday, today].
 - Return `[]` if nothing found. All content in ENGLISH.
 
+## 🔴 FIRECRAWL FALLBACK — when web tools fail with "Payment Required"
+
+If `web_search` or `web_extract` fail with "Payment Required" / "Insufficient credits":
+
+1. **HuggingFace Daily Papers via curl:**
+```bash
+curl -sL "https://huggingface.co/papers" | python3 -c "
+import sys, re; html = sys.stdin.read()
+# Extract paper cards from HF papers page
+papers = re.findall(r'<article[^>]*>.*?<h3[^>]*>(.*?)</h3>.*?href=\"(/(?:papers|papers)/[^\"]+)\".*?<p>(.*?)</p>', html, re.DOTALL)
+for title, path, desc in papers[:15]:
+    t = re.sub(r'<[^>]+>', '', title).strip()
+    d = re.sub(r'<[^>]+>', '', desc).strip()[:200]
+    print(f'{t} | https://huggingface.co{path} | {d}')
+" 2>/dev/null
+```
+
+2. **arXiv recent submissions via API (free):**
+```bash
+curl -s "http://export.arxiv.org/api/query?search_query=cat:cs.AI+AND+cat:cs.LG&sortBy=submittedDate&sortOrder=descending&max_results=30" | python3 -c "
+import sys, re; data = sys.stdin.read()
+for m in re.finditer(r'<entry>.*?<title>(.*?)</title>.*?<id>(.*?)</id>.*?<summary>(.*?)</summary>', data, re.DOTALL):
+    t = re.sub(r'\s+', ' ', m.group(1)).strip()
+    u = m.group(2).strip().rstrip('v1')
+    s = re.sub(r'\s+', ' ', m.group(3)).strip()[:200]
+    print(f'{t} | {u} | {s}')
+" 2>/dev/null
+```
+
+3. **Generic site fetch (replaces web_extract):**
+```bash
+curl -sL "URL" | python3 -c "
+import sys, re; html = sys.stdin.read()
+m = re.search(r'<title>(.*?)</title>', html, re.DOTALL)
+print('TITLE:', m.group(1).strip() if m else 'N/A')
+text = re.sub(r'<[^>]+>', ' ', html); text = re.sub(r'\s+', ' ', text).strip()[:3000]
+print('BODY:', text)
+"
+```
+
+4. If ALL fallbacks fail, return `[]`.
+
 ## Link-Source Validation (MANDATORY — run before writing final JSON)
 
 After gathering all items but BEFORE writing the final JSON, validate EVERY item:

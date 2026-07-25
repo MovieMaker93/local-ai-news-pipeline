@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""archive_issue.py — Archivia il numero corrente prima del deploy.
+"""archive_issue.py — Archive the current issue before deploy.
+
+Creates a self-contained snapshot of the current edition in archive/YYYY-MM-DD/
+and regenerates the archive index page.
 
 Usage:
     python3 archive_issue.py <deploy-dir>
 
-Cosa fa:
-    1. Legge issue_no + data dall'index.html corrente
-    2. Salva in archive/YYYY-MM-DD/ una copia completa self-contained:
-       - index.html  (fotogramma congelato del numero)
+What it does:
+    1. Reads issue_no + date from the current index.html
+    2. Saves a complete self-contained copy to archive/YYYY-MM-DD/:
+       - index.html  (frozen snapshot of the issue)
        - style.css
        - fonts/
        - images/
-    3. Rigenera archive/index.html con la lista cronologica
+    3. Regenerates archive/index.html with the chronological listing
 """
 
 import sys
@@ -23,14 +26,13 @@ from datetime import datetime
 from pathlib import Path
 
 
-# ── Percorso assoluto dell'archivio su GitHub Pages ──────────
-# Il sito è hosted su luxintenebris.news (GitHub Pages)
+# ── Archive URL paths (hosted on GitHub Pages via luxintenebris.news) ──
 ARCHIVE_URL = "/archive/"
 HOME_URL = "/"
 
 
 def extract_issue_no(html_path: str) -> int | None:
-    """Estrae il numero di edizione dal masthead."""
+    """Extract the issue number from the masthead."""
     try:
         text = Path(html_path).read_text(encoding="utf-8")
         m = re.search(r'No\.\s*(\d+)', text)
@@ -42,7 +44,7 @@ def extract_issue_no(html_path: str) -> int | None:
 
 
 def extract_issue_date(html_path: str) -> str:
-    """Estrae la data dal title tag, o fallback a oggi."""
+    """Extract the issue date from the title tag, fallback to today."""
     try:
         text = Path(html_path).read_text(encoding="utf-8")
         m = re.search(r'·\s*(.+?)</title>', text)
@@ -59,7 +61,7 @@ def extract_issue_date(html_path: str) -> str:
 
 
 def copy_dir_contents(src: Path, dst: Path, globs: list[str]):
-    """Copia tutti i file che matchano i glob in dst."""
+    """Copy all files matching any of the glob patterns into dst."""
     if not src.exists():
         return
     dst.mkdir(parents=True, exist_ok=True)
@@ -70,7 +72,7 @@ def copy_dir_contents(src: Path, dst: Path, globs: list[str]):
 
 
 def archive_issue(deploy_dir: str) -> dict:
-    """Archivia l'edizione corrente come fotogramma self-contained."""
+    """Archive the current edition as a self-contained snapshot."""
     deploy = Path(deploy_dir)
     current_html = deploy / "index.html"
 
@@ -83,16 +85,16 @@ def archive_issue(deploy_dir: str) -> dict:
 
     archive_dir = deploy / "archive" / slug
     if archive_dir.exists():
-        # Se già archiviato oggi, sovrascrivi (re-archive)
+        # If already archived today, re-archive (overwrite)
         shutil.rmtree(str(archive_dir))
     archive_dir.mkdir(parents=True)
 
-    # ── Copia ogni risorsa per rendere l'archivio self-contained ──
+    # ── Copy every resource to make the archive self-contained ──
 
     # 1. index.html
     shutil.copy2(str(current_html), str(archive_dir / "index.html"))
 
-    # 2. style.css (statico, nella root del deploy)
+    # 2. style.css (static, at deploy root)
     css_src = deploy / "style.css"
     if css_src.exists():
         shutil.copy2(str(css_src), str(archive_dir / "style.css"))
@@ -100,10 +102,10 @@ def archive_issue(deploy_dir: str) -> dict:
     # 3. fonts/
     copy_dir_contents(deploy / "fonts", archive_dir / "fonts", ["*.woff2", "*.woff", "*.ttf"])
 
-    # 4. images/ (le immagini del numero corrente)
+    # 4. images/ (current issue images)
     copy_dir_contents(deploy / "images", archive_dir / "images", ["*.jpg", "*.png", "*.webp"])
 
-    # 5. edition.json — dati strutturati per analisi future
+    # 5. edition.json — structured data for future analysis
     src_edition = deploy / "edition.json"
     if src_edition.exists():
         shutil.copy2(str(src_edition), str(archive_dir / "edition.json"))
@@ -113,17 +115,17 @@ def archive_issue(deploy_dir: str) -> dict:
     #    for the masthead source link.
     archived_html = (archive_dir / "index.html").read_text(encoding="utf-8")
 
-    # Sostituisci il link relativo 'archive/' nell'⌂ con path assoluto
+    # Replace relative 'archive/' link in the ⌂ with an absolute path
     archived_html = archived_html.replace(
         'href="archive/"',
         f'href="{ARCHIVE_URL}"'
     )
-    # Fix anche il link "source" nel colophon se ancora usa path relativo
-    # (il link source è già assoluto: https://github.com/..., non serve)
+    # Also fix the "source" link in the colophon if still relative
+    # (source link is already absolute: https://github.com/..., no action needed)
 
     (archive_dir / "index.html").write_text(archived_html, encoding="utf-8")
 
-    # 7. podcasts/ (audio per il podcast pill — solo quelli referenziati nell'HTML)
+    # 7. podcasts/ (audio for podcast pill — only those referenced in the HTML)
     audio_refs = re.findall(r'src="((?:podcasts/)?[^"]+\.ogg)"', archived_html)
     for ref in audio_refs:
         ref_path = ref.replace("podcasts/", "")  # normalize path
@@ -132,7 +134,7 @@ def archive_issue(deploy_dir: str) -> dict:
             (archive_dir / "podcasts").mkdir(parents=True, exist_ok=True)
             shutil.copy2(str(src_ogg), str(archive_dir / "podcasts" / ref_path))
 
-    # Rigenera archive/index.html
+    # Regenerate archive/index.html
     regenerate_archive_index(deploy)
 
     return {
@@ -144,12 +146,12 @@ def archive_issue(deploy_dir: str) -> dict:
 
 
 def regenerate_archive_index(deploy_dir: str):
-    """Rigenera archive/index.html con la lista cronologica."""
+    """Regenerate archive/index.html with the chronological listing."""
     deploy = Path(deploy_dir)
     archive_root = deploy / "archive"
     archive_root.mkdir(exist_ok=True)
 
-    # Raccogli tutte le edizioni archiviate (directory)
+    # Collect all archived editions (each is a subdirectory)
     entries = []
     for d in sorted(archive_root.iterdir()):
         if not d.is_dir():
