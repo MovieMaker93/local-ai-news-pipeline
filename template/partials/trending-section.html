@@ -1,0 +1,23 @@
+<div class="trending-wrap">
+  <div class="trending-col">
+    <div class="t-head">
+      <h1 class="t-title">Repos on GitHub</h1>
+      <div class="t-line"></div>
+      <a href="https://github.com/trending" target="_blank" rel="noopener" class="t-link">Go to GitHub trending →</a>
+    </div>
+    <ul class="t-list">
+      {{GITHUB_ITEMS}}
+    </ul>
+  </div>
+  
+  <div class="trending-col">
+    <div class="t-head">
+      <h1 class="t-title">Trending on HF</h1>
+      <div class="t-line"></div>
+      <a href="https://huggingface.co/models?sort=trending" target="_blank" rel="noopener" class="t-link">Go to Hugging Face trending →</a>
+    </div>
+    <ul class="t-list">
+      {{HUGGINGFACE_ITEMS}}
+    </ul>
+  </div>
+</div>
