@@ -335,55 +335,14 @@ check_timeout
 # ── Step 6: Render HTML ─────────────────────────────────────
 echo "[step 6] render..."
 if [ -f "$RENDER_PY" ] && [ -f "$V2_DIR/edition.json" ]; then
-    python3 "$RENDER_PY" "$V2_DIR/edition.json" "$OUTPUT_DIR/index.html" 2>>"$LOGFILE"
+    python3 "$RENDER_PY" "$V2_DIR/edition.json" "$OUTPUT_DIR/index.html" --templates "$TEMPLATE_DIR" 2>>"$LOGFILE"
     echo "  ✓ rendered → $OUTPUT_DIR/index.html"
 else
     echo "  ✗ render.py or edition.json missing"
     exit 1
 fi
 
-# ── Step 6b: Copy image paths from DS edition to K3 edition ──
-echo "[step 6b] copying image paths to k3 edition..."
-if [ -f "$V2_DIR/edition_k3.json" ]; then
-    python3 -c "
-import json
-# Read ds edition (has image paths from step 5)
-with open('$V2_DIR/edition.json') as f:
-    ds = json.load(f)
-# Read k3 edition
-with open('$V2_DIR/edition_k3.json') as f:
-    k3 = json.load(f)
-# Copy lead image
-ds_lead = ds.get('lead') or {}
-k3_lead = k3.get('lead') or {}
-if ds_lead and k3_lead and ds_lead.get('image'):
-    k3_lead['image'] = ds_lead['image']
-# Copy section images
-ds_sections = {s['title']: s for s in ds.get('sections', []) if s.get('image')}
-for sec in k3.get('sections', []):
-    if sec['title'] in ds_sections:
-        sec['image'] = ds_sections[sec['title']]['image']
-with open('$V2_DIR/edition_k3.json', 'w') as f:
-    json.dump(k3, f, indent=2)
-print('  ✓ image paths copied')
-" 2>>"$LOGFILE" || echo "  ⚠ image copy for k3 failed (non-fatal)"
-fi
-
-# ── Step 6c: Render K3 edition ───────────────────────────────
-echo "[step 6c] render k3 edition..."
-K3_OUTPUT_DIR="$OUTPUT_DIR/k3"
-mkdir -p "$K3_OUTPUT_DIR"
-if [ -f "$RENDER_PY" ] && [ -f "$V2_DIR/edition_k3.json" ]; then
-    K3_CHECK=$(python3 -c "import json; d=json.load(open('$V2_DIR/edition_k3.json')); print('ok' if d.get('lead') or d.get('sections') or d.get('quick_hits') else 'empty')" 2>/dev/null || echo "invalid")
-    if [ "$K3_CHECK" = "ok" ]; then
-        python3 "$RENDER_PY" "$V2_DIR/edition_k3.json" "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE"
-        echo "  ✓ rendered → $K3_OUTPUT_DIR/index.html"
-    else
-        echo "  - k3 edition empty or invalid, skipping render"
-    fi
-else
-    echo "  - render.py or edition_k3.json missing, skipping k3"
-fi
+# K3 edition removed per user request (2026-07-25)
 
 # ── Step 6d: Inject version badges ───────────────────────────
 echo "[step 6d] injecting version badges..."
