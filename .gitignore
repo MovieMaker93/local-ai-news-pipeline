@@ -26,3 +26,5 @@ ai-news-deploy/
 *.ogg
 tmp/
 output/
+# Local WIP quarantine (never publish)
+.wip-quarantine/

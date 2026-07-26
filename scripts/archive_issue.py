@@ -30,6 +30,23 @@ from pathlib import Path
 ARCHIVE_URL = "/archive/"
 HOME_URL = "/"
 
+# Shared reference patterns: an asset is only ever copied/kept if some HTML
+# page actually links to it. Prevents images/podcasts from accumulating
+# forever in the deploy root and in every archive snapshot (see
+# extract_referenced_images / extract_referenced_audio).
+IMAGE_SRC_RE = re.compile(r'src="(images/[^"]+\.(?:jpg|jpeg|png|webp))"')
+AUDIO_SRC_RE = re.compile(r'(?:src|href)="((?:podcasts/)?[^"]+\.ogg)"')
+
+
+def extract_referenced_images(html_text: str) -> set[str]:
+    """Return the 'images/<file>' paths this HTML actually <img src="">s."""
+    return set(IMAGE_SRC_RE.findall(html_text))
+
+
+def extract_referenced_audio(html_text: str) -> set[str]:
+    """Return the audio filenames (no 'podcasts/' prefix) this HTML plays."""
+    return {ref.replace("podcasts/", "") for ref in AUDIO_SRC_RE.findall(html_text)}
+
 
 def extract_issue_no(html_path: str) -> int | None:
     """Extract the issue number from the masthead."""
@@ -102,15 +119,12 @@ def archive_issue(deploy_dir: str) -> dict:
     # 3. fonts/
     copy_dir_contents(deploy / "fonts", archive_dir / "fonts", ["*.woff2", "*.woff", "*.ttf"])
 
-    # 4. images/ (current issue images)
-    copy_dir_contents(deploy / "images", archive_dir / "images", ["*.jpg", "*.png", "*.webp"])
-
-    # 5. edition.json — structured data for future analysis
+    # 4. edition.json — structured data for future analysis
     src_edition = deploy / "edition.json"
     if src_edition.exists():
         shutil.copy2(str(src_edition), str(archive_dir / "edition.json"))
 
-    # 6. Rewrite internal links inside the archived HTML to keep them working
+    # 5. Rewrite internal links inside the archived HTML to keep them working
     #    from the subdirectory. We use ARCHIVE_URL for the ⌂ link and HOME_URL
     #    for the masthead source link.
     archived_html = (archive_dir / "index.html").read_text(encoding="utf-8")
@@ -125,10 +139,19 @@ def archive_issue(deploy_dir: str) -> dict:
 
     (archive_dir / "index.html").write_text(archived_html, encoding="utf-8")
 
+    # 6. images/ — ONLY the images this issue's own HTML references. Copying
+    #    the whole deploy/images/ dir (as before) meant every snapshot dragged
+    #    along every image ever generated, since that folder is never pruned —
+    #    it made each archive grow roughly with total site age, not issue size.
+    for ref in extract_referenced_images(archived_html):
+        src_img = deploy / ref
+        if src_img.exists():
+            dst_img = archive_dir / ref
+            dst_img.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(src_img), str(dst_img))
+
     # 7. podcasts/ (audio for podcast pill — only those referenced in the HTML)
-    audio_refs = re.findall(r'src="((?:podcasts/)?[^"]+\.ogg)"', archived_html)
-    for ref in audio_refs:
-        ref_path = ref.replace("podcasts/", "")  # normalize path
+    for ref_path in extract_referenced_audio(archived_html):
         src_ogg = deploy / "podcasts" / ref_path
         if src_ogg.exists():
             (archive_dir / "podcasts").mkdir(parents=True, exist_ok=True)
@@ -137,12 +160,49 @@ def archive_issue(deploy_dir: str) -> dict:
     # Regenerate archive/index.html
     regenerate_archive_index(deploy)
 
+    # Prune the deploy-root images/podcasts to what's still actually linked
+    # from a live page. Nothing is lost: each past issue keeps its own copy
+    # under archive/<date>/ from the steps above.
+    pruned = prune_unused_assets(deploy)
+
     return {
         "status": "ok",
         "archived_to": str(archive_dir),
         "issue_no": issue_no,
         "date": date_iso,
+        "pruned": pruned,
     }
+
+
+def prune_unused_assets(deploy: Path) -> dict:
+    """Delete deploy-root images/podcasts no live page (index.html, k3/index.html)
+    references anymore. Historical usage is preserved per-day under archive/."""
+    referenced_images, referenced_audio = set(), set()
+    for html_path in (deploy / "index.html", deploy / "k3" / "index.html"):
+        if html_path.exists():
+            text = html_path.read_text(encoding="utf-8")
+            referenced_images |= extract_referenced_images(text)
+            referenced_audio |= extract_referenced_audio(text)
+
+    removed = {"images": 0, "podcasts": 0}
+
+    images_dir = deploy / "images"
+    if images_dir.exists():
+        keep = {Path(r).name for r in referenced_images}
+        for f in images_dir.iterdir():
+            if f.is_file() and f.name not in keep:
+                f.unlink()
+                removed["images"] += 1
+
+    podcasts_dir = deploy / "podcasts"
+    if podcasts_dir.exists():
+        keep = {Path(r).name for r in referenced_audio}
+        for f in podcasts_dir.iterdir():
+            if f.is_file() and f.name not in keep:
+                f.unlink()
+                removed["podcasts"] += 1
+
+    return removed
 
 
 def regenerate_archive_index(deploy_dir: str):
