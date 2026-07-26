@@ -383,8 +383,14 @@ fi
 echo "[step 7] podcast pill..."
 SKIP_PODCAST=false
 
-# Skip podcast if xAI credits are known exhausted
-[ "$SKIP_IMAGES" = true ] && SKIP_PODCAST=true
+# TTS (Castor/Luna) shares the xAI account with image gen but does NOT always
+# fail on the same day image gen does — e.g. Jul 14 and Jul 24 both had 0
+# images yet a working podcast. So this gets its own credit check on its own
+# log instead of inheriting SKIP_IMAGES (which used to skip the attempt
+# entirely whenever images failed, even on days podcast would have worked).
+if grep -q "personal-team-blocked:spending-limit" "$LOG_DIR/podcast_${TODAY}.log" 2>/dev/null; then
+    SKIP_PODCAST=true
+fi
 
 if [ "$SKIP_PODCAST" = false ]; then
     PODCAST_META="$V2_DIR/podcast_meta.json"
@@ -398,7 +404,13 @@ Produce TTS audio, concat with ffmpeg, write metadata to $V2_DIR/podcast_meta.js
 Use text_to_speech tool. Use terminal for ffmpeg. ENGLISH ONLY." \
         --profile "$PROFILE" -s podcast-pill -t file,terminal -m deepseek-v4-flash --provider localAIServer -Q --yolo \
         >"$LOG_DIR/podcast_${TODAY}.log" 2>&1 || true
-    
+
+    # Check if it failed due to credits (own signal, independent of images)
+    if grep -q "spending-limit\|credits exhausted\|403" "$LOG_DIR/podcast_${TODAY}.log" 2>/dev/null; then
+        echo "  ⚠ xAI credits exhausted for podcast"
+        SKIP_PODCAST=true
+    fi
+
     # Inject podcast pill into HTML (if metadata was generated)
     if [ -f "$V2_DIR/podcast_meta.json" ]; then
         META=$(python3 -c "
