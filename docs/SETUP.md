@@ -58,14 +58,18 @@ hermes cron create \
 
 ### 5. LiteLLM private server
 
-The pipeline uses a private LiteLLM server running at `https://your-litellm-server.example/v1`.
-Configure it in `~/.hermes/profiles/luke/config.yaml`:
+The pipeline runs its models (`deepseek-v4-flash`, `kimi-k3`) through a
+private, third-party-hosted LiteLLM server, configured as a custom provider
+named `localAIServer` in `~/.hermes/profiles/luke/config.yaml`. The base URL and API
+key are private and deliberately not included in this public repo — ask the
+repo owner if you need them, or point `localAIServer` at your own
+OpenAI-compatible/LiteLLM endpoint instead:
 
 ```yaml
 custom_providers:
   - name: localAIServer
-    base_url: https://your-litellm-server.example/v1
-    api_key: sk-...
+    base_url: <your LiteLLM / OpenAI-compatible endpoint>
+    api_key: <your key>
     models:
       - deepseek-v4-flash
       - kimi-k3

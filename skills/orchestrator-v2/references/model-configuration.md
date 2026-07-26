@@ -23,11 +23,10 @@ daily run.
 
 ## 2. What the pipeline actually uses: explicit `localAIServer` provider
 
-`localAIServer` is a custom provider pointing at a private LiteLLM server
-(`https://your-litellm-server.example/v1`, a friend's inference server — see
-`docs/SETUP.md` for how it's configured). Every `hermes chat` call in
-`run_v2.sh`, and the hardcoded default in `wire_articles.py`, targets it
-directly:
+`localAIServer` is a custom provider pointing at a private, third-party-hosted
+LiteLLM server (URL and key deliberately not in this public repo — see
+`docs/SETUP.md`). Every `hermes chat` call in `run_v2.sh`, and the hardcoded
+default in `wire_articles.py`, targets it directly:
 
 | Step | Model | Provider | Where |
 |------|-------|----------|-------|
