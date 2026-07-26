@@ -24,6 +24,7 @@ CLEANUP_SH="$V2_DIR/cleanup.sh"
 DEPLOY_DIR="/home/nttluke/ai-news-deploy"
 TIMEOUT_SECS=600  # 10 min per scout
 MASTER_TIMEOUT=5400  # 90 min for entire pipeline
+TEMPLATE_DIR="/home/nttluke/lux-in-tenebris-pipeline/template"
 
 # ── Setup ────────────────────────────────────────────────────
 mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$IMAGES_DIR" "$OUTPUT_DIR"
@@ -342,7 +343,15 @@ else
     exit 1
 fi
 
-# K3 edition removed per user request (2026-07-25)
+# K3 rendering removed per user request (2026-07-25) — DS-only render step above.
+# K3_OUTPUT_DIR is still referenced by steps 6d-11 below (badges, layout transform,
+# podcast/wire injection, deploy copy): keep it defined so `set -u` doesn't crash
+# the whole pipeline. Since no k3/index.html is ever produced, every "-f" check
+# on it below evaluates false and those steps no-op, which is the intended
+# "K3 disabled" behavior. If K3 gets fully removed, delete this block AND all
+# $K3_OUTPUT_DIR references in steps 6d-11 together — not one without the other.
+K3_OUTPUT_DIR="$OUTPUT_DIR/k3"
+mkdir -p "$K3_OUTPUT_DIR"
 
 # ── Step 6d: Inject version badges ───────────────────────────
 echo "[step 6d] injecting version badges..."
@@ -494,7 +503,6 @@ cp "$IMAGES_DIR"/*.jpg "$DEPLOY_DIR/images/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/podcasts"
 cp /tmp/v2/podcasts/*.ogg "$DEPLOY_DIR/podcasts/" 2>/dev/null || true
 echo "  ✓ files copied to deploy dir"
-TEMPLATE_DIR="/home/nttluke/lux-in-tenebris-pipeline/template"
 if [ -f "$TEMPLATE_DIR/style.css" ]; then
     cp "$TEMPLATE_DIR/style.css" "$DEPLOY_DIR/style.css"
     echo "  ✓ style.css copied from template"

@@ -1,9 +1,9 @@
 # Pipeline scripts (bash/Python)
 *.pyc
 __pycache__/
-*.py:Zone.Identifier
-*.sh:Zone.Identifier
-*.md:Zone.Identifier
+
+# Windows/WSL "mark of the web" metadata (any extension)
+*:Zone.Identifier
 
 # Editor/IDE
 .vscode/
