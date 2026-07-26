@@ -1,73 +1,70 @@
 # Model Configuration Topology — Lux V2 Pipeline
 
-Every `hermes chat -q` call in the pipeline uses one of three model sources:
+> Rewritten 2026-07-26 — the previous version of this doc described an
+> architecture where most steps inherited the Hermes profile default. That's
+> no longer true: verified against the live `run_v2.sh` and the current
+> `~/.hermes/profiles/luke/config.yaml`, **every** pipeline step now pins its
+> own model and provider explicitly. Nothing in the daily run falls back to
+> the profile default.
 
-## 1. Profile Default (`config.yaml`)
+## 1. Profile Default (`config.yaml`) — NOT used by the pipeline
 
 ```yaml
 model:
-  default: glm-5.2-openai
+  default: deepseek/deepseek-v4-flash
   provider: openrouter
-  base_url: https://your-litellm-server.example/v1
-  api_key: sk-…  # Friend's LiteLLM server
+  base_url: https://openrouter.ai/api/v1
 ```
 
-Used by **all steps that lack `-m`**:
-- Step 2 → all `run_scout()` calls (x, research, official, opensource, tools, funding, hardware, italia)
-- Step 4 → **Editor** (writes edition.json: all headlines, summaries, deck, section ordering)
-- Step 5 → **Image gen** orchestrator (the `image_generate` tool itself goes to Grok Imagine, but the agent orchestrating the calls uses default)
-- Step 7 → **Podcast pill** script generation (Castor/Luna dialogue — TTS voices remain on xAI/Grok via `tts.xai` config)
+This is the fallback for ad-hoc/manual `hermes chat` commands run outside
+`run_v2.sh`. Every step the pipeline itself invokes passes an explicit
+`-m ... --provider localAIServer`, so changing this default has **no effect** on the
+daily run.
 
-These inherit whatever the profile default is. Changing the default in `config.yaml` affects all of them.
+## 2. What the pipeline actually uses: explicit `localAIServer` provider
 
-## 2. Explicit `-m` Override in `run_v2.sh`
+`localAIServer` is a custom provider pointing at a private LiteLLM server
+(`https://your-litellm-server.example/v1`, a friend's inference server — see
+`docs/SETUP.md` for how it's configured). Every `hermes chat` call in
+`run_v2.sh`, and the hardcoded default in `wire_articles.py`, targets it
+directly:
 
-```bash
--m <model-name> --provider openrouter
-```
+| Step | Model | Provider | Where |
+|------|-------|----------|-------|
+| All 8 `run_scout()` calls (x, research, official, opensource, tools, funding, hardware, italia) | `deepseek-v4-flash` | `localAIServer` | hardcoded inside the `run_scout()` helper, `run_v2.sh` |
+| YouTube scout (Phase 4) | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 2 phase 4 |
+| Editor (DS) | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 4 |
+| Editor (K3) | `kimi-k3` | `localAIServer` | `run_v2.sh`, step 4b |
+| Image gen orchestrator | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 5 (the `image_generate` tool call itself still goes to xAI regardless — see §3) |
+| Podcast pill dialogue | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 7 (the actual TTS audio still goes to xAI — see §3) |
+| Wire articles (DS) | `deepseek-v4-flash` | `localAIServer` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
+| Wire articles (K3) | `kimi-k3` | `localAIServer` | `run_v2.sh` step 8, passed as `--model kimi-k3 --provider localAIServer` |
 
-| Step | Model | Lines |
-|------|-------|-------|
-| **YouTube scout** (Phase 4) | `glm-5.2-openai` | 168-175 |
-| **Editor** | *(none — inherits default)* | — |
+None of these are pinned to survive a future profile-default change by
+accident — they're pinned because the pipeline needs `localAIServer` specifically
+(the free/cheap inference tier), not because of drift protection. If you
+want a step to use something else, edit its `-m`/`--provider` flags in
+`run_v2.sh` (or `MODEL`/`PROVIDER` in `wire_articles.py`) directly.
 
-The YouTube model is **pinned** so it doesn't drift if the profile default changes.
+## 3. Components that bypass `localAIServer` entirely (xAI direct)
 
-## 3. Hardcoded in Python (`wire_articles.py`)
+These use tool-level integrations, not `hermes chat -m`, so they're
+unaffected by any of the above:
 
-```python
-MODEL = 'glm-5.2-openai'      # line 77
-PROVIDER = 'openrouter' # line 78
-# Overridable via env var WIRE_MODEL     # line 288
-```
+| Component | Tool | Provider | Auth |
+|-----------|------|----------|------|
+| **Image gen** (Grok Imagine) | `image_generate` | xAI API | `xai-oauth` (OAuth) |
+| **TTS voices** (podcast Castor/Luna) | `text_to_speech` | xAI API | `xai-oauth` (OAuth) |
 
-Used when `wire_articles.py` spawns `hermes chat -q` as a subprocess to write each article. The model name is also injected into the article's attribution footer.
+Both authenticate against the same xAI account, which is why image gen and
+podcast credit exhaustion look related — but they don't always fail on the
+same day (see `docs/ARCHITETTURA.md#independent-credit-checks-image-gen-vs-podcast`).
+Each has its own independent credit check in `run_v2.sh` as of 2026-07-26.
 
-## 4. Components NOT Using the Default Model
+## 4. Auxiliary Hermes models (`config.yaml`) — unrelated to Lux
 
-These components are configured independently and bypass the profile default:
-
-| Component | Provider | Base URL | Auth |
-|-----------|----------|----------|------|
-| **Image gen** (Grok Imagine) | `image_generate` tool | xAI API | `xai-oauth` (OAuth) |
-| **TTS voices** (podcast Castor/Luna) | `tts.xai` config | xAI API | `XAI_API_KEY` |
-| **Auxiliary models** (vision, compression, curator, title_gen) | openrouter | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` |
-
-## 5. Credential Pool Layer (`auth.json`)
-
-| Provider | Source | Base URL | Active? |
-|----------|--------|----------|---------|
-| **openrouter** (used for GLM-5.2 routing) | `config.yaml` inline | `https://your-litellm-server.example/v1` | ✅ Active (profile default) |
-| **openrouter** (auxiliary models) | `env:OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` | ✅ Auxiliary only |
-| **xai-oauth** | `loopback_pkce` (OAuth) | `https://api.x.ai/v1` | ✅ Image gen + TTS |
-
-The `openrouter` provider name is reused for two different endpoints:
-- **Default model** (scouts, editor, podcast script) → routes through `your-litellm-server.example` (friend's LiteLLM)
-- **Auxiliary models** (vision, compression, curator, title_gen) → routes through `openrouter.ai` (separate config in `auxiliary.*` section)
-
-## 6. Hermes Auxiliary Models (`config.yaml`)
-
-These are **separate from the Lux pipeline** — used by the Hermes gateway for internal features:
+Separate from anything above; used by the Hermes gateway itself for internal
+features, not invoked by the Lux pipeline:
 
 | Purpose | Provider | Model |
 |---------|----------|-------|
@@ -78,14 +75,10 @@ These are **separate from the Lux pipeline** — used by the Hermes gateway for 
 
 ## How to Change a Step's Model
 
-1. **Identify the step** in `run_v2.sh` (look for the `hermes chat -q` block)
-2. **Add flags** before `-Q --yolo`:
-   ```bash
-   -m <model-name> \
-   --provider openrouter \
-   ```
+1. **Identify the step** in `run_v2.sh` (look for the `hermes chat -q` block, or the `run_scout()` helper if it's one of the 8 parallel scouts).
+2. **Change its `-m <model> --provider <provider>` flags** directly — there's no default to fall back to, so this fully determines what that step uses.
 3. **Test** by running just that step standalone:
    ```bash
-   hermes chat -q "..." -s <skill> -t <toolsets> -m <model> --provider openrouter -Q --yolo
+   hermes chat -q "..." -s <skill> -t <toolsets> -m <model> --provider <provider> -Q --yolo
    ```
-4. **Do NOT actually modify the file** without user confirmation — see Pitfall #14.
+4. **Confirm with the user before editing `run_v2.sh`** — it's the live production orchestrator, symlinked directly into the cron path.
