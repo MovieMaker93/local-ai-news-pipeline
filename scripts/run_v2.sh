@@ -66,6 +66,56 @@ cat > "$SCOUTS_DIR/_metadata.json" <<EOF
 EOF
 echo "  ✓ window: $YESTERDAY → $TODAY"
 
+# ── Step 1b: Sync deploy dir, resolve issue number, archive predecessor ──
+# Done early (the editor needs the issue number) and against a freshly
+# git-reset deploy dir, so it's immune to local leftovers from a crashed
+# run. Incident that motivated this (2026-07-27): a run crashed after
+# bumping /home/nttluke/ai-news-deploy/.issue locally but before pushing;
+# the recovery re-run read that unpushed leftover value and bumped again,
+# silently skipping issue #31. Reading the issue/date from the *live*
+# index.html's own masthead instead of the .issue file (which can go
+# stale — same incident window also left edition.json two issues behind)
+# fixes that: it always reflects the last truly-published state.
+echo "[step 1b] sync deploy dir + issue number..."
+mkdir -p "$DEPLOY_DIR"
+(cd "$DEPLOY_DIR" && git fetch origin --quiet 2>/dev/null && git reset --hard origin/main --quiet 2>/dev/null) || true
+
+PREV_ISSUE=0
+PREV_DATE=""
+if [ -f "$DEPLOY_DIR/index.html" ]; then
+    ISSUE_DATE_LINE=$(python3 -c "
+import sys
+sys.path.insert(0, '$SCRIPT_DIR')
+import archive_issue as ai
+no = ai.extract_issue_no('$DEPLOY_DIR/index.html') or 0
+date = ai.extract_issue_date('$DEPLOY_DIR/index.html')
+print(f'{no} {date}')
+" 2>/dev/null || echo "0 ")
+    PREV_ISSUE=$(echo "$ISSUE_DATE_LINE" | awk '{print $1}')
+    PREV_DATE=$(echo "$ISSUE_DATE_LINE" | awk '{print $2}')
+fi
+PREV_ISSUE="${PREV_ISSUE:-0}"
+
+if [ "$PREV_DATE" = "$TODAY" ]; then
+    echo "  → live edition is already dated $TODAY (same-day re-run) — reusing issue #$PREV_ISSUE"
+    NEXT_ISSUE=$PREV_ISSUE
+else
+    NEXT_ISSUE=$((PREV_ISSUE + 1))
+    # Archive whatever's currently live BEFORE today's run overwrites it.
+    # This guarantees every published edition gets archived at the latest
+    # by the next day's run, even if that edition's own run never reached
+    # its own deploy/archive step (as happened to the 2026-07-26 edition).
+    ARCHIVE_SCRIPT="$SCRIPT_DIR/archive_issue.py"
+    if [ -f "$ARCHIVE_SCRIPT" ] && [ -f "$DEPLOY_DIR/index.html" ]; then
+        python3 "$ARCHIVE_SCRIPT" "$DEPLOY_DIR" 2>>"$LOGFILE" \
+            && echo "  ✓ archived previous issue (#$PREV_ISSUE, $PREV_DATE)" \
+            || echo "  ⚠ archiving previous issue failed (non-fatal)"
+    fi
+fi
+echo "$NEXT_ISSUE" > "$V2_DIR/.issue"
+echo "  ✓ issue #$NEXT_ISSUE"
+check_timeout
+
 # ── Helper: run a scout with safe timeout ──────────────────
 # Each scout runs in a background subshell with a 10-min timeout.
 # If timeout fires, the subshell exits, write_file may not have
@@ -257,16 +307,8 @@ check_timeout
 
 # ── Step 4: Editor ──────────────────────────────────────────
 echo "[step 4] editor..."
-
-PREV_ISSUE=0
-if [ -f "$DEPLOY_DIR/.issue" ]; then
-    PREV_ISSUE=$(cat "$DEPLOY_DIR/.issue" 2>/dev/null || echo 0)
-elif [ -f "$V2_DIR/.issue" ]; then
-    PREV_ISSUE=$(cat "$V2_DIR/.issue" 2>/dev/null || echo 0)
-fi
-NEXT_ISSUE=$((PREV_ISSUE + 1))
-echo "$NEXT_ISSUE" > "$V2_DIR/.issue"
-# NOTE: $DEPLOY_DIR/.issue is written AFTER git reset (step 9) to avoid revert
+# NEXT_ISSUE was already resolved in step 1b (reuse-if-same-day-rerun,
+# increment-and-archive-predecessor otherwise).
 
 "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
 Today is $TODAY. Issue #$NEXT_ISSUE.
@@ -529,14 +571,10 @@ if [ -f "$V2_DIR/edition_k3.json" ]; then
     echo "  ✓ k3 edition.json saved to deploy dir"
 fi
 
-# ── Step 11: Archive ─────────────────────────────────────────
-echo "[step 11] archiving current issue..."
-ARCHIVE_SCRIPT="$SCRIPT_DIR/archive_issue.py"
-if [ -f "$ARCHIVE_SCRIPT" ]; then
-    python3 "$ARCHIVE_SCRIPT" "$DEPLOY_DIR" 2>>"$LOGFILE" || echo "  ⚠ archive failed (non-fatal)"
-    echo "  ✓ archived"
-fi
-
+# ── Step 11: Headlines history + commit + push ───────────────
+# (archiving the PREVIOUS issue already happened in step 1b, before this
+# run's files were copied in — see the comment there for why)
+echo "[step 11] updating headlines history + deploying..."
 python3 "$SCRIPT_DIR/update_headlines_history.py" \
     "$V2_DIR/edition.json" \
     "$DEPLOY_DIR/headlines_history.json" \

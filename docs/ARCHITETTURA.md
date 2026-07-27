@@ -27,7 +27,13 @@ cron_wrapper.sh (nohup → run_v2.sh &)
 run_v2.sh
   │
   ├─ Step 0:  Cleanup /tmp/v2/
-  ├─ Step 1:  Metadata (date window, issue #)
+  ├─ Step 1:  Metadata (date window)
+  ├─ Step 1b: Sync deploy dir to origin (git reset --hard) — resolve issue #
+  │            from the LIVE index.html's own masthead (not the .issue file,
+  │            which a crashed run can leave stale/unpushed). Same date as
+  │            today → reuse that issue number (same-day re-run). Different
+  │            date → increment, and archive that predecessor edition NOW,
+  │            before this run's files overwrite it.
   │
   ├─ Step 2:  Scouts (5 phases, parallel within each) — all LLM agents
   │   ├─ Phase 1: X, Research, Official        (3 in parallel)
@@ -48,14 +54,15 @@ run_v2.sh
   ├─ Step 8:  Wire Articles (DS + K3) + ticker injection [non-fatal]
   │            (K3 wire runs and is written, but never injected — no k3/index.html)
   └─ Step 9-11: Deploy
-      ├─ git fetch + reset --hard
-      ├─ archive_issue.py (self-contained snapshot, reference-scoped assets)
-      ├─ prune deploy-root images/podcasts to what's still referenced
-      ├─ Copy new files to deploy dir
+      ├─ git fetch + reset --hard (defensive re-sync; real sync was step 1b)
+      ├─ Copy new files to deploy dir (today's edition overwrites yesterday's)
       ├─ update_headlines_history.py (cross-day dedup store)
       ├─ git add → commit → push
       └─ Final report
 ```
+
+Archiving happens in step 1b now, **before** today's overwrite, not after —
+see [Issue Numbering & Archiving](#issue-numbering--archiving) for why.
 
 ## Agents & Responsibilities
 
@@ -139,16 +146,56 @@ succeeded. Each step now runs its own pre/post credit check against its own
 log (`imagegen_${TODAY}.log` / `podcast_${TODAY}.log`) instead of one
 inheriting the other's result.
 
+## Issue Numbering & Archiving
+
+Resolved in step 1b, against a deploy dir that was just `git reset --hard`
+to `origin/main` — i.e. the last **truly published** state, not whatever a
+previous crashed run happened to leave lying around locally.
+
+- **Issue number**: read from the live `index.html`'s own masthead (`No. X`
+  / the title's date), not from the `.issue` file. Same date as today → this
+  is a same-day re-run, reuse that issue number. Earlier date → increment.
+- **Archiving**: only on the increment path, and only *then* — the
+  predecessor edition (whatever was live before this run) gets archived into
+  `archive/<its own date>/` right now, before this run's files overwrite it.
+
+Both fixes came from the same 2026-07-27 incident: a run crashed mid-deploy
+after bumping `.issue` locally but before pushing anything. The recovery
+re-run read that stale, unpushed `.issue` value and incremented again,
+silently skipping issue #31 and publishing #32 instead — and `edition.json`
+was left two issues behind since the manual recovery didn't update it
+either. Reading state from the live HTML instead of `.issue`/`edition.json`
+sidesteps both: it's always the actual last-published truth, immune to any
+local mess a crash leaves behind.
+
+This also fixes a standing gap: previously, each day archived *itself*
+right after publishing (at the very end of that day's own run). If that
+day's run never reached its own archive step — exactly what happened on
+2026-07-26, which crashed at the editor step — that day's edition was never
+archived, and got silently lost from `archive/` when the next successful
+run overwrote it (its content survives only in the deploy repo's git
+history, not under `archive/`). Archiving the predecessor *before*
+overwriting it, on every run, means an edition gets archived at the latest
+by the following day's run — it no longer depends on that edition's own run
+having succeeded end-to-end.
+
 ## Asset Lifecycle (images / podcasts / archive)
 
 `archive_issue.py` copies into `archive/YYYY-MM-DD/` **only** the images and
-audio that day's own `index.html` actually has an `<img src>` / `<audio
+audio that edition's own `index.html` actually has an `<img src>` / `<audio
 src>` for — never a blind copy of the whole `deploy/images/` or
-`deploy/podcasts/` directory. After archiving, it prunes the deploy-root
-`images/`/`podcasts/` folders down to whatever the *current* live page (DS,
-and K3 if it ever comes back) still references. Nothing is lost by this:
-each day's real usage was already captured in that day's own archive
-snapshot first.
+`deploy/podcasts/` directory. It then prunes the deploy-root
+`images/`/`podcasts/` folders down to whatever that same (about-to-be-
+superseded) edition still references. Nothing is lost by this: that
+edition's real usage was already captured in its own archive snapshot
+first, in the same call.
+
+Since archiving now runs in step 1b — on the *predecessor*, before step 10
+copies in today's new images — there's a one-day lag in root cleanup
+compared to before: today's images sit in `deploy/images/` until tomorrow's
+step 1b prunes them (using tomorrow's predecessor check, i.e. today's own
+references). Harmless, just a day later than the old same-day-cleanup
+timing.
 
 This matters because those root folders are otherwise never cleaned —
 `run_v2.sh` only ever adds new files to them (`cp ... "$DEPLOY_DIR/images/"`)
