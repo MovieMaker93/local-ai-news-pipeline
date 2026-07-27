@@ -567,6 +567,14 @@ fi
 cp "$V2_DIR/edition.json" "$DEPLOY_DIR/edition.json"
 echo "  ✓ edition.json saved to deploy dir"
 if [ -f "$V2_DIR/edition_k3.json" ]; then
+    # edition_k3.json always exists (step 4b writes a {} fallback on failure
+    # too), but $DEPLOY_DIR/k3/ only gets created above if K3 actually
+    # rendered — which it doesn't right now. mkdir -p first so this can't
+    # crash the whole run the day this file starts existing without a k3/
+    # dir (was unguarded until 2026-07-27; found via a full re-read of this
+    # script — never triggered in practice only because an earlier bug
+    # always crashed the run before reaching this line).
+    mkdir -p "$DEPLOY_DIR/k3"
     cp "$V2_DIR/edition_k3.json" "$DEPLOY_DIR/k3/edition.json"
     echo "  ✓ k3 edition.json saved to deploy dir"
 fi
