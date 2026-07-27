@@ -21,21 +21,11 @@ import argparse
 def build_badge_html(mode: str) -> str:
     """Build the version selector HTML block."""
     if mode == "ds":
-        # DeepSeek is current, link to k3/
-        return (
-            '<div class="version-selector">\n'
-            '  <span class="vs-badge vs-badge-current vs-badge-ds">\U0001f40b DeepSeek V4 Flash</span>\n'
-            '  <a href="k3/index.html" class="vs-badge vs-badge-k3">\U0001f52e Kimi K3 Edition (The Lens)</a>\n'
-            '</div>'
-        )
+        # DS-only: no version selector needed since K3 was removed
+        return ''
     elif mode == "k3":
-        # Kimi is current, link to ../ (parent = deepseek default)
-        return (
-            '<div class="version-selector">\n'
-            '  <a href="../index.html" class="vs-badge vs-badge-ds">\U0001f40b DeepSeek V4 Flash</a>\n'
-            '  <span class="vs-badge vs-badge-current vs-badge-k3">\U0001f52e Kimi K3 Edition (The Lens)</span>\n'
-            '</div>'
-        )
+        # K3 mode kept for reference but no longer used in production
+        return ''
     else:
         raise ValueError(f"Unknown mode: {mode}")
 

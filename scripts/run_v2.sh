@@ -504,7 +504,7 @@ echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
 # ── Step 10: Copy files ───────────────────────────────────────
 echo "[step 10] copying files..."
 cp "$OUTPUT_DIR/index.html" "$DEPLOY_DIR/index.html"
-if [ -d "$OUTPUT_DIR/k3" ]; then
+if [ -f "$OUTPUT_DIR/k3/index.html" ]; then
     mkdir -p "$DEPLOY_DIR/k3"
     cp "$OUTPUT_DIR/k3/index.html" "$DEPLOY_DIR/k3/index.html"
     echo "  ✓ k3 edition copied"
