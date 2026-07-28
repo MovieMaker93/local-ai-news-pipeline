@@ -6,7 +6,9 @@ description: "V2 wire-articles scout. Fetches RSS, picks 5 random AI news, calls
 # Wire Articles V2 — RSS → AI Writing Scout
 
 ## When to use
-Called by orchestrator-v2 AFTER the 7 main scouts complete. Runs deterministic RSS retrieval + LLM article writing. Output is used for the scrolling news ticker on the front page.
+Called by orchestrator-v2 as step 8, after all 9 scouts and the editor have run.
+Deterministic RSS retrieval + LLM article writing. The output feeds the
+scrolling news ticker on the front page — it is **not** part of `edition.json`.
 
 ## Files to write
 - `/tmp/v2/scouts/scout_wire.json` — JSON array of wire articles
@@ -15,8 +17,13 @@ Called by orchestrator-v2 AFTER the 7 main scouts complete. Runs deterministic R
 
 1. Run the deterministic retrieval script:
 ```bash
-python3 ~/.hermes/profiles/luke/scripts/v2/wire_articles.py --max 5 --out /tmp/v2/scouts/scout_wire.json
+python3 ~/.hermes/profiles/luke/scripts/v2/wire_articles.py --max 5 \
+  --out /tmp/v2/scouts/scout_wire.json \
+  --model deepseek-v4-flash --provider localAIServer
 ```
+⚠️ The provider is **`localAIServer`**, never `openrouter`. `run_v2.sh` passes it
+explicitly (as `$PIPELINE_PROVIDER`) rather than relying on the script's own
+defaults, so the backend is chosen in exactly one place.
 
 2. Validate output:
 ```bash
@@ -66,14 +73,14 @@ The system is PEP 668-locked: `pip install`, `uv pip install --system`, and `pyt
 ### 3. Long run time
 Stage 1 makes ~50-80 HTTP requests to ground 5 articles. Direct feeds are faster than Google News (which requires URL resolution + redirect follow for every item).
 
-### 5. Nameplate must be LVX IN TENEBRIS all caps
-The template `newspaper.html` (`~/.hermes/profiles/luke/skills/ai-news-24h/templates/newspaper.html`) controls the nameplate text. It must be `LVX IN <span class="lux">TENEBRIS</span>` (all caps Latin classic form). If someone changes the HTML by hand, the next pipeline run reverts it from the template. Fix BOTH the template and the current `index.html` on disk.
-
-### 6. Model override
-The script uses `deepseek/deepseek-v4-flash` on OpenRouter. Override with env var:
+### 4. Model / provider override
+The script defaults to `deepseek-v4-flash` via `localAIServer`, but `run_v2.sh` passes
+both explicitly anyway. To override for a manual run:
 ```bash
-WIRE_MODEL="anthropic/claude-sonnet-4" python3 wire_articles.py --max 5
+python3 wire_articles.py --max 5 --model <model> --provider <provider>
 ```
+`WIRE_MODEL` env var only changes the attribution line in the article footer,
+not the model actually called — see pitfall 8.
 
 ### 5. hermes chat -q stdout pollution
 `call_hermes()` uses `subprocess.run(capture_output=True)` but `hermes chat -q` writes warnings to stdout (e.g. `Warning: Unknown toolsets: messaging`). These get mixed into the LLM output. **Fix:** filter lines starting with `Warning:` in `call_hermes()`. Extend the filter if new warning prefixes appear.
@@ -85,7 +92,7 @@ Publisher feeds contain non-AI articles that mention "AI" incidentally ("AI-powe
 The injector's JS (`inject_wire_ticker.py` / `build_js()`) searches for `*— Written by AI (` (em dash U+2014) to split body from AI signature. The `wire_articles.py` prompt in `build_prompt()` MUST produce this exact format:
 ```
 *Editorial note in italics*
-*— Written by AI (deepseek/deepseek-v4-flash)*
+*— Written by AI (deepseek-v4-flash)*
 ```
 
 If the prompt format changes (e.g. different dash character, different spacing, extra text), the JS silently fails to split and renders the entire body as plain text with no AI signature block. See `references/injection-pattern.md` for the injection architecture.
@@ -100,7 +107,7 @@ body.replace(/\n/g, '<br>')
 body.split('\\n').join('<br>')
 ```
 
-### 7. Ticker injection via post-processing (safer than modifying render.py)
+### 9. Ticker injection via post-processing (safer than modifying render.py)
 The injector (`inject_wire_ticker.py`) adds the ticker AFTER `render.py` finishes. It NEVER modifies `render.py`. Injection targets:
 
 | Element | Injection point | Regex |
@@ -122,22 +129,24 @@ bd = html.escape(body).replace('\n', '\\n')
 el.getAttribute('data-b').split('\\n').join('<br>')
 ```
 
-### 8. CSS variable names must match production EXACTLY
+### 10. CSS variable names must match production EXACTLY
 The injector's CSS MUST use the EXACT variable names from `style.css`. Using shortened aliases causes the ticker to render as an unstyled list.
 
 **Correct:** `var(--rule)`, `var(--serif)`, `var(--sans)`, `var(--muted)`, `var(--type-dim)`, `var(--lux-soft)`, `var(--ink)`, `var(--type)`, `var(--rule-strong)`, `var(--ember)`
 
 **Wrong (short aliases):** `--ru`, `--se`, `--sa`, `--mu`, `--td`, `--ls`, `--rs`
 
-### 9. Template nameplate must stay in sync
-The `newspaper.html` template in `~/.hermes/profiles/luke/skills/ai-news-24h/templates/` controls the nameplate text. Changing the HTML by hand gets lost on the next pipeline run. Always fix BOTH the template AND the deployed `index.html`.
+### 11. Template nameplate must stay in sync — and edit the RIGHT template
+The nameplate must be `LVX IN <span class="lux">TENEBRIS</span>` (all caps,
+Latin). Same for the `<title>` tag. Editing the deployed `index.html` by hand
+gets overwritten on the next run — fix the **template**, then re-render.
 
-Nameplate should be `LVX IN <span class="lux">TENEBRIS</span>` (all caps, Latin). Same for the `<title>` tag.
+⚠️ **The live template is `~/lux-in-tenebris-pipeline/template/newspaper.html`**
+(that's what `$TEMPLATE_DIR` in `run_v2.sh` points at, and what `render.py`
+loads). An old v1 copy still exists at
+`~/.hermes/profiles/luke/skills/ai-news-24h/templates/newspaper.html` — it is
+**not read by anything** and has already diverged from the real one. Editing it
+does nothing. This doc used to point at that stale copy.
 
-### 10. Deploy dir may have stale index.html
+### 12. Deploy dir may have stale index.html
 `~/ai-news-deploy/index.html` on disk may differ from `git HEAD` (uncommitted overwrites). Verify with `git show HEAD:index.html` before injecting, or checkout the committed version first.
-
-### 11. JS: avoid regex when possible
-To avoid Python-JS escape fighting in f-strings, use `split().join()` instead of `.replace(/regex/g, ...)`:
-- `body.split('\\n').join('<br>')` instead of `body.replace(/\n/g, '<br>')`
-- No backslash escaping needed in the Python source
