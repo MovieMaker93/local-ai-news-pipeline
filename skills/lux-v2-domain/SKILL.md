@@ -13,7 +13,6 @@ Runtime knowledge for the Lux in Tenebris V2 custom domain `luxintenebris.news`,
 | Edition | URL |
 |---------|-----|
 | **DS edition** | `https://luxintenebris.news/` |
-| **K3 edition** | `https://luxintenebris.news/k3/` |
 | **Archive** | `https://luxintenebris.news/archive/` |
 | **Legacy (redirects)** | `https://nttluke.github.io/luxintenebris-ai-news/` |
 

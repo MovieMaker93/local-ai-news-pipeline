@@ -4,7 +4,6 @@ Pipeline components for the daily AI news newspaper **LVX IN TENEBRIS**.
 
 Live at: [luxintenebris.news](https://luxintenebris.news)
 
-> The pipeline is *built* for a second edition, **K3 "The Lens"** (`luxintenebris.news/k3/`), but K3 rendering is currently paused (disabled 2026-07-25) — that URL doesn't resolve right now. The code, skill, and daily generation steps for it are still in place; see [Dual-Model Architecture](#dual-model-architecture-k3-currently-paused) below.
 
 ## Repo structure
 
@@ -17,17 +16,14 @@ lux-in-tenebris-pipeline/
 │   ├── fetch_trending.py       GitHub/HuggingFace trending via curl fallback
 │   ├── fix_archive_issue_numbers.py
 │   ├── inject_podcast_pill.py  Inline audio player for podcast
-│   ├── inject_version_badge.py DS/K3 version selector badges
 │   ├── inject_wire_ticker.py   Scrolling news ticker + modal
 │   ├── render.py               HTML renderer from edition.json
-│   ├── transform_layout_k3.py  K3 White Edition layout transformation
 │   ├── update_headlines_history.py  Cross-day dedup store
 │   ├── wire_articles.py        RSS → AI article writer (2-stage)
 │   └── youtube_scout.py        YouTube data fetcher
-├── skills/           ← 18 SKILL.md files (LLM agent instructions)
+├── skills/           ← 17 SKILL.md files (LLM agent instructions)
 │   ├── orchestrator-v2/
 │   ├── editor-v2/
-│   ├── editor-v2-k3/
 │   ├── image-gen-v2/
 │   ├── podcast-pill/
 │   ├── wire-articles-v2/
@@ -62,15 +58,15 @@ lux-in-tenebris-pipeline/
 Cron triggers `cron_wrapper.sh` → `run_v2.sh`, a bash orchestrator that chains **LLM agents** (each one a `SKILL.md` invoked as `hermes chat -s <skill>`, for anything requiring judgment) and **plain scripts** (for anything mechanical), talking to each other only through JSON files on disk — no step calls another directly:
 
 ```
-9 scouts (3+3+1+1+1 phases, parallel within each)   — LLM agents, gather raw items
-  → Editor                                          — LLM agent, curates + assembles edition.json
-  → Image generation                                — LLM agent driving the xAI Grok Imagine tool
-  → Render HTML                                     — pure code, deterministic, no LLM
-  → Version badge injection                         — pure code
-  → Podcast Pill                                    — LLM agent (dialogue) + xAI TTS tool (Castor/Luna voices)
-  → Wire articles                                   — pure-code retrieval + 1 LLM call per article
-  → Ticker injection                                — pure code
-  → Archive + deploy                                — pure code (git commit + push to GitHub Pages)
+Sync deploy + resolve issue # + archive predecessor  — pure code
+  → 9 scouts, ONE AT A TIME                          — LLM agents, gather raw items
+  → Editor                                           — LLM agent, curates + assembles edition.json
+  → Image generation                                 — LLM agent driving the xAI Grok Imagine tool
+  → Render HTML                                      — pure code, deterministic, no LLM
+  → Podcast Pill                                     — LLM agent (dialogue) + xAI TTS tool (Castor/Luna voices)
+  → Wire articles                                    — pure-code retrieval + 1 LLM call per article
+  → Ticker injection                                 — pure code
+  → Deploy                                           — pure code (git commit + push to GitHub Pages)
 ```
 
 Full per-agent detail — exact model, toolset, what it reads and writes — is in [Agents & Responsibilities](docs/ARCHITETTURA.md#agents--responsibilities).
@@ -80,12 +76,10 @@ Full per-agent detail — exact model, toolset, what it reads and writes — is 
 ### Agent / Code Boundary
 Every step that needs judgment (what's newsworthy, how to phrase it, what an illustration should depict) is an LLM agent. Every step that's mechanical (templating, file copying, dedup, archiving, git operations) is plain Python/bash with **no LLM in the loop**. This is deliberate: it keeps the unpredictable part small and contained, and makes the predictable part impossible to break via a bad model response — see `render.py`'s own docstring for the canonical statement of this.
 
-### Dual-Model Architecture (K3 currently paused)
-The pipeline is designed to produce **two editions** per run from the same scout data:
-- **DeepSeek V4 Flash** (default, dark broadsheet) → `index.html` — active
-- **Kimi K3** (White Edition "The Lens") → `k3/index.html` — **paused since 2026-07-25**
+### Sequential Scouts, Pinned Provider
+All LLM steps run against a single self-hosted inference server (`localAIServer`), pinned explicitly via `PIPELINE_PROVIDER` in `run_v2.sh` — never the Hermes profile default, which is whatever the operator happens to chat on.
 
-K3 rendering was removed from `run_v2.sh` on request, but the `editor-v2-k3` and wire-articles-K3 steps were not — they still run every day, call an LLM, and write `edition_k3.json` / `scout_wire_k3.json` that nothing downstream reads. That's known idle cost, not a bug — see [Known Idle Work](docs/ARCHITETTURA.md#known-idle-work) in the architecture doc before deciding whether to fully restore or fully remove K3.
+Because that server is one machine, scouts run **one at a time**. Each scout is a full multi-turn agent session, and three concurrent sessions saturate the box: across 2026-07-26/27/28, every 3-up phase ran to its timeout ceiling and *zero* scouts completed. Serialised, each scout gets the machine to itself. Wall clock is free here — it's a fire-and-forget 06:30 cron — so the master budget is 4h. See [Scout Concurrency](docs/ARCHITETTURA.md#scout-concurrency--why-sequential).
 
 ### Deterministic Rendering
 `render.py` never uses an LLM to write HTML. It does pure template substitution from a structured JSON edition. The editor (LLM) decides importance and wording; the renderer lays it out deterministically. The page can never break due to model output.
@@ -100,7 +94,8 @@ K3 rendering was removed from `run_v2.sh` on request, but the `editor-v2-k3` and
 - Image gen credit exhaustion → auto-skip, logged, retried fresh the next day
 - Podcast pill credit exhaustion → auto-skip **independently of image gen**, on its own credit signal — the two don't always fail together (observed: images down, podcast still worked, on both 2026-07-14 and 2026-07-24), so one failing no longer preempts the other
 - Wire article failure → skip ticker injection, continue
-- Master timeout (90 min) → kill entire pipeline
+- Every LLM call wrapped in its own timeout (20 min scouts/editor, 15 min media) → nothing hangs forever
+- Master timeout (4h) → kill entire pipeline
 
 ### Reference-Scoped Archiving
 Each `archive/YYYY-MM-DD/` snapshot is self-contained (own HTML/CSS/fonts/images/podcast) so old issues keep rendering correctly forever, but `archive_issue.py` only copies the images/audio that day's own HTML actually links to — not the whole `images/`/`podcasts/` pool. The deploy-root `images/`/`podcasts/` folders are pruned after every archive run down to whatever the live page still references. This keeps each day's archive size proportional to that day's content instead of to the site's total age.

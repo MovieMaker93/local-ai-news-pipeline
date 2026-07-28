@@ -33,9 +33,9 @@ All real pipeline logs live in `/tmp/v2/logs/`:
 |------|----------|
 | `cron_wrapper.log` | Wrapper nohup output |
 | `run_${DATE}.log` | Main V2 pipeline orchestrator log |
-| `editor_${DATE}.log` | DS editor (hermes CLI) log |
-| `editor_k3_${DATE}.log` | K3 editor (hermes CLI) log |
+| `editor_${DATE}.log` | Editor (hermes CLI) log |
 | `imagegen_${DATE}.log` | Image generation log |
+| `podcast_${DATE}.log` | Podcast pill log (own credit check lives here) |
 | `scout_${SCOPE}_${DATE}.out` | Per-scout stdout |
 | `scout_${SCOPE}_${DATE}.err` | Per-scout stderr |
 
@@ -43,19 +43,16 @@ All real pipeline logs live in `/tmp/v2/logs/`:
 
 All pipeline state lives in `/tmp/v2/`:
 
-- `/tmp/v2/scouts/` — scout JSON files (including `scout_wire_ds.json`, `scout_wire_k3.json`)
-- `/tmp/v2/output/index.html` — DS edition HTML
-- `/tmp/v2/output/k3/index.html` — K3 edition HTML
+- `/tmp/v2/scouts/` — scout JSON files (including `scout_wire.json`)
+- `/tmp/v2/output/index.html` — rendered edition HTML
 - `/tmp/v2/images/` — generated images (empty when xAI credits exhausted)
-- `/tmp/v2/edition.json` — DS edition data
-- `/tmp/v2/edition_k3.json` — K3 edition data
+- `/tmp/v2/edition.json` — edition data
 - `/tmp/v2/.issue` — current issue number
 - `/tmp/v2/logs/` — all logs
 
 ## Deploy Destination
 
 - **GitHub Pages URL:** `https://nttluke.github.io/luxintenebris-ai-news/`
-- **K3 edition:** `https://nttluke.github.io/luxintenebris-ai-news/k3/`
 - **Deploy repo:** `git@github.com:NTTLuke/luxintenebris-ai-news.git`
 - **Deploy dir (local):** `/home/nttluke/ai-news-deploy/`
 - **Deploy mechanism:** GitHub Actions workflow `.github/workflows/deploy.yml` — push to `main` triggers `deploy-pages` action
@@ -66,11 +63,8 @@ All pipeline state lives in `/tmp/v2/`:
 When Tavily is down (432 errors), use curl directly:
 
 ```bash
-# Check if DS edition is live (should return 200)
+# Check if the edition is live (should return 200)
 curl -s -o /dev/null -w "%{http_code}" https://nttluke.github.io/luxintenebris-ai-news/
-
-# Check K3 edition
-curl -s -o /dev/null -w "%{http_code}" https://nttluke.github.io/luxintenebris-ai-news/k3/
 
 # Verify today's date in the page title
 curl -s https://nttluke.github.io/luxintenebris-ai-news/ | grep -oP '<title>[^<]+</title>'
@@ -81,10 +75,13 @@ curl -s https://nttluke.github.io/luxintenebris-ai-news/ | grep -oP 'dateline.*?
 
 ## Pipeline Run Profile
 
-- **Duration:** ~25 minutes (06:30 → ~06:55)
-- **Typical scope:** 9 scouts, DS + K3 editions, wire articles, badge injection, layout transform
+- **Duration:** variable. Scouts run one at a time (see orchestrator-v2), each
+  with a 20-min ceiling, so a slow day can run well past an hour. The master
+  timeout is 4h.
+- **Typical scope:** 9 scouts (sequential), 1 edition, wire articles + ticker
 - **Images:** skipped when xAI credits exhausted (logged, non-blocking)
-- **Podcast:** skipped when xAI TTS unavailable (logged, non-blocking)
+- **Podcast:** skipped when xAI TTS unavailable (logged, non-blocking) — checked
+  independently of image gen, since the two don't always fail together
 - **Retry safety:** /tmp/v2/ directory is recreated each run. Safe to re-run if the pipeline fails mid-way.
 
 ## Issue Tracking

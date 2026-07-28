@@ -28,22 +28,31 @@ LiteLLM server (URL and key deliberately not in this public repo — see
 `docs/SETUP.md`). Every `hermes chat` call in `run_v2.sh`, and the hardcoded
 default in `wire_articles.py`, targets it directly:
 
+Every step passes the provider through the single `PIPELINE_PROVIDER`
+variable defined at the top of `run_v2.sh` (`PIPELINE_PROVIDER="localAIServer"`), so
+there is exactly one place to look and one place to change:
+
 | Step | Model | Provider | Where |
 |------|-------|----------|-------|
-| All 8 `run_scout()` calls (x, research, official, opensource, tools, funding, hardware, italia) | `deepseek-v4-flash` | `localAIServer` | hardcoded inside the `run_scout()` helper, `run_v2.sh` |
-| YouTube scout (Phase 4) | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 2 phase 4 |
-| Editor (DS) | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 4 |
-| Editor (K3) | `kimi-k3` | `localAIServer` | `run_v2.sh`, step 4b |
-| Image gen orchestrator | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 5 (the `image_generate` tool call itself still goes to xAI regardless — see §3) |
-| Podcast pill dialogue | `deepseek-v4-flash` | `localAIServer` | `run_v2.sh`, step 7 (the actual TTS audio still goes to xAI — see §3) |
-| Wire articles (DS) | `deepseek-v4-flash` | `localAIServer` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
-| Wire articles (K3) | `kimi-k3` | `localAIServer` | `run_v2.sh` step 8, passed as `--model kimi-k3 --provider localAIServer` |
+| All 7 `run_scout()` calls (x, research, official, opensource, tools, funding, hardware) | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run_v2.sh` |
+| YouTube scout | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 2 |
+| Italia scout | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 2 |
+| Editor | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 4 |
+| Image gen orchestrator | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 5 (the `image_generate` tool call itself still goes to xAI regardless — see §3) |
+| Podcast pill dialogue | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 7 (the actual TTS audio still goes to xAI — see §3) |
+| Wire articles | `deepseek-v4-flash` | `localAIServer` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
 
-None of these are pinned to survive a future profile-default change by
-accident — they're pinned because the pipeline needs `localAIServer` specifically
-(the free/cheap inference tier), not because of drift protection. If you
-want a step to use something else, edit its `-m`/`--provider` flags in
-`run_v2.sh` (or `MODEL`/`PROVIDER` in `wire_articles.py`) directly.
+**Do not swap the provider.** These are not pinned as incidental drift
+protection — the pipeline has to run on this specific self-hosted server,
+while the operator's own Hermes chats run on openrouter. On 2026-07-28 an
+interactive session asked to raise the scout timeout also rewrote all 8
+`--provider localAIServer` flags to `openrouter`, unrequested; the day's edition was
+produced on the wrong (paid, metered) backend before anyone noticed. The
+`PIPELINE_PROVIDER` indirection and the warning block above it exist because
+of that.
+
+Being one self-hosted box is also why scouts run **one at a time** — see
+`docs/ARCHITETTURA.md#scout-concurrency--why-sequential`.
 
 ## 3. Components that bypass `localAIServer` entirely (xAI direct)
 

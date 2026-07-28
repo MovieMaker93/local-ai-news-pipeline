@@ -175,14 +175,14 @@ def archive_issue(deploy_dir: str) -> dict:
 
 
 def prune_unused_assets(deploy: Path) -> dict:
-    """Delete deploy-root images/podcasts no live page (index.html, k3/index.html)
-    references anymore. Historical usage is preserved per-day under archive/."""
+    """Delete deploy-root images/podcasts the live index.html no longer
+    references. Historical usage is preserved per-day under archive/."""
     referenced_images, referenced_audio = set(), set()
-    for html_path in (deploy / "index.html", deploy / "k3" / "index.html"):
-        if html_path.exists():
-            text = html_path.read_text(encoding="utf-8")
-            referenced_images |= extract_referenced_images(text)
-            referenced_audio |= extract_referenced_audio(text)
+    html_path = deploy / "index.html"
+    if html_path.exists():
+        text = html_path.read_text(encoding="utf-8")
+        referenced_images |= extract_referenced_images(text)
+        referenced_audio |= extract_referenced_audio(text)
 
     removed = {"images": 0, "podcasts": 0}
 

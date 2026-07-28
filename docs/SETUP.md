@@ -58,12 +58,12 @@ hermes cron create \
 
 ### 5. LiteLLM private server
 
-The pipeline runs its models (`deepseek-v4-flash`, `kimi-k3`) through a
-private, third-party-hosted LiteLLM server, configured as a custom provider
-named `localAIServer` in `~/.hermes/profiles/luke/config.yaml`. The base URL and API
-key are private and deliberately not included in this public repo — ask the
-repo owner if you need them, or point `localAIServer` at your own
-OpenAI-compatible/LiteLLM endpoint instead:
+The pipeline runs its model (`deepseek-v4-flash`) through a private,
+third-party-hosted LiteLLM server, configured as a custom provider named
+`localAIServer` in `~/.hermes/profiles/luke/config.yaml`. The base URL and API key are
+private and deliberately not included in this public repo — ask the repo owner
+if you need them, or point `localAIServer` at your own OpenAI-compatible/LiteLLM
+endpoint instead:
 
 ```yaml
 custom_providers:
@@ -72,8 +72,14 @@ custom_providers:
     api_key: <your key>
     models:
       - deepseek-v4-flash
-      - kimi-k3
 ```
+
+**Every pipeline step pins `--provider localAIServer` explicitly** (via the
+`PIPELINE_PROVIDER` variable at the top of `run_v2.sh`). The Hermes profile
+default is deliberately *not* used, and must not be: the profile default is
+whatever the user chats on, while the pipeline has to stay on this server.
+That server is a single self-hosted box, which is also why scouts run one at
+a time rather than in parallel.
 
 ## Update Workflow
 
@@ -88,7 +94,6 @@ The output HTML lives in a separate deploy repo:
 - **Repo:** `NTTLuke/luxintenebris-ai-news`
 - **Local:** `~/ai-news-deploy/`
 - **URL:** `https://luxintenebris.news` (custom domain via Cloudflare)
-- **K3 edition:** `https://luxintenebris.news/k3/`
 
 The pipeline automatically pushes to the deploy repo on every run.
 Do not manually modify the deploy repo — changes will be overwritten.

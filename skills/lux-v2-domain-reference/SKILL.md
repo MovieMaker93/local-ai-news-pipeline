@@ -16,7 +16,7 @@ When migrating from `nttluke.github.io/luxintenebris-ai-news/` to `luxintenebris
 | `scripts/archive_issue.py` `HOME_URL` | `/luxintenebris-ai-news/` | `/` |
 | `scripts/fix_archive_issue_numbers.py` | same two constants | same two values |
 
-Also update already-deployed files: `sed -i 's|/luxintenebris-ai-news/archive/|/archive/|g' index.html k3/index.html archive/index.html` and regenerate archive listing.
+Also update already-deployed files: `sed -i 's|/luxintenebris-ai-news/archive/|/archive/|g' index.html archive/index.html` and regenerate archive listing.
 
 ## Rogue Files Pitfall (2026-07-24)
 

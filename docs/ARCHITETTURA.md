@@ -35,24 +35,20 @@ run_v2.sh
   │            date → increment, and archive that predecessor edition NOW,
   │            before this run's files overwrite it.
   │
-  ├─ Step 2:  Scouts (5 phases, parallel within each) — all LLM agents
-  │   ├─ Phase 1: X, Research, Official        (3 in parallel)
-  │   ├─ Phase 2: OpenSource, Tools, Funding    (3 in parallel)
-  │   │            + fetch_trending.py curl fallback if trending < 3 items
-  │   ├─ Phase 3: Hardware                      (1)
-  │   ├─ Phase 4: YouTube (Python fetch + LLM scout)  (1 hybrid)
-  │   └─ Phase 5: Italia AI Spotlight           (1)
+  ├─ Step 2:  Scouts — ONE AT A TIME, all LLM agents, 20 min ceiling each
+  │   ├─ X → Research → Official → OpenSource → Tools → Funding
+  │   │     (+ fetch_trending.py curl fallback if trending < 3 items)
+  │   ├─ Hardware
+  │   ├─ YouTube (Python fetch, then LLM extraction over it)
+  │   └─ Italia AI Spotlight
+  │            see "Scout Concurrency" below for why this is not parallel
   │
   ├─ Step 3:  Validate 9 scout JSON files (missing/invalid → empty [])
-  ├─ Step 4:  Editor (DS) → edition.json                         — LLM agent
-  ├─ Step 4b: Editor (K3) → edition_k3.json  [runs, but unused — see Known Idle Work]
+  ├─ Step 4:  Editor → edition.json                              — LLM agent
   ├─ Step 5:  Image gen (Grok Imagine)          [non-fatal]      — LLM agent + xAI tool
-  ├─ Step 6:  Render DS → index.html                             — pure code
-  ├─ Step 6d: Inject version badge (DS only — K3 badge no-ops, no k3/index.html exists)
-  ├─ Step 6e: K3 layout transform (no-ops — same reason)
+  ├─ Step 6:  Render → index.html                                — pure code
   ├─ Step 7:  Podcast Pill (Castor/Luna)        [non-fatal]      — LLM agent + xAI TTS tool
-  ├─ Step 8:  Wire Articles (DS + K3) + ticker injection [non-fatal]
-  │            (K3 wire runs and is written, but never injected — no k3/index.html)
+  ├─ Step 8:  Wire Articles + ticker injection  [non-fatal]
   └─ Step 9-11: Deploy
       ├─ git fetch + reset --hard (defensive re-sync; real sync was step 1b)
       ├─ Copy new files to deploy dir (today's edition overwrites yesterday's)
@@ -86,16 +82,12 @@ passes its model explicitly.
 | scout-v2-youtube | agent | deepseek-v4-flash / localAIServer | file | `scout_youtube_raw.json` | `scout_youtube.json` |
 | scout-v2-italia | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_italia.json` |
 | editor-v2 | agent | deepseek-v4-flash / localAIServer | file | all `scout_*.json` + `headlines_history.json` | `edition.json` |
-| editor-v2-k3 | agent | kimi-k3 / localAIServer | file | all `scout_*.json` + `headlines_history.json` | `edition_k3.json` — **unused, see below** |
 | image-gen-v2 | agent + tool | deepseek-v4-flash / localAIServer (orchestrator) + xAI Grok Imagine (`image_generate` tool, OAuth) | file, image_gen, terminal | `edition.json` | `images/*.jpg`, updates `edition.json` |
 | `render.py` | code | — | — | `edition.json` + `template/` | `index.html` |
-| `inject_version_badge.py` | code | — | — | `index.html` | `index.html` (badge injected) |
-| `transform_layout_k3.py` | code | — | — | `k3/index.html` | currently a no-op (that file never exists) |
 | podcast-pill | agent + tool | deepseek-v4-flash / localAIServer (dialogue) + xAI TTS (Castor/Luna voices, OAuth) | file, terminal | `edition.json` | `podcast_meta.json`, `podcasts/*.ogg` |
 | `inject_podcast_pill.py` | code | — | — | `index.html`, `podcast_meta.json` | `index.html` (pill injected) |
-| `wire_articles.py` (DS) | code + 1 agent call/article | deepseek-v4-flash / localAIServer | curl (4 fixed RSS feeds) + `hermes chat` subprocess per article | RSS feeds | `scout_wire_ds.json` |
-| `wire_articles.py` (K3) | code + 1 agent call/article | kimi-k3 / localAIServer | same | same | `scout_wire_k3.json` — **unused, see below** |
-| `inject_wire_ticker.py` | code | — | — | `index.html`, `scout_wire_ds.json` | `index.html` (ticker injected) |
+| `wire_articles.py` | code + 1 agent call/article | deepseek-v4-flash / localAIServer | curl (4 fixed RSS feeds) + `hermes chat` subprocess per article | RSS feeds | `scout_wire.json` |
+| `inject_wire_ticker.py` | code | — | — | `index.html`, `scout_wire.json` | `index.html` (ticker injected) |
 | `archive_issue.py` | code | — | — | `deploy/index.html` + the images/audio it actually references | `archive/YYYY-MM-DD/` snapshot; prunes deploy-root `images/`/`podcasts/` |
 | `update_headlines_history.py` | code | — | — | `edition.json` | `headlines_history.json` |
 
@@ -108,20 +100,68 @@ the pipeline itself — `run_v2.sh` never invokes them with `-s`:
 - **lux-v2-operations** — log paths, deploy destinations, debugging procedures.
 - **lux-v2-domain** / **lux-v2-domain-reference** — custom-domain (Cloudflare/GitHub Pages) setup notes.
 
-## Known Idle Work
+## Scout Concurrency — why sequential
 
-Since K3 rendering was removed from `run_v2.sh` (2026-07-25), two steps still
-run to completion every day but produce output nothing reads:
+Scouts run **one at a time**. They used to run 3-up in parallel phases; that
+was removed on 2026-07-28.
 
-- **editor-v2-k3** (step 4b) — a full LLM call over every scout file, writing `edition_k3.json`.
-- **`wire_articles.py --model kimi-k3`** (step 8) — up to 5 more LLM calls, writing `scout_wire_k3.json`.
+A scout is not a single API request — it's a full multi-turn agent session
+(web searches, tool calls, reasoning, retries). All of them target `localAIServer`,
+which is **one self-hosted machine**, not a distributed API. Three concurrent
+agent sessions saturate it and every one of them crawls.
 
-Neither is wired to anything downstream — there is no `k3/index.html` to
-inject them into. This costs real time and API spend for a discarded
-result. It's left as-is deliberately (see the repo's commit history around
-2026-07-26) pending a decision on whether K3 gets fully restored (re-add the
-render step, these calls become useful again) or fully removed (delete these
-two calls along with the badge/layout-transform no-ops).
+The logs are unambiguous. Across 2026-07-26, 27 and 28, every 3-up phase ran
+to *exactly* the per-scout ceiling and got killed:
+
+| Day | Provider | Phase durations | Scouts completed |
+|-----|----------|-----------------|------------------|
+| 07-26 | localAIServer, 3-up | 10.1, 10.1, 10.0, 10.1 min | 14 ok / 14 failed |
+| 07-27 | localAIServer, 3-up | 10.0, 10.1 min | 1 ok / 6 failed |
+| 07-28 | localAIServer, 3-up | 10.0, 10.1, 10.0 min | 0 ok / 10 failed |
+| 07-28 | distributed API, 3-up | 4.7, 6.7 min | 14 ok / 0 failed |
+
+The 10-minute figures were the timeout ceiling of the day, not real work
+duration — the scouts never finished. Against a distributed backend the same
+scouts cleared a whole phase in under 7 minutes, i.e. comfortably inside even
+the old ceiling. The variable was concurrency-per-backend, not the timeout.
+
+Serialising costs wall clock and buys completion. Wall clock is close to free
+here — it's a fire-and-forget 06:30 cron and nobody is watching it run — hence
+the 4h master budget.
+
+**Before re-parallelising**, confirm the inference backend can actually take
+concurrent agent sessions. If the pipeline ever moves to a distributed
+provider, parallel phases become reasonable again.
+
+## Timeouts
+
+Every LLM call is wrapped in `timeout`. Until 2026-07-28, five of them weren't
+(italia scout, both editors, image gen, podcast) and could hang indefinitely —
+visible in the logs as 40-minute stalls with no output.
+
+| Budget | Value | Covers |
+|--------|-------|--------|
+| `TIMEOUT_SECS` | 20 min | each scout |
+| `STEP_TIMEOUT_SECS` | 20 min | editor, italia scout |
+| `MEDIA_TIMEOUT_SECS` | 15 min | image gen, podcast (xAI-bound, not localAIServer) |
+| `MASTER_TIMEOUT` | 4h | the whole pipeline |
+
+`MASTER_TIMEOUT` has to cover the **sum** of the sequential scouts, not their
+max. It was 90 min under the old parallel layout; 9 sequential scouts at a
+20-minute ceiling can exceed that on their own, so leaving it at 90 min would
+have had the pipeline abort itself mid-run.
+
+## Provider Pinning
+
+Every LLM step passes `--provider "$PIPELINE_PROVIDER"` (= `localAIServer`) explicitly.
+The Hermes profile default is deliberately unused: the operator chats on
+openrouter, but the pipeline must stay on the self-hosted server.
+
+This is pinned in one variable, with a warning block above it, because on
+2026-07-28 an interactive session asked to raise the scout timeout also
+rewrote all 8 `--provider localAIServer` flags to `openrouter` — unrequested, and
+unnoticed until the day's edition had already been produced on the wrong
+(paid, metered) backend.
 
 ## Critical Paths
 

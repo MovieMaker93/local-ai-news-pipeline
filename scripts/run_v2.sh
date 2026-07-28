@@ -1,13 +1,16 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════
-# Lux in Tenebris V2 — Orchestrator Script (v2.1 robust)
+# Lux in Tenebris V2 — Orchestrator Script (v2.2)
 # Each step is isolated, stateless, communicates via JSON files.
 # Features:
-#   - Process-group kill for stuck scouts (no zombie subagents)
-#   - 90-min master timeout
+#   - Scouts run SEQUENTIALLY (one at a time) — the inference server is a
+#     single self-hosted box and can't take concurrent agent sessions
+#   - Every LLM call is wrapped in a timeout; nothing can hang forever
+#   - 4h master timeout for the whole pipeline
 #   - Auto-skip image gen when xAI credits exhausted
-#   - Auto-skip podcast pill when xAI TTS unavailable
+#   - Auto-skip podcast pill when xAI TTS unavailable (checked independently)
 #   - Falls back to partial deploy if any non-critical step fails
+#   - Single edition (the K3 second edition was removed 2026-07-28)
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -22,9 +25,34 @@ RENDER_PY="/home/nttluke/lux-in-tenebris-pipeline/scripts/render.py"
 SCRIPT_DIR="/home/nttluke/.hermes/profiles/luke/scripts/v2"
 CLEANUP_SH="$V2_DIR/cleanup.sh"
 DEPLOY_DIR="/home/nttluke/ai-news-deploy"
-TIMEOUT_SECS=600  # 10 min per scout
-MASTER_TIMEOUT=5400  # 90 min for entire pipeline
+# Scouts run ONE AT A TIME (see step 2) against a single self-hosted
+# inference server, so these budgets are per-scout wall clock with the whole
+# server to itself, and the master budget has to cover their sum, not their max.
+TIMEOUT_SECS=1200      # 20 min per scout
+STEP_TIMEOUT_SECS=1200 # 20 min for editor / italia scout
+MEDIA_TIMEOUT_SECS=900 # 15 min for image gen / podcast (xAI-bound, not localAIServer)
+MASTER_TIMEOUT=14400   # 4h for the entire pipeline (was 90 min, far too tight
+                       # once scouts stopped running 3-up: 9 sequential scouts
+                       # at up to 20 min each can alone exceed 90 min)
 TEMPLATE_DIR="/home/nttluke/lux-in-tenebris-pipeline/template"
+
+# ╔═══════════════════════════════════════════════════════════════════╗
+# ║ PIPELINE_PROVIDER — DO NOT CHANGE without the user explicitly      ║
+# ║ asking for it, in this exact conversation, for this exact reason.  ║
+# ║                                                                    ║
+# ║ This must always be "localAIServer" (the user's friend's dedicated LiteLLM ║
+# ║ server), never "openrouter" or anything else — regardless of what  ║
+# ║ model/provider the *interactive* Hermes session reasoning about    ║
+# ║ this fix happens to be running on. The user uses openrouter for    ║
+# ║ their own chats; the pipeline's own steps must not follow that.    ║
+# ║                                                                    ║
+# ║ Incident (2026-07-27/28): asked to raise the scout timeout, an     ║
+# ║ interactive session swapped every "--provider localAIServer" in this file  ║
+# ║ to "--provider openrouter" — unrequested, unnoticed until the user ║
+# ║ asked why. openrouter is a paid, metered service, separate from    ║
+# ║ the friend's server, with a different cost profile.                ║
+# ╚═══════════════════════════════════════════════════════════════════╝
+PIPELINE_PROVIDER="localAIServer"
 
 # ── Setup ────────────────────────────────────────────────────
 mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$IMAGES_DIR" "$OUTPUT_DIR"
@@ -117,10 +145,10 @@ echo "  ✓ issue #$NEXT_ISSUE"
 check_timeout
 
 # ── Helper: run a scout with safe timeout ──────────────────
-# Each scout runs in a background subshell with a 10-min timeout.
-# If timeout fires, the subshell exits, write_file may not have
-# completed — so we check and write empty fallback in the parent.
-# CRITICAL: '|| true' prevents set -e from killing the subshell
+# Runs one scout to completion, then validates its output file. If the
+# timeout fires, write_file may never have run — so we check, and write an
+# empty [] fallback here so downstream steps always have valid JSON.
+# CRITICAL: '|| true' prevents set -e from aborting the whole pipeline
 # when timeout returns non-zero (exit code 124).
 run_scout() {
     local name="$1"
@@ -134,7 +162,7 @@ run_scout() {
         --profile "$PROFILE" \
         -s "$skill" \
         -t "$toolsets" \
-        -m deepseek-v4-flash --provider localAIServer \
+        -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
         -Q --yolo \
         2>>"$LOG_DIR/scout_${name}_${TODAY}.err" \
         >"$LOG_DIR/scout_${name}_${TODAY}.out" || true
@@ -154,54 +182,51 @@ run_scout() {
 SCOUT_DATE_BRIEF="Window: from $YESTERDAY to $TODAY. Today is $TODAY, yesterday is $YESTERDAY."
 
 # ── Step 2: Scouts ───────────────────────────────────────────
-# Each phase runs in parallel. Individual scouts have 10-min timeout.
-# If a scout fails, it gets an empty [] fallback — never blocks the pipeline.
+# SEQUENTIAL, one scout at a time. Each gets the whole inference server to
+# itself and its own timeout; a failure only ever costs that one scout, which
+# falls back to [] and never blocks the pipeline.
+#
+# Why not parallel (changed 2026-07-28): scouts used to run 3-up in phases.
+# That works against a distributed API, but `localAIServer` is a single self-hosted
+# box serving these models — and a "scout" is not one request, it's a whole
+# multi-turn agent session (searches, tool calls, reasoning). Three of those
+# at once saturate the machine and all three crawl. Evidence from the logs on
+# 2026-07-26/27/28: every 3-up phase ran exactly to the per-scout ceiling and
+# got killed — 0 scouts completed across those runs. The same scouts against
+# a distributed provider finished a whole phase in 4.7-6.7 min. Serialising
+# trades wall clock (which is free here: this is a fire-and-forget 06:30 cron)
+# for actually finishing.
+echo "[step 2] scouts (sequential, one at a time)..."
 
-# --- Phase 1: 3 scouts in parallel ---
-echo "[step 2] scouts phase 1 (parallel: x, research, official)..."
 run_scout "x" "scout-v2-x" "x_search,file,terminal" \
     "You are the X Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-x and follow it exactly. Use from_date=$YESTERDAY to_date=$TODAY in x_search calls.
-Write the JSON array to $SCOUTS_DIR/scout_x.json using write_file. ENGLISH ONLY." &
-PID_X=$!
+Write the JSON array to $SCOUTS_DIR/scout_x.json using write_file. ENGLISH ONLY."
 
 run_scout "research" "scout-v2-research" "web,file,terminal" \
     "You are the Research Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-research and follow it exactly. Search arXiv and HuggingFace daily papers.
-Write the JSON array to $SCOUTS_DIR/scout_research.json using write_file. ENGLISH ONLY." &
-PID_RESEARCH=$!
+Write the JSON array to $SCOUTS_DIR/scout_research.json using write_file. ENGLISH ONLY."
 
 run_scout "official" "scout-v2-official" "web,file,terminal" \
     "You are the Official Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-official and follow it exactly. Scrape official AI lab blogs.
-Write the JSON array to $SCOUTS_DIR/scout_official.json using write_file. ENGLISH ONLY." &
-PID_OFFICIAL=$!
+Write the JSON array to $SCOUTS_DIR/scout_official.json using write_file. ENGLISH ONLY."
 
-wait $PID_X $PID_RESEARCH $PID_OFFICIAL 2>/dev/null || true
-echo "  ✓ phase 1 complete"
-
-# --- Phase 2: 3 scouts in parallel ---
-echo "[step 2] scouts phase 2 (parallel: opensource, tools, funding)..."
 run_scout "opensource" "scout-v2-opensource" "web,x_search,file,terminal" \
     "You are the Open Source Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-opensource and follow it exactly. Search GitHub Trending and HuggingFace Trending.
-Write the JSON object (with editorial array + trending object) to $SCOUTS_DIR/scout_opensource.json using write_file. ENGLISH ONLY." &
-PID_OS=$!
+Write the JSON object (with editorial array + trending object) to $SCOUTS_DIR/scout_opensource.json using write_file. ENGLISH ONLY."
 
 run_scout "tools" "scout-v2-tools" "web,file,terminal" \
     "You are the Tools Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-tools and follow it exactly. Search Product Hunt, Hacker News, tool launches.
-Write the JSON array to $SCOUTS_DIR/scout_tools.json using write_file. ENGLISH ONLY." &
-PID_TOOLS=$!
+Write the JSON array to $SCOUTS_DIR/scout_tools.json using write_file. ENGLISH ONLY."
 
 run_scout "funding" "scout-v2-funding" "web,file,terminal" \
     "You are the Funding Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-funding and follow it exactly. Search TechCrunch, Crunchbase for AI funding.
-Write the JSON array to $SCOUTS_DIR/scout_funding.json using write_file. ENGLISH ONLY." &
-PID_FUNDING=$!
-
-wait $PID_OS $PID_TOOLS $PID_FUNDING 2>/dev/null || true
-echo "  ✓ phase 2 complete"
+Write the JSON array to $SCOUTS_DIR/scout_funding.json using write_file. ENGLISH ONLY."
 
 # ── Trending fallback: if opensource scout failed, fetch via curl ──
 TRENDING_FALLBACK="$SCRIPT_DIR/fetch_trending.py"
@@ -252,40 +277,37 @@ except Exception as e:
     fi
 fi
 
-# --- Phase 3: 1 scout ---
-echo "[step 2] scouts phase 3 (hardware)..."
 run_scout "hardware" "scout-v2-hardware" "web,x_search,file,terminal" \
     "You are the Hardware Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-hardware and follow it exactly. Search for robots, chips, datacenter hardware news.
 Write the JSON array to $SCOUTS_DIR/scout_hardware.json using write_file. ENGLISH ONLY."
-echo "  ✓ phase 3 complete"
 
-# --- Phase 4: YouTube Scout ---
-echo "[step 2] scouts phase 4 (youtube)..."
+# --- YouTube: Python fetch, then LLM extraction over the fetched data ---
+echo "[step 2] scout youtube..."
 echo "  → running youtube_scout.py (Python fetch)..."
 python3 "$SCRIPT_DIR/youtube_scout.py" --max 10 2>>"$LOGFILE" || echo "  ⚠ youtube scout fetch failed (non-fatal)"
 echo "  ✓ youtube_scout.py done"
 
-echo "  → running scout-v2-youtube (GLM-5.2-openai)..."
+echo "  → running scout-v2-youtube..."
 timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q 'Load scout-v2-youtube skill. Read /tmp/v2/scouts/scout_youtube_raw.json.
 Extract newsworthy items from the video data.
 Write the JSON array to /tmp/v2/scouts/scout_youtube.json using write_file.
 ENGLISH ONLY. Today is '"$TODAY"' ('"$TODAY_HUMAN"'). Window: '"$YESTERDAY"' to '"$TODAY"'."' \
     --profile "$PROFILE" -s scout-v2-youtube -t file \
-    -m deepseek-v4-flash --provider localAIServer \
+    -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
     -Q --yolo >"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
-echo "  ✓ phase 4 complete"
+echo "  ✓ youtube scout done"
 check_timeout
 
-# --- Phase 5: Italia AI Spotlight ---
-echo "[step 2] scouts phase 5 (italia)..."
-"$HERMES_BIN" chat -q "You are the Italia AI Spotlight Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
+# --- Italia AI Spotlight ---
+echo "[step 2] scout italia..."
+timeout "$STEP_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Italia AI Spotlight Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
 Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
 All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
-    --profile "$PROFILE" -s scout-v2-italia -t web,file,terminal -m deepseek-v4-flash --provider localAIServer -Q --yolo \
+    --profile "$PROFILE" -s scout-v2-italia -t web,file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
     >"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
-echo "  ✓ phase 5 complete"
+echo "  ✓ italia scout done"
 check_timeout
 
 # ── Step 3: Validate all scout files ────────────────────────
@@ -310,13 +332,13 @@ echo "[step 4] editor..."
 # NEXT_ISSUE was already resolved in step 1b (reuse-if-same-day-rerun,
 # increment-and-archive-predecessor otherwise).
 
-"$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
+timeout "$STEP_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
 Today is $TODAY. Issue #$NEXT_ISSUE.
 Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
-For cross-day dedup (step 4b), read $DEPLOY_DIR/headlines_history.json via read_file.
+For cross-day dedup, read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
-    --profile "$PROFILE" -s editor-v2 -t file -m deepseek-v4-flash --provider localAIServer -Q --yolo \
+    --profile "$PROFILE" -s editor-v2 -t file -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
     >"$LOG_DIR/editor_${TODAY}.log" 2>&1 || true
 
 if [ -f "$V2_DIR/edition.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition.json'))" 2>/dev/null 2>&1; then
@@ -325,26 +347,6 @@ else
     echo "  ✗ edition.json MISSING or INVALID — cannot continue"
     echo "FATAL: editor failed"
     exit 1
-fi
-check_timeout
-
-# ── Step 4b: Editor (Kimi K3 edition) ────────────────────────
-echo "[step 4b] editor kimi-k3..."
-ISSUE_DS=$(python3 -c "import json; print(json.load(open('$V2_DIR/edition.json')).get('issue_no','$NEXT_ISSUE'))" 2>/dev/null || echo "$NEXT_ISSUE")
-"$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2-k3 and follow it exactly.
-Today is $TODAY. Issue #$ISSUE_DS.
-Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
-For cross-day dedup (step 4b), read $DEPLOY_DIR/headlines_history.json via read_file.
-Assemble edition.json following the skill instructions.
-Write the result to $V2_DIR/edition_k3.json using write_file. ENGLISH ONLY." \
-    --profile "$PROFILE" -s editor-v2-k3 -t file -m kimi-k3 --provider localAIServer -Q --yolo \
-    >"$LOG_DIR/editor_k3_${TODAY}.log" 2>&1 || true
-
-if [ -f "$V2_DIR/edition_k3.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition_k3.json'))" 2>/dev/null 2>&1; then
-    echo "  ✓ edition_k3.json written"
-else
-    echo "  ✗ edition_k3.json MISSING or INVALID — k3 edition will be skipped"
-    echo "{}" > "$V2_DIR/edition_k3.json"
 fi
 check_timeout
 
@@ -358,11 +360,11 @@ if grep -q "personal-team-blocked:spending-limit" "$LOG_DIR/imagegen_${TODAY}.lo
 fi
 
 if [ "$SKIP_IMAGES" = false ]; then
-    "$HERMES_BIN" chat -q "You are the Image Generator for Lux in Tenebris. Load skill image-gen-v2.
+    timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Image Generator for Lux in Tenebris. Load skill image-gen-v2.
 Today is $TODAY. Read $V2_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $V2_DIR/images/. Update edition.json. ENGLISH ONLY." \
-        --profile "$PROFILE" -s image-gen-v2 -t file,image_gen,terminal -m deepseek-v4-flash --provider localAIServer -Q --yolo \
+        --profile "$PROFILE" -s image-gen-v2 -t file,image_gen,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
         >"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 
@@ -385,41 +387,11 @@ else
     exit 1
 fi
 
-# K3 rendering removed per user request (2026-07-25) — DS-only render step above.
-# K3_OUTPUT_DIR is still referenced by steps 6d-11 below (badges, layout transform,
-# podcast/wire injection, deploy copy): keep it defined so `set -u` doesn't crash
-# the whole pipeline. Since no k3/index.html is ever produced, every "-f" check
-# on it below evaluates false and those steps no-op, which is the intended
-# "K3 disabled" behavior. If K3 gets fully removed, delete this block AND all
-# $K3_OUTPUT_DIR references in steps 6d-11 together — not one without the other.
-K3_OUTPUT_DIR="$OUTPUT_DIR/k3"
-mkdir -p "$K3_OUTPUT_DIR"
-
-# ── Step 6d: Inject version badges ───────────────────────────
-echo "[step 6d] injecting version badges..."
-BADGE_SCRIPT="$SCRIPT_DIR/inject_version_badge.py"
-
-# Inject DS badge into main index.html
-if [ -f "$OUTPUT_DIR/index.html" ] && [ -f "$BADGE_SCRIPT" ]; then
-    python3 "$BADGE_SCRIPT" "$OUTPUT_DIR/index.html" ds \
-        --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || true
-fi
-
-# Inject K3 badge into k3/index.html
-if [ -f "$K3_OUTPUT_DIR/index.html" ] && [ -f "$BADGE_SCRIPT" ]; then
-    python3 "$BADGE_SCRIPT" "$K3_OUTPUT_DIR/index.html" k3 \
-        --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || true
-fi
-echo "  ✓ version badges injected"
-
-# ── Step 6e: Transform K3 layout to White Edition ────────────
-echo "[step 6e] transforming k3 layout to white edition..."
-LAYOUT_SCRIPT="$SCRIPT_DIR/transform_layout_k3.py"
-if [ -f "$K3_OUTPUT_DIR/index.html" ] && [ -f "$LAYOUT_SCRIPT" ]; then
-    python3 "$LAYOUT_SCRIPT" "$K3_OUTPUT_DIR/index.html" \
-        --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || true
-    echo "  ✓ k3 layout transformed to white edition"
-fi
+# The K3 "The Lens" second edition was fully removed on 2026-07-28 (it had
+# been render-disabled since 07-25 but its editor and wire steps still ran
+# daily, burning LLM calls for output nothing read). Single DS edition only.
+# Nothing here renders a k3/ page any more, and the version-selector badge
+# went with it — there is no second version to select.
 
 # ── Step 7: Podcast Pill ─────────────────────────────────────
 echo "[step 7] podcast pill..."
@@ -435,16 +407,15 @@ if grep -q "personal-team-blocked:spending-limit" "$LOG_DIR/podcast_${TODAY}.log
 fi
 
 if [ "$SKIP_PODCAST" = false ]; then
-    PODCAST_META="$V2_DIR/podcast_meta.json"
     PODCAST_INJECT="$SCRIPT_DIR/inject_podcast_pill.py"
     mkdir -p "$V2_DIR/podcasts"
     
-    "$HERMES_BIN" chat -q "You are the Podcast Pill generator. Load skill podcast-pill.
+    timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Podcast Pill generator. Load skill podcast-pill.
 Today is $TODAY. Issue #$NEXT_ISSUE.
 Read $V2_DIR/edition.json. Generate Castor/Luna dialogue from lead.
 Produce TTS audio, concat with ffmpeg, write metadata to $V2_DIR/podcast_meta.json.
 Use text_to_speech tool. Use terminal for ffmpeg. ENGLISH ONLY." \
-        --profile "$PROFILE" -s podcast-pill -t file,terminal -m deepseek-v4-flash --provider localAIServer -Q --yolo \
+        --profile "$PROFILE" -s podcast-pill -t file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
         >"$LOG_DIR/podcast_${TODAY}.log" 2>&1 || true
 
     # Check if it failed due to credits (own signal, independent of images)
@@ -471,15 +442,6 @@ print(m.get('duration_sec', 0))
                 "$DUR" \
                 --output "$OUTPUT_DIR/index.html" \
                 2>>"$LOGFILE" && echo "  ✓ podcast pill injected" || echo "  ⚠ podcast pill injection failed"
-            # Also inject into k3 version if it exists
-            if [ -f "$K3_OUTPUT_DIR/index.html" ]; then
-                python3 "$PODCAST_INJECT" \
-                    "$K3_OUTPUT_DIR/index.html" \
-                    "$OGG_REL" \
-                    "$DUR" \
-                    --output "$K3_OUTPUT_DIR/index.html" \
-                    2>>"$LOGFILE" && echo "  ✓ podcast pill injected into k3" || echo "  ⚠ k3 podcast injection failed"
-            fi
         else
             echo "  - podcast meta incomplete, skipping injection"
         fi
@@ -495,45 +457,30 @@ check_timeout
 echo "[step 8] wire articles..."
 WIRE_SCRIPT="$SCRIPT_DIR/wire_articles.py"
 if [ -f "$WIRE_SCRIPT" ]; then
-    # Wire articles for DeepSeek edition
-    python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire_ds.json" 2>>"$LOGFILE" || \
-        echo "  ⚠ wire articles DS failed (non-fatal)"
-    WIRE_COUNT_DS=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire_ds.json'));print(len(d))" 2>/dev/null || echo "0")
-    echo "  ✓ $WIRE_COUNT_DS wire articles (DS) written"
-    
-    # Wire articles for Kimi K3 edition
-    python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire_k3.json" --model kimi-k3 --provider localAIServer 2>>"$LOGFILE" || \
-        echo "  ⚠ wire articles K3 failed (non-fatal)"
-    WIRE_COUNT_K3=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire_k3.json'));print(len(d))" 2>/dev/null || echo "0")
-    echo "  ✓ $WIRE_COUNT_K3 wire articles (K3) written"
+    # --provider passed explicitly (rather than relying on wire_articles.py's
+    # own default) so $PIPELINE_PROVIDER stays the single place the backend is
+    # decided for the whole pipeline.
+    python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" \
+        --model deepseek-v4-flash --provider "$PIPELINE_PROVIDER" 2>>"$LOGFILE" || \
+        echo "  ⚠ wire articles failed (non-fatal)"
+    WIRE_COUNT=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire.json'));print(len(d))" 2>/dev/null || echo "0")
+    echo "  ✓ $WIRE_COUNT wire articles written"
 else
     echo "  - wire_articles.py not found, skipping"
 fi
-# This step renamed because we numbered incorrectly
-echo "[step 8] inject wire ticker..."
+
+echo "[step 8b] inject wire ticker..."
 INJECT_SCRIPT="$SCRIPT_DIR/inject_wire_ticker.py"
-
-# Inject DS wire into main index.html
-if [ "${WIRE_COUNT_DS:-0}" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$OUTPUT_DIR/index.html" ]; then
-    python3 "$INJECT_SCRIPT" "$OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire_ds.json" --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
-        echo "  ⚠ DS ticker injection failed (non-fatal)"
-    echo "  ✓ DS ticker injected"
+if [ "${WIRE_COUNT:-0}" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$OUTPUT_DIR/index.html" ]; then
+    python3 "$INJECT_SCRIPT" "$OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire.json" --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
+        echo "  ⚠ ticker injection failed (non-fatal)"
+    echo "  ✓ ticker injected"
 else
-    echo "  - no DS wire articles, skipping DS ticker"
-fi
-
-# Inject K3 wire into k3/index.html
-if [ "${WIRE_COUNT_K3:-0}" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$K3_OUTPUT_DIR/index.html" ]; then
-    python3 "$INJECT_SCRIPT" "$K3_OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire_k3.json" --output "$K3_OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
-        echo "  ⚠ K3 ticker injection failed (non-fatal)"
-    echo "  ✓ K3 ticker injected"
-else
-    echo "  - no K3 wire articles, skipping K3 ticker"
+    echo "  - no wire articles, skipping ticker"
 fi
 check_timeout
 
 # ── Step 9: Deploy ───────────────────────────────────────────
-SSH_URL="git@github.com:NTTLuke/luxintenebris-ai-news.git"
 echo "[step 9] deploying to production..."
 
 cd "$DEPLOY_DIR"
@@ -546,11 +493,6 @@ echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
 # ── Step 10: Copy files ───────────────────────────────────────
 echo "[step 10] copying files..."
 cp "$OUTPUT_DIR/index.html" "$DEPLOY_DIR/index.html"
-if [ -f "$OUTPUT_DIR/k3/index.html" ]; then
-    mkdir -p "$DEPLOY_DIR/k3"
-    cp "$OUTPUT_DIR/k3/index.html" "$DEPLOY_DIR/k3/index.html"
-    echo "  ✓ k3 edition copied"
-fi
 cp -r "$OUTPUT_DIR/fonts"/* "$DEPLOY_DIR/fonts/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/images"
 cp "$IMAGES_DIR"/*.jpg "$DEPLOY_DIR/images/" 2>/dev/null || true
@@ -566,18 +508,6 @@ fi
 
 cp "$V2_DIR/edition.json" "$DEPLOY_DIR/edition.json"
 echo "  ✓ edition.json saved to deploy dir"
-if [ -f "$V2_DIR/edition_k3.json" ]; then
-    # edition_k3.json always exists (step 4b writes a {} fallback on failure
-    # too), but $DEPLOY_DIR/k3/ only gets created above if K3 actually
-    # rendered — which it doesn't right now. mkdir -p first so this can't
-    # crash the whole run the day this file starts existing without a k3/
-    # dir (was unguarded until 2026-07-27; found via a full re-read of this
-    # script — never triggered in practice only because an earlier bug
-    # always crashed the run before reaching this line).
-    mkdir -p "$DEPLOY_DIR/k3"
-    cp "$V2_DIR/edition_k3.json" "$DEPLOY_DIR/k3/edition.json"
-    echo "  ✓ k3 edition.json saved to deploy dir"
-fi
 
 # ── Step 11: Headlines history + commit + push ───────────────
 # (archiving the PREVIOUS issue already happened in step 1b, before this
@@ -604,9 +534,8 @@ echo "✅ V2 PIPELINE COMPLETE — $(date '+%H:%M:%S')"
 echo "  Issue:   #$NEXT_ISSUE"
 echo "  Date:    $TODAY"
 echo "  Scouts:  $SCOUT_COUNT/9"
-echo "  DS edition: ✅ ($([ -f "$V2_DIR/edition.json" ] && echo 'generated' || echo 'failed'))"
-echo "  K3 edition: $([ -f "$V2_DIR/edition_k3.json" ] && [ -f "$OUTPUT_DIR/k3/index.html" ] && echo '✅ rendered' || echo '⏭ skipped')"
-echo "  Wire:    DS:${WIRE_COUNT_DS:-0}  K3:${WIRE_COUNT_K3:-0} articles"
+echo "  Edition: ✅ ($([ -f "$V2_DIR/edition.json" ] && echo 'generated' || echo 'failed'))"
+echo "  Wire:    ${WIRE_COUNT:-0} articles"
 echo "  Images:  $IMG_COUNT ($([ "$SKIP_IMAGES" = true ] && echo 'skipped - no xAI credits' || echo 'generated'))"
 echo "  Podcast: $([ "$SKIP_PODCAST" = true ] && echo 'skipped - no xAI credits' || echo 'attempted')"
 echo "  Deploy:  $DEPLOY_DIR"

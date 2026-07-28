@@ -1,62 +1,76 @@
 ---
 name: orchestrator-v2
-description: "Lux in Tenebris V2 production pipeline. Bash orchestrator with fire-and-forget cron, 8 atomic scouts + 1 Python/LLM hybrid, dual-model editor, image-gen, render, podcast pill, wire articles, version badge, deploy to GitHub Pages."
+description: "Lux in Tenebris V2 production pipeline. Bash orchestrator with fire-and-forget cron, 8 atomic scouts + 1 Python/LLM hybrid run sequentially, editor, image-gen, render, podcast pill, wire articles, deploy to GitHub Pages."
 ---
 
 # Orchestrator V2 — Production Pipeline
 
 ## Purpose
-Daily AI news production: 9 scouts → dual-model editor (DS + K3) → image generation → HTML render → version badge → podcast pill → wire articles → deploy to GitHub Pages.
+Daily AI news production: 9 scouts → editor → image generation → HTML render → podcast pill → wire articles → deploy to GitHub Pages.
 
-## Architecture — Dual-Model Pipeline
+## Architecture
 
-**Core principle:** Cron is a scheduler, not a state manager. Scouts run once; editor, render, wire articles, and badge injection run per-model for each edition.
-
-Since 2026-07-17, the pipeline produces **two editions** per run: DeepSeek (default, `index.html`) and Kimi K3 / The Lens (`k3/index.html`).
+**Core principle:** Cron is a scheduler, not a state manager. Every step is
+isolated and stateless, communicating only through JSON files in `/tmp/v2/`.
 
 ```
-Cron (08:00, no_agent=true, fire-and-forget)
+Cron (06:30, no_agent=true, fire-and-forget)
   ↓
 cron_wrapper.sh (nohup bash run_v2.sh &)
   ↓
 run_v2.sh (bash orchestrator)
   ↓
-Phase 1-5: 9 scouts (once, parallel within phases)
+Sync deploy dir → resolve issue # → archive predecessor edition
   ↓
-── DUAL MODEL BRANCH ──
-  │
-  ├─ Editor DS (editor-v2, deepseek)  → edition.json
-  ├─ Editor K3 (editor-v2-k3, kimi-k3) → edition_k3.json
-  │
-  ├─ Image-gen (once, shared)
-  ├─ Render DS  → index.html
-  ├─ Render K3  → k3/index.html
-  ├─ Badge DS   → badge inactive (amber)
-  ├─ Badge K3   → badge active (ember) + paths fixed to ../
-  ├─ Layout K3  → transform_layout_k3.py (White Edition)
-  ├─ Wire DS    → scout_wire_ds.json (deepseek)
-  └─ Wire K3    → scout_wire_k3.json (kimi-k3)
+9 scouts, ONE AT A TIME (see "Why sequential" below)
   ↓
-Podcast Pill (shared, injected into both)
+Editor (editor-v2, deepseek-v4-flash) → edition.json
   ↓
-Git sync → Archive → Copy → git add → commit → push
+Image-gen → Render → index.html
+  ↓
+Podcast Pill → Wire articles → ticker injection
+  ↓
+Copy → headlines history → git add → commit → push
 ```
 
-## Key Scripts (post-render transforms)
+## Why sequential scouts (changed 2026-07-28)
 
-### inject_version_badge.py
-- `python3 inject_version_badge.py <input.html> <mode> --output <output.html>`
-- Modes: `ds` (links to `k3/`), `k3` (links to `../`, also rewrites paths to `../`)
-- Injects inline CSS before `</head>`, badge HTML between dateline `</div>` and devocracy-credit
-- Colors: DS = `var(--lux)` amber, K3 = `var(--ember)` hot orange. On K3 White Edition, badges become black `#1a1a1a`.
-- **CRITICAL:** Run ONCE per file. Re-running duplicates the badge.
+Scouts used to run 3-up in parallel phases. That works against a distributed
+API but not against `localAIServer`, which is a **single self-hosted box**. A scout is
+not one request — it's a whole multi-turn agent session (searches, tool calls,
+reasoning). Three concurrent sessions saturate the machine and all three crawl.
 
-### transform_layout_k3.py
-- `python3 transform_layout_k3.py <input.html> --output <output.html>`
-- Transforms K3 edition into "White Edition" layout: white/cream bg, black text, Lux dark header
-- Uses **nuclear CSS approach**: `h1, h2, h3, h4, h5, p, a, span, div, article, section { color: #000 !important; }` to override ALL Lux CSS text colors
-- CSS ordering in the injected style block is CRITICAL: general `a, a:link` rule BEFORE header/badge exceptions, hover rules AFTER nuclear rule
-- Wire news container excluded from white bg via `[class*="wire"] { background-color: var(--ink) !important; }`
+Evidence (logs, 2026-07-26/27/28): every 3-up phase ran exactly to the
+per-scout ceiling and got killed — **0 scouts completed** across those runs.
+The same scouts against a distributed provider finished a whole phase in
+4.7-6.7 min. Serialising trades wall clock (free here — it's a fire-and-forget
+06:30 cron) for actually finishing.
+
+**Do not re-parallelise** without first confirming the inference backend can
+take concurrent agent sessions.
+
+## Timeouts
+
+Every LLM call is wrapped in `timeout`. Nothing may hang forever — five calls
+used to have no timeout at all (italia scout, editor, image-gen, podcast), and
+they produced 40-minute stalls in the logs.
+
+| Budget | Value | Applies to |
+|--------|-------|------------|
+| `TIMEOUT_SECS` | 20 min | each scout |
+| `STEP_TIMEOUT_SECS` | 20 min | editor, italia scout |
+| `MEDIA_TIMEOUT_SECS` | 15 min | image gen, podcast (xAI-bound) |
+| `MASTER_TIMEOUT` | 4h | whole pipeline |
+
+`MASTER_TIMEOUT` must cover the **sum** of sequential scouts, not the max. It
+was 90 min while scouts ran in parallel; that is far too tight now.
+
+## Provider pinning
+
+Every step passes `--provider "$PIPELINE_PROVIDER"` (= `localAIServer`) explicitly.
+The Hermes profile default is deliberately not used — the user chats on
+openrouter, but the pipeline must stay on their friend's server. See the
+comment block at the top of `run_v2.sh` before changing anything here.
 
 ### wire_articles.py
 - `--model`, `--provider` args for per-edition model selection
@@ -76,27 +90,21 @@ Git sync → Archive → Copy → git add → commit → push
 - Also sets `.issue` to the correct value for the next pipeline run
 - **Location:** `~/.hermes/profiles/luke/scripts/v2/fix_archive_issue_numbers.py`
 
-## Per-model components
+## Edition components
 
-| Component | DeepSeek | Kimi K3 |
-|-----------|----------|---------|
-| Editor skill | `editor-v2` | `editor-v2-k3` |
-| Model | `deepseek-v4-flash` | `kimi-k3` |
-| Edition file | `edition.json` | `edition_k3.json` |
-| Output path | `index.html` | `k3/index.html` |
-| Badge mode | `ds` (amber, inactive, links to k3/) | `k3` (active, paths fixed to ../) |
-| Layout | Lux dark (unchanged) | White Edition (transform_layout_k3.py) |
-| Wire articles | `scout_wire_ds.json` | `scout_wire_k3.json` |
-| Wire model | default (deepseek-v4-flash) | `--model kimi-k3 --provider localAIServer` |
+Single edition. The K3 "The Lens" second edition was **fully removed on
+2026-07-28** — it had been render-disabled since 07-25 while its editor and
+wire steps still ran daily, burning LLM calls on output nothing consumed.
+`editor-v2-k3`, `transform_layout_k3.py` and `inject_version_badge.py` are
+deleted; there is no second version, so no version selector either.
 
-## editor-v2-k3 sections (different from standard editor-v2)
-- Deep Dives (research + long-form, 3-5 items)
-- Open Pulse (opensource + tools, 3-5 items)
-- The Edge (hardware + funding, 3-5 items)
-- YouTube Signals (video, 2-3 items, show if ≥2)
-- Italia Front (Italian AI, 2-3 items, show if ≥2)
-- Quick hits: 5-7 with brief context (2-5 words)
-- Trending: SKIP (null) — shown in DeepSeek edition only
+| Component | Value |
+|-----------|-------|
+| Editor skill | `editor-v2` |
+| Model | `deepseek-v4-flash` (provider `localAIServer`) |
+| Edition file | `edition.json` |
+| Output path | `index.html` |
+| Wire articles | `scout_wire.json` |
 
 ## 🔴 FIRECRAWL FALLBACK — when web_search/web_extract fail
 
@@ -124,27 +132,23 @@ If a scout returns `[]` and the pipeline log shows Firecrawl/credit errors, the 
 
 ## Pitfalls
 
-1. **Badge injector duplicates** — Do NOT run `inject_version_badge.py` twice on the same file. Re-render with `render.py` first, then inject ONCE.
+1. **Do not re-parallelise the scouts** — see "Why sequential scouts" above.
+   Running them 3-up against `localAIServer` produced 0 completed scouts across three
+   consecutive days.
 
-2. **K3 White Edition CSS ordering** — CSS rule order in `transform_layout_k3.py` is critical. Correct sequence:
-   1. Backgrounds (html/body/container white)
-   2. Wire dark override (early to win against white bg)
-   3. General `a, a:link { color: #000 !important; }` (all links black)
-   4. Header exceptions (ears, devocracy) — override general rule
-   5. Nuclear text color: `h1, h2, h3, h4, h5, p, a, span, div, article, section { color: #000 !important; }`
-   6. Hover rules: `a:hover { color: #f0a23c !important; }` — must be AFTER nuclear rule
-   7. Badge rules — override general/hover with own colors
+2. **Do not swap the provider** — every step must stay on `localAIServer` via
+   `$PIPELINE_PROVIDER`. An interactive session silently rewrote all of them
+   to `openrouter` on 2026-07-28 while doing an unrelated timeout change.
 
-3. **Wire articles model_name** — `build_prompt()` in `wire_articles.py` uses `os.environ.get('WIRE_MODEL', MODEL)`. With `--model kimi-k3`, the `MODEL` global is updated but `model_name` used a hardcoded fallback (`deepseek/deepseek-v4-flash`). Fixed 2026-07-17: changed to `os.environ.get('WIRE_MODEL', MODEL)`.
+3. **Wire articles model_name** — `build_prompt()` in `wire_articles.py` uses
+   `os.environ.get('WIRE_MODEL', MODEL)` so the attribution line follows
+   `--model` instead of a hardcoded value. Fixed 2026-07-17.
 
-4. **K3 subdir paths** — `href="style.css"` → `../style.css`. Also fonts, images, podcasts. The badge injection in `k3` mode does this automatically.
+4. **Issue number and archiving happen in step 1b**, before the scouts, against
+   a freshly `git reset --hard` deploy dir. The issue number is read from the
+   **live index.html masthead**, not `.issue` (a crashed run can leave that
+   stale/unpushed — it silently burned issue #31 on 2026-07-27). Same date as
+   today ⇒ same-day re-run ⇒ reuse the number. Different date ⇒ increment and
+   archive the predecessor *before* this run overwrites it.
 
-5. **Image path copy** — Images from DS edition are copied to K3 via Python (step 6b). Matches by section title. If section names differ (e.g. "Research & Papers" vs "Deep Dives"), images are NOT copied (logged but non-blocking).
-
-6. **Dual wire articles** — DS wire uses deepseek, K3 wire uses kimi-k3. Separate files: `scout_wire_ds.json` and `scout_wire_k3.json`. Each injected into its respective edition. Report shows both counts.
-
-7. **Badge position** — Must sit BETWEEN the dateline closing `</div>` and the devocracy-credit. Regex: `(</div>)(\s*\n\s*<div class="devocracy-credit")` → `\1\n` + badge + `\2`. Do NOT use the regex that matches the entire `</div>...<div class="devocracy-credit"` as one group — the badge ends up inside the dateline div.
-
-8. **Issue number stuck at previous value** — The `.issue` read/increment MUST happen AFTER `git reset --hard origin/main` (step 9). If it runs before, the git reset reverts `$DEPLOY_DIR/.issue` to the committed value. Fixed 2026-07-24: write to `$DEPLOY_DIR/.issue` moved to after the reset.
-
-9. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract` (Firecrawl) which can fail with `Connection error`. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
+5. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract` (Firecrawl) which can fail with `Connection error`. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
