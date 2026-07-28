@@ -6,7 +6,7 @@ description: "V2 editor-in-chief. Merges scout JSONs into edition.json. Run afte
 # Editor V2 — Assembly
 
 ## When to use
-After all 8 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. The orchestrator calls you.
+After all 9 scouts have persisted their JSON to `/tmp/v2/scouts/`. The orchestrator calls you.
 
 ## Files to read
 - `/tmp/v2/scouts/scout_x.json` (array)
@@ -19,15 +19,14 @@ After all 8 scout-v2-* skills have persisted their JSON to `/tmp/v2/scouts/`. Th
 - `/tmp/v2/scouts/scout_youtube.json` (array)
 - `/tmp/v2/scouts/scout_italia.json` (array)
 - **`headlines_history.json`** — `$DEPLOY_DIR/headlines_history.json` (path passed in the prompt).
-  Contiene storico di tutte le headline pubblicate. Lo usi per **deduplicazione
-  cross-day** (step 4b) — eviti di ripubblicare la stessa storia già coperta
-  negli ultimi 7 giorni.
+  Holds every headline published so far. Use it for **cross-day deduplication**
+  (step 4b) — do not republish a story already covered in the last 7 days.
 - Date parameters in `/tmp/v2/scouts/_metadata.json` (produced by orchestrator)
 
 ## Workflow
 
 1. Read metadata JSON → get `today`, `yesterday`, `today_human`, next issue number.
-2. Read all 8 scout files.
+2. Read all 9 scout files.
 3. **Special case for opensource:** split into `editorial` array (treat like other scouts) and `trending` object (pass through to output unchanged).
 4. **Merge & dedup** all editorial arrays:
    - Drop duplicates by URL and near-identical headline (keep most authoritative source)

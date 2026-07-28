@@ -30,7 +30,7 @@ Runtime knowledge for the Lux in Tenebris V2 custom domain `luxintenebris.news`,
 ### `fetch_trending.py`
 - **Path:** `~/.hermes/profiles/luke/scripts/v2/fetch_trending.py`
 - Fetches GitHub Trending (15 repos) + HuggingFace Trending (10 models) via **curl** (bypasses Firecrawl/Tavily)
-- Used as auto-fallback in `run_v2.sh` phase 2 when opensource scout fails
+- Used as auto-fallback in `run_v2.sh` right after the opensource scout, when it returns fewer than 3 trending items
 - Manual re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
 
 ### `fix_archive_issue_numbers.py`

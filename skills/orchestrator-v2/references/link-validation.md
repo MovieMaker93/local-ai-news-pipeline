@@ -24,7 +24,7 @@ Extract every external URL, then verify in bulk:
 grep -roPh 'href="(https?://[^"]+)"' --include="*.html" . | \
   sed 's/href="//;s/"//' | sort -u > /tmp/all_links.txt
 
-# 2. Check HTTP status in parallel
+# 2. Check HTTP status for each (sequential loop — one request at a time)
 while IFS= read -r url; do
   code=$(curl -s -o /dev/null -w "%{http_code}" \
     --max-time 10 --connect-timeout 5 "$url" 2>/dev/null || echo "TIMEOUT")

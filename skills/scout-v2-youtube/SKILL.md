@@ -1,6 +1,6 @@
 ---
 name: scout-v2-youtube
-description: "V2 scout: YouTube AI video analysis. Returns JSON array of candidates. Model: deepseek/deepseek-v4-flash (OpenRouter)."
+description: "V2 scout: YouTube AI video analysis. Reads the raw JSON produced by youtube_scout.py and returns a JSON array of candidates."
 ---
 
 # Scout V2 — YouTube
@@ -67,20 +67,27 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 - The `preview` field is a short summary — use it for a quick assessment of each video's relevance.
 
 ## Integration in run_v2.sh
-The orchestrator calls this skill AFTER the Python script has completed. Phase 4 runs after Phase 3 (hardware) and before Step 3 (validation).
+The orchestrator calls this skill AFTER the Python script has completed. It is
+the 8th of the 9 scouts, which run **one at a time** (see orchestrator-v2), and
+comes before Step 3 (validation).
 
 ```bash
 # Step: Python script fetches raw data
 python3 "$SCRIPT_DIR/youtube_scout.py" --max 10
 
 # Step: LLM writes articles
-$HERMES_BIN chat -q "Load scout-v2-youtube skill. Read /tmp/v2/scouts/scout_youtube_raw.json. Extract newsworthy items, write JSON to /tmp/v2/scouts/scout_youtube.json using write_file." \
+timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q "Load scout-v2-youtube skill. Read /tmp/v2/scouts/scout_youtube_raw.json. Extract newsworthy items, write JSON to /tmp/v2/scouts/scout_youtube.json using write_file." \
   --profile "$PROFILE" \
   -s scout-v2-youtube \
   -t "file" \
-  -m deepseek/deepseek-v4-flash \
-  --provider openrouter
+  -m deepseek-v4-flash \
+  --provider "$PIPELINE_PROVIDER"
 ```
+
+⚠️ **The provider is `$PIPELINE_PROVIDER` (= `localAIServer`), never `openrouter`.**
+This snippet used to say `openrouter`, and on 2026-07-28 an interactive session
+asked to change an unrelated timeout "helpfully" rewrote every provider flag in
+`run_v2.sh` to match these docs. Keep snippets here consistent with the script.
 
 ## Channels monitored
 - The AI Daily Brief (daily AI news)

@@ -214,26 +214,30 @@ CSS:
 
 ## Integration Points
 
-### Into run_v2.sh (future)
-Add after phase 3 or as phase 4:
+### Into run_v2.sh (DONE — step 8)
 ```bash
-echo "[step wire] wire articles..."
-MODEL=deepseek/deepseek-v4-flash PROVIDER=openrouter \
-  python3 scripts/v2/wire_articles.py --max 5
-python3 scripts/v2/render_wire.py --output /tmp/v2/output/wire.html
+python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" \
+    --model deepseek-v4-flash --provider "$PIPELINE_PROVIDER"
 ```
+⚠️ `$PIPELINE_PROVIDER` is `localAIServer`, never `openrouter`. It's passed explicitly
+here rather than relying on `wire_articles.py`'s own defaults so the backend is
+decided in exactly one place for the whole pipeline.
 
-### Into edition.json (future)
-Add a `wire_articles` field to the edition schema, and update `render.py` to read it and inject the ticker HTML between the masthead and the lead-zone — NOT above the masthead.
+The ticker is then injected into the rendered page by `inject_wire_ticker.py`
+(step 8b) — it is **not** part of `edition.json` and `render.py` knows nothing
+about it. Injection happens post-render, between the masthead and the
+lead-zone.
 
-### Into editor-v2 (future)
-The editor could select 3-5 wire articles for the ticker, deduped against the main edition to avoid overlap. Editor should prefix each article's body with the AI disclosure.
+### Still open (not implemented)
+- Editor-side selection: the editor could pick 3-5 wire articles and dedupe
+  them against the main edition to avoid overlap. Today the ticker takes
+  whatever `wire_articles.py` produced, independently of the edition.
 
 ## Files Reference
 
 | File | Purpose |
 |------|---------|
-| `~/.hermes/profiles/luke/scripts/v2/wire_articles.py` | RSS fetch + LLM write. Model: `deepseek/deepseek-v4-flash` via `openrouter` |
+| `~/.hermes/profiles/luke/scripts/v2/wire_articles.py` | RSS fetch + LLM write. Model: `deepseek-v4-flash` via `localAIServer` (passed in from `run_v2.sh`) |
 | `~/.hermes/profiles/luke/scripts/v2/render_wire_test.py` | Test renderer (ticker + modal). Copies fonts from `~/ai-news-deploy/fonts/` for self-containment |
 | `~/.hermes/profiles/luke/scripts/v2/test_wire_pipeline.sh` | Full test pipeline: wire_articles.py → render_wire_test.py |
 | `/tmp/v2/test-wire/` | Test output directory (no deploy) |

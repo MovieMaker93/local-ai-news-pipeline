@@ -106,17 +106,20 @@ python3 ~/.hermes/profiles/luke/scripts/v2/youtube_scout.py --hours 48 --max 5
 
 ## Pipeline integration
 
-**Phase 4** in `run_v2.sh` — runs after Phase 3 (hardware), before Step 3 (validation).
+The 8th of 9 scouts in `run_v2.sh` — scouts run **one at a time**, and this one
+comes before Step 3 (validation).
 
 ```bash
 # Python fetch
 python3 "$SCRIPT_DIR/youtube_scout.py" --max 10
 
-# LLM scout — MUST include model override
-"$HERMES_BIN" chat -q "..." \
+# LLM scout — model and provider both explicit
+timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q "..." \
   -s scout-v2-youtube -t "file" \
-  -m deepseek/deepseek-v4-flash --provider openrouter
+  -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER"
 ```
+
+⚠️ `$PIPELINE_PROVIDER` is `localAIServer`, never `openrouter` — see model-configuration.md.
 
 ### Validation loop must include youtube
 The `$SCOUT_NAMES` variable in Step 3 must contain `youtube`. Add it when adding this scout.
@@ -150,5 +153,5 @@ python3 youtube_scout.py --max 10
 Test LLM stage (after Python):
 ```bash
 hermes chat -q "..." --profile luke -s scout-v2-youtube -t file \
-  -m deepseek/deepseek-v4-flash --provider openrouter
+  -m deepseek-v4-flash --provider localAIServer
 ```
