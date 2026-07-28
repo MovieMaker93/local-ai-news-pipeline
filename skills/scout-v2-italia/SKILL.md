@@ -20,16 +20,20 @@ NOT general international AI news (those have their own scouts).
 - `web_search: "AI startup" Italy fundraise OR series OR seed OR round <recent>`
 - `web_search: site:sifted.eu "Italy" startup "AI" <recent>`
 - `web_search: site:techcrunch.com Italy startup AI <recent>`
-- `web_search: "startup" "intelligenza artificiale" Italia round OR funding 2026`
+- `web_search: "startup" "intelligenza artificiale" Italia round OR funding <year>`
 
 ### 💰 Funding rounds (specific Italian AI startups)
 - Search for specific startups: iGenius, Aindo, MDOTM, Alia Mentis, Principled Intelligence, Domyn, Lexroom
-- `web_search: "Italian AI startup" raises OR closes OR secures funding 2026`
+- `web_search: "Italian AI startup" raises OR closes OR secures funding <year>`
 
 ### 🌐 Community & Spinoffs
-- `web_search: "spin-off" OR "università" AI startup Italy 2026`
+- `web_search: "spin-off" OR "università" AI startup Italy <year>`
 - `x_search: (from:AI4I_italy OR from:StartupItalia OR #AIitalia) funding OR round OR launch`
 - `web_search: "Club degli Investitori" OR "Italian Founders Fund" AI startup`
+
+> `<year>` = the year of `<today>`, which the orchestrator passes in the prompt.
+> Substitute it at query time — never hardcode a year here, or these searches
+> quietly start returning last year's news every January.
 
 ## Method
 1. Fetch RSS feeds and web search for Italian AI startup content

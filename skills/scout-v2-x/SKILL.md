@@ -31,13 +31,21 @@ allowed_x_handles: ["OpenAI","AnthropicAI","GoogleDeepMind","xai","NousResearch"
 ```
 Same handles and dates.
 
-## 🔴 FIRECRAWL FALLBACK — when x_search and web tools fail
+## 🔴 FALLBACK — when x_search and web tools fail
 
-If `x_search` is unavailable (no OAuth) AND `web_search`/`web_extract` fail with "Payment Required":
+If `x_search` is unavailable (no OAuth) AND `web_search`/`web_extract` fail for
+**any** reason — rate limiting, `ddgs` missing/broken, network error, timeout,
+or "Payment Required". Don't wait specifically for a credit error: the extract
+backend is `ddgs` now, so that message may never appear.
 
-1. **Search X via Google (site-scoped):**
+⚠️ Both commands below build the query from **today's date**, passed in the
+prompt. Substitute it — do not paste a hardcoded month/year, or the fallback
+will keep searching for a date in the past forever.
+
+1. **Search X via DuckDuckGo (site-scoped):**
 ```bash
-curl -sL "https://html.duckduckgo.com/html/?q=site%3Ax.com+AI+July+2026" | python3 -c "
+# replace <MONTH> <YEAR> with today's, e.g. "July 2026"
+curl -sL "https://html.duckduckgo.com/html/?q=site%3Ax.com+AI+<MONTH>+<YEAR>" | python3 -c "
 import sys, re; html = sys.stdin.read()
 for m in re.findall(r'<a[^>]*class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>', html, re.DOTALL):
     u = m[0]; t = re.sub(r'<[^>]+>', '', m[1]).strip()
@@ -47,7 +55,8 @@ for m in re.findall(r'<a[^>]*class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>(.*?
 
 2. **Search via Bing (free):**
 ```bash
-curl -sL "https://www.bing.com/search?q=site%3Ax.com+AI+news+2026" | python3 -c "
+# replace <YEAR> with today's year
+curl -sL "https://www.bing.com/search?q=site%3Ax.com+AI+news+<YEAR>" | python3 -c "
 import sys, re; html = sys.stdin.read()
 for m in re.findall(r'<h2><a[^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a></h2>', html, re.DOTALL):
     u = m[0]; t = re.sub(r'<[^>]+>', '', m[1]).strip()

@@ -106,17 +106,25 @@ deleted; there is no second version, so no version selector either.
 | Output path | `index.html` |
 | Wire articles | `scout_wire.json` |
 
-## 🔴 FIRECRAWL FALLBACK — when web_search/web_extract fail
+## 🔴 WEB-TOOL FALLBACK — when web_search/web_extract fail
 
 ### Root cause
-`web_search` uses `search_backend: ddgs` (DuckDuckGo, free).  
-`web_extract` uses `extract_backend: firecrawl` (paid API with credit limits).
+Both `web_search` and `web_extract` currently run on `ddgs` (DuckDuckGo, free) —
+check `web.search_backend` / `web.extract_backend` in `config.yaml` before
+assuming otherwise.
 
-When Firecrawl credits are exhausted, `web_extract` returns `"Payment Required"`.  
-In some sessions DuckDuckGo may also be rate-limited, causing `web_search` to cascade to Firecrawl and fail too.
+They fail for several unrelated reasons, and the fallback should trigger on
+**any** of them, not just one:
+- rate limiting / temporary blocks from DuckDuckGo
+- the `ddgs` package missing or broken in the environment
+- network errors and timeouts
+- `"Payment Required"` / credit errors — this was the dominant failure when
+  `extract_backend` was Firecrawl (a paid API). It is no longer the configured
+  backend, so **do not treat "Payment Required" as the only trigger.**
 
 ### Solution — curl-based fallback
-Each scout skill now includes a **🔴 FIRECRAWL FALLBACK** section with `terminal` + `curl` commands that bypass Firecrawl entirely.
+Each scout skill includes a fallback section with `terminal` + `curl` commands
+that bypass the web tools entirely and hit free APIs directly.
 
 Key free API fallbacks used across scouts:
 - **TechCrunch**: WordPress JSON API (`wp-json/wp/v2/posts`)
@@ -128,7 +136,8 @@ Key free API fallbacks used across scouts:
 - **Generic page fetch**: `curl` + regex title/body extraction
 
 ### When to use
-If a scout returns `[]` and the pipeline log shows Firecrawl/credit errors, the scout agent will automatically attempt the curl fallbacks described in its skill before emitting `[]`.
+Whenever `web_search`/`web_extract` fail for any reason, the scout should attempt
+the curl fallbacks described in its own skill before emitting `[]`.
 
 ## Pitfalls
 
@@ -151,4 +160,4 @@ If a scout returns `[]` and the pipeline log shows Firecrawl/credit errors, the 
    today ⇒ same-day re-run ⇒ reuse the number. Different date ⇒ increment and
    archive the predecessor *before* this run overwrites it.
 
-5. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract` (Firecrawl) which can fail with `Connection error`. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
+5. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract`, which can fail with `Connection error` or simply return nothing. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`

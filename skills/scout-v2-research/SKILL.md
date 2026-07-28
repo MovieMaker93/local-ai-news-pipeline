@@ -27,7 +27,9 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 
 ## Rules
 - Every `url` MUST come from real web_search result or web_extract. NEVER synthesize arXiv IDs.
-- If you know a paper exists but haven't fetched its URL, set `"url": null`.
+- If you know a paper exists but haven't fetched its URL, **drop it**. Do not
+  emit `null`, `""` or `"#"` — the renderer discards items without a valid URL,
+  so an unlinked item is wasted work, not a partial win.
 - Broken-end URLs are worse than missing links.
 - Only items dated [yesterday, today] OR the most recent available batch if arXiv lag applies (max 4 days back).
 - Return `[]` if nothing found. All content in ENGLISH.

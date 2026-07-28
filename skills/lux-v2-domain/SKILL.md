@@ -42,7 +42,7 @@ Runtime knowledge for the Lux in Tenebris V2 custom domain `luxintenebris.news`,
 
 1. **Issue number stuck at same value** — The `.issue` write MUST happen AFTER `git reset --hard origin/main` (step 9 in run_v2.sh). If before, the reset reverts `$DEPLOY_DIR/.issue` to the committed value. Fixed 2026-07-24.
 
-2. **Trending fallback triggers** — The opensource scout (`scout-v2-opensource`) uses `web_extract` (Firecrawl) which can fail with `Connection error`. The auto-fallback in `run_v2.sh` calls `fetch_trending.py` via curl when trending data has <3 items.
+2. **Trending fallback triggers** — The opensource scout (`scout-v2-opensource`) uses `web_extract`, which can fail with `Connection error` or return nothing. The auto-fallback in `run_v2.sh` calls `fetch_trending.py` via curl when trending data has <3 items.
 
 3. **Rogue files in deploy dir** — `git add -A` picks up ANY untracked file (e.g. `general.html`, `technical.html` from tests). A smaller file can replace the real `index.html` when committed. Always check `ls -la` for stray files before `git add -A`. Last seen 2026-07-24.
 

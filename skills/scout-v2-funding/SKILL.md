@@ -38,9 +38,12 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 - Put key facts in summary: amount, stage, lead investor, sector.
 - Return `[]` if nothing found. All content in ENGLISH.
 
-## 🔴 FIRECRAWL FALLBACK — when web tools fail with "Payment Required"
+## 🔴 FALLBACK — when web_search / web_extract fail
 
-If `web_search` or `web_extract` fail with "Payment Required" / "Insufficient credits", fall back to `terminal` + `curl`:
+Trigger on **any** web-tool failure — rate limiting, `ddgs` missing/broken,
+network error, timeout, or "Payment Required" / "Insufficient credits". Do not
+wait specifically for a credit error: the extract backend is `ddgs` now, so that
+particular message may never appear. Fall back to `terminal` + `curl`:
 
 1. **TechCrunch funding via WordPress API:**
 ```bash

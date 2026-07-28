@@ -30,13 +30,18 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 
 ## Rules
 - Every `url` MUST come from real web_search/web_extract result or x_search permalink.
-- Never synthesize URLs. Set `"url": null` if unknown.
+- Never synthesize URLs. If you can't get a real one, **drop the item** — do not
+  emit `null`, `""` or `"#"`. The renderer discards items without a valid URL,
+  so an item without one is wasted work, not a partial win.
 - Only items dated [yesterday, today].
 - Return `[]` if nothing found. All content in ENGLISH.
 
-## 🔴 FIRECRAWL FALLBACK — when web tools fail with "Payment Required"
+## 🔴 FALLBACK — when web_search / web_extract fail
 
-If `web_search` or `web_extract` fail with "Payment Required" / "Insufficient credits":
+Trigger on **any** web-tool failure — rate limiting, `ddgs` missing/broken,
+network error, timeout, or "Payment Required" / "Insufficient credits". Do not
+wait specifically for a credit error: the extract backend is `ddgs` now, so that
+particular message may never appear.
 
 1. **Product Hunt via curl:**
 ```bash
