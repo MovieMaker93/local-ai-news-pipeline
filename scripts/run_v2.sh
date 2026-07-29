@@ -28,12 +28,25 @@ DEPLOY_DIR="/home/nttluke/ai-news-deploy"
 # Scouts run ONE AT A TIME (see step 2) against a single self-hosted
 # inference server, so these budgets are per-scout wall clock with the whole
 # server to itself, and the master budget has to cover their sum, not their max.
-TIMEOUT_SECS=1200      # 20 min per scout
-STEP_TIMEOUT_SECS=1200 # 20 min for editor / italia scout
-MEDIA_TIMEOUT_SECS=900 # 15 min for image gen / podcast (xAI-bound, not localAIServer)
-MASTER_TIMEOUT=14400   # 4h for the entire pipeline (was 90 min, far too tight
-                       # once scouts stopped running 3-up: 9 sequential scouts
-                       # at up to 20 min each can alone exceed 90 min)
+#
+# Measured on the first fully-sequential run (2026-07-29, all 9 scouts green):
+#   x 7m17 · research 7m01 · official 12m12 · opensource 12m57 · tools 10m17
+#   funding 13m33 · hardware 10m33 · youtube 0m58 · italia ~13m  → ~87 min total
+# Five of nine exceeded 10 min, which is why the old 600s ceiling killed every
+# scout. Slowest is ~13.5 min, so 20 min leaves real headroom.
+TIMEOUT_SECS=1200       # 20 min per scout
+STEP_TIMEOUT_SECS=1200  # 20 min for the italia scout
+# The editor gets its own, larger budget: it is the only FATAL step (no
+# edition.json ⇒ no newspaper at all) and it chews through 9 scout files
+# (~80 items) with cross-day dedup against headlines_history.json. On
+# 2026-07-29 it hit the 20-min ceiling at 08:17:48 to the second and killed
+# the run before render/images/podcast/deploy; a manual re-run right after
+# completed in ~11 min, so the ceiling — not the work — was the problem.
+EDITOR_TIMEOUT_SECS=2400 # 40 min
+MEDIA_TIMEOUT_SECS=900   # 15 min for image gen / podcast (xAI-bound, not localAIServer)
+MASTER_TIMEOUT=14400     # 4h for the entire pipeline. Budget check against the
+                         # measured run: 87 (scouts) + 40 (editor) + 15 + 15
+                         # (media) + ~10 (wire) ≈ 2h50m, comfortably inside.
 TEMPLATE_DIR="/home/nttluke/lux-in-tenebris-pipeline/template"
 
 # ╔═══════════════════════════════════════════════════════════════════╗
@@ -59,6 +72,36 @@ mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$IMAGES_DIR" "$OUTPUT_DIR"
 TODAY=$(date +%Y-%m-%d)
 LOGFILE="$LOG_DIR/run_${TODAY}.log"
 exec > >(tee -a "$LOGFILE") 2>&1
+
+# ── Per-step logs: APPEND, never truncate ───────────────────
+# These logs used to be opened with '>', so a manual re-run of a step wiped
+# the evidence of why the automated one had failed. That happened for real on
+# 2026-07-29: the editor was killed by its timeout, the recovery re-run
+# overwrote editor_<date>.log, and the failure became undiagnosable. Every
+# per-step log is now opened with '>>' and preceded by this banner, so a day's
+# attempts stack up in order instead of erasing each other.
+log_attempt() {
+    local logfile="$1" label="$2"
+    {
+        echo ""
+        echo "───────────────────────────────────────────────"
+        echo "▶ $label — $(date '+%Y-%m-%d %H:%M:%S') (pid $$)"
+        echo "───────────────────────────────────────────────"
+    } >>"$logfile"
+}
+
+# Print only the MOST RECENT attempt from an appended log.
+# The credit checks below grep these logs to decide whether to skip a step.
+# With append-mode logs a stale error from an earlier attempt the same day
+# would otherwise stick forever — e.g. hit the xAI spending limit at 06:40,
+# top the credits up, and every later attempt that day would still skip.
+# Reading only the last banner-delimited block keeps the original "look at
+# what happened last time" semantics while preserving the full history.
+last_attempt() {
+    local logfile="$1"
+    [ -f "$logfile" ] || return 0
+    awk '/^▶ /{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}' "$logfile"
+}
 
 # Master watchdog — if we exceed MASTER_TIMEOUT, kill everything
 START_EPOCH=$(date +%s)
@@ -158,6 +201,8 @@ run_scout() {
     local outfile="$SCOUTS_DIR/scout_${name}.json"
     
     echo "  → starting scout $name ($skill)"
+    log_attempt "$LOG_DIR/scout_${name}_${TODAY}.out" "scout $name"
+    log_attempt "$LOG_DIR/scout_${name}_${TODAY}.err" "scout $name"
     timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q "$prompt" \
         --profile "$PROFILE" \
         -s "$skill" \
@@ -165,7 +210,7 @@ run_scout() {
         -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
         -Q --yolo \
         2>>"$LOG_DIR/scout_${name}_${TODAY}.err" \
-        >"$LOG_DIR/scout_${name}_${TODAY}.out" || true
+        >>"$LOG_DIR/scout_${name}_${TODAY}.out" || true
     
     # Validate output
     if [ -f "$outfile" ] && python3 -c "import json; json.load(open('$outfile'))" 2>/dev/null 2>&1; then
@@ -289,24 +334,26 @@ python3 "$SCRIPT_DIR/youtube_scout.py" --max 10 2>>"$LOGFILE" || echo "  ⚠ you
 echo "  ✓ youtube_scout.py done"
 
 echo "  → running scout-v2-youtube..."
+log_attempt "$LOG_DIR/scout_youtube_${TODAY}.log" "scout youtube"
 timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q 'Load scout-v2-youtube skill. Read /tmp/v2/scouts/scout_youtube_raw.json.
 Extract newsworthy items from the video data.
 Write the JSON array to /tmp/v2/scouts/scout_youtube.json using write_file.
 ENGLISH ONLY. Today is '"$TODAY"' ('"$TODAY_HUMAN"'). Window: '"$YESTERDAY"' to '"$TODAY"'."' \
     --profile "$PROFILE" -s scout-v2-youtube -t file \
     -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
-    -Q --yolo >"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
+    -Q --yolo >>"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
 echo "  ✓ youtube scout done"
 check_timeout
 
 # --- Italia AI Spotlight ---
 echo "[step 2] scout italia..."
+log_attempt "$LOG_DIR/scout_italia_${TODAY}.log" "scout italia"
 timeout "$STEP_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Italia AI Spotlight Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
 Load skill scout-v2-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
 Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
 All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
     --profile "$PROFILE" -s scout-v2-italia -t web,file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
-    >"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
+    >>"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
 echo "  ✓ italia scout done"
 check_timeout
 
@@ -332,19 +379,29 @@ echo "[step 4] editor..."
 # NEXT_ISSUE was already resolved in step 1b (reuse-if-same-day-rerun,
 # increment-and-archive-predecessor otherwise).
 
-timeout "$STEP_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
+log_attempt "$LOG_DIR/editor_${TODAY}.log" "editor (timeout ${EDITOR_TIMEOUT_SECS}s)"
+timeout "$EDITOR_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
 Today is $TODAY. Issue #$NEXT_ISSUE.
 Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup, read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
     --profile "$PROFILE" -s editor-v2 -t file -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
-    >"$LOG_DIR/editor_${TODAY}.log" 2>&1 || true
+    >>"$LOG_DIR/editor_${TODAY}.log" 2>&1 && EDITOR_RC=0 || EDITOR_RC=$?
 
 if [ -f "$V2_DIR/edition.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition.json'))" 2>/dev/null 2>&1; then
     echo "  ✓ edition.json written"
 else
-    echo "  ✗ edition.json MISSING or INVALID — cannot continue"
+    # Say WHICH failure it was. `timeout` returns 124 when it kills the child,
+    # and that distinction is the whole diagnosis: 124 means raise
+    # EDITOR_TIMEOUT_SECS, anything else means the editor itself broke.
+    if [ "$EDITOR_RC" -eq 124 ]; then
+        echo "  ✗ editor KILLED by timeout after ${EDITOR_TIMEOUT_SECS}s — it never finished writing edition.json"
+        echo "     → if this recurs, raise EDITOR_TIMEOUT_SECS at the top of this script"
+    else
+        echo "  ✗ editor exited with code $EDITOR_RC and left no valid edition.json"
+    fi
+    echo "     → see $LOG_DIR/editor_${TODAY}.log (appended, not overwritten)"
     echo "FATAL: editor failed"
     exit 1
 fi
@@ -355,21 +412,22 @@ echo "[step 5] image gen..."
 SKIP_IMAGES=false
 
 # Check if xAI credits are available before even launching the agent
-if grep -q "personal-team-blocked:spending-limit" "$LOG_DIR/imagegen_${TODAY}.log" 2>/dev/null; then
+if last_attempt "$LOG_DIR/imagegen_${TODAY}.log" | grep -q "personal-team-blocked:spending-limit"; then
     SKIP_IMAGES=true
 fi
 
 if [ "$SKIP_IMAGES" = false ]; then
+    log_attempt "$LOG_DIR/imagegen_${TODAY}.log" "image gen"
     timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Image Generator for Lux in Tenebris. Load skill image-gen-v2.
 Today is $TODAY. Read $V2_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $V2_DIR/images/. Update edition.json. ENGLISH ONLY." \
         --profile "$PROFILE" -s image-gen-v2 -t file,image_gen,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
-        >"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
+        >>"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 
 # Check if it failed due to credits
-if grep -q "spending-limit\|credits exhausted\|403" "$LOG_DIR/imagegen_${TODAY}.log" 2>/dev/null; then
+if last_attempt "$LOG_DIR/imagegen_${TODAY}.log" | grep -q "spending-limit\|credits exhausted\|403"; then
     echo "  ⚠ xAI credits exhausted — will skip images for next runs too"
     SKIP_IMAGES=true
 fi
@@ -402,7 +460,7 @@ SKIP_PODCAST=false
 # images yet a working podcast. So this gets its own credit check on its own
 # log instead of inheriting SKIP_IMAGES (which used to skip the attempt
 # entirely whenever images failed, even on days podcast would have worked).
-if grep -q "personal-team-blocked:spending-limit" "$LOG_DIR/podcast_${TODAY}.log" 2>/dev/null; then
+if last_attempt "$LOG_DIR/podcast_${TODAY}.log" | grep -q "personal-team-blocked:spending-limit"; then
     SKIP_PODCAST=true
 fi
 
@@ -410,16 +468,17 @@ if [ "$SKIP_PODCAST" = false ]; then
     PODCAST_INJECT="$SCRIPT_DIR/inject_podcast_pill.py"
     mkdir -p "$V2_DIR/podcasts"
     
+    log_attempt "$LOG_DIR/podcast_${TODAY}.log" "podcast pill"
     timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Podcast Pill generator. Load skill podcast-pill.
 Today is $TODAY. Issue #$NEXT_ISSUE.
 Read $V2_DIR/edition.json. Generate Castor/Luna dialogue from lead.
 Produce TTS audio, concat with ffmpeg, write metadata to $V2_DIR/podcast_meta.json.
 Use text_to_speech tool. Use terminal for ffmpeg. ENGLISH ONLY." \
         --profile "$PROFILE" -s podcast-pill -t file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
-        >"$LOG_DIR/podcast_${TODAY}.log" 2>&1 || true
+        >>"$LOG_DIR/podcast_${TODAY}.log" 2>&1 || true
 
     # Check if it failed due to credits (own signal, independent of images)
-    if grep -q "spending-limit\|credits exhausted\|403" "$LOG_DIR/podcast_${TODAY}.log" 2>/dev/null; then
+    if last_attempt "$LOG_DIR/podcast_${TODAY}.log" | grep -q "spending-limit\|credits exhausted\|403"; then
         echo "  ⚠ xAI credits exhausted for podcast"
         SKIP_PODCAST=true
     fi

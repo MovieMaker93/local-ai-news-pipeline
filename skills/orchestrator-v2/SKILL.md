@@ -58,9 +58,20 @@ they produced 40-minute stalls in the logs.
 | Budget | Value | Applies to |
 |--------|-------|------------|
 | `TIMEOUT_SECS` | 20 min | each scout |
-| `STEP_TIMEOUT_SECS` | 20 min | editor, italia scout |
+| `STEP_TIMEOUT_SECS` | 20 min | italia scout |
+| `EDITOR_TIMEOUT_SECS` | 40 min | editor — its own, larger budget |
 | `MEDIA_TIMEOUT_SECS` | 15 min | image gen, podcast (xAI-bound) |
 | `MASTER_TIMEOUT` | 4h | whole pipeline |
+
+The editor is the only FATAL step and does the most work in one call, so it
+gets 40 min: on 2026-07-29 it was killed by the shared 20-min ceiling and took
+the whole run down with it. See `docs/ARCHITETTURA.md` for measured timings.
+
+**Per-step logs are appended, never truncated** (`>>` + a `▶` banner per
+attempt). A manual re-run used to overwrite the log of the automated attempt
+that had just failed, erasing the evidence. Credit checks read only the last
+banner-delimited block via `last_attempt()`, so a stale error from earlier the
+same day doesn't permanently skip a step.
 
 `MASTER_TIMEOUT` must cover the **sum** of sequential scouts, not the max. It
 was 90 min while scouts ran in parallel; that is far too tight now.

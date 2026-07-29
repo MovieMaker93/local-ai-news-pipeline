@@ -142,9 +142,41 @@ visible in the logs as 40-minute stalls with no output.
 | Budget | Value | Covers |
 |--------|-------|--------|
 | `TIMEOUT_SECS` | 20 min | each scout |
-| `STEP_TIMEOUT_SECS` | 20 min | editor, italia scout |
+| `STEP_TIMEOUT_SECS` | 20 min | italia scout |
+| `EDITOR_TIMEOUT_SECS` | 40 min | editor (own budget — see below) |
 | `MEDIA_TIMEOUT_SECS` | 15 min | image gen, podcast (xAI-bound, not localAIServer) |
 | `MASTER_TIMEOUT` | 4h | the whole pipeline |
+
+### Measured timings (2026-07-29, first fully-sequential run)
+
+All 9 scouts completed — the first time that had happened since the switch:
+
+| Scout | Duration | | Scout | Duration |
+|---|---|---|---|---|
+| x | 7m17 | | funding | **13m33** |
+| research | 7m01 | | hardware | 10m33 |
+| official | 12m12 | | youtube | 0m58 |
+| opensource | 12m57 | | italia | ~13m |
+| tools | 10m17 | | **total** | **~87 min** |
+
+Five of nine exceeded 10 minutes, which is exactly why the old 600s ceiling
+killed every scout regardless of concurrency. The slowest is ~13.5 min, so the
+20-minute ceiling has real headroom.
+
+### Why the editor has its own budget
+
+The editor is the only **FATAL** step: no `edition.json` means no newspaper at
+all, and the run stops before render, images, podcast and deploy. It also does
+the most work of any single call — 9 scout files, ~80 items, plus cross-day
+dedup against `headlines_history.json`.
+
+On 2026-07-29 it hit the shared 20-minute ceiling at 08:17:48 to the second and
+killed the run; a manual re-run immediately afterwards finished in ~11 minutes.
+The ceiling, not the workload, was the problem — so the editor now gets 40
+minutes of its own while the scouts keep theirs.
+
+Budget check: 87 (scouts) + 40 (editor) + 15 + 15 (media) + ~10 (wire)
+≈ 2h50m, comfortably inside the 4h master timeout.
 
 `MASTER_TIMEOUT` has to cover the **sum** of the sequential scouts, not their
 max. It was 90 min under the old parallel layout; 9 sequential scouts at a
