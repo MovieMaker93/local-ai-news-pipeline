@@ -543,10 +543,19 @@ check_timeout
 echo "[step 9] deploying to production..."
 
 cd "$DEPLOY_DIR"
-git fetch origin --quiet 2>/dev/null || true
-git reset --hard origin/main --quiet 2>/dev/null || true
-
-# Write issue number AFTER git reset so it survives the commit
+# NO second git reset --hard here. Step 1b already synced $DEPLOY_DIR to
+# origin/main and, on the increment path, modified a TRACKED file in the
+# process (archive/index.html, rewritten by regenerate_archive_index()) plus
+# created a new UNTRACKED archive/<date>/ directory.
+#
+# A second `reset --hard` at this point reverts tracked-file modifications
+# back to their committed state but does NOT touch untracked new
+# directories — so it silently discarded every archive/index.html update
+# from 2026-07-25 onward while the archive/<date>/ folders themselves kept
+# getting committed. The listing page froze at 07-25 for four days before
+# anyone noticed, because the underlying data was all still there — only
+# the index of it stopped updating. Reproduced in an isolated sandbox
+# before removing this.
 echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
 
 # ── Step 10: Copy files ───────────────────────────────────────
