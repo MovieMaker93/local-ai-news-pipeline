@@ -124,6 +124,13 @@ def archive_issue(deploy_dir: str) -> dict:
     if src_edition.exists():
         shutil.copy2(str(src_edition), str(archive_dir / "edition.json"))
 
+    # 4b. making-of.html — each issue keeps its own "how this was made" replay,
+    # so browsing the archive shows how the pipeline looked on that day rather
+    # than today. Optional by design: the step that builds it is non-fatal.
+    src_making = deploy / "making-of.html"
+    if src_making.exists():
+        shutil.copy2(str(src_making), str(archive_dir / "making-of.html"))
+
     # 5. Rewrite internal links inside the archived HTML to keep them working
     #    from the subdirectory. We use ARCHIVE_URL for the ⌂ link and HOME_URL
     #    for the masthead source link.

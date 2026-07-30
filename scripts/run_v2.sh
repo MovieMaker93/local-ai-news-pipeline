@@ -539,6 +539,30 @@ else
 fi
 check_timeout
 
+# ── Step 8c: Making-of page ──────────────────────────────────
+# "How this issue made itself" — a replayable account of this run, built by
+# parsing what the pipeline already wrote (scout JSON, run log, log mtimes,
+# edition.json). Pure code, no LLM, no network, READ-ONLY on pipeline state.
+#
+# STRICTLY NON-FATAL, and deliberately placed last among the content steps:
+# by the time it runs, index.html is already complete. If it fails, the
+# newspaper publishes exactly as it would have without it — the front page
+# link just leads to a 404 for that day. Never let this step block a deploy.
+echo "[step 8c] making-of page..."
+MAKING_SCRIPT="$SCRIPT_DIR/make_making_of.py"
+if [ -f "$MAKING_SCRIPT" ]; then
+    if python3 "$MAKING_SCRIPT" "$OUTPUT_DIR/making-of.html" \
+         --date "$TODAY" --logs "$LOG_DIR" \
+         --edition "$V2_DIR/edition.json" --scouts "$SCOUTS_DIR" 2>>"$LOGFILE"; then
+        echo "  ✓ making-of page built"
+    else
+        echo "  ⚠ making-of page failed (non-fatal) — issue publishes without it"
+    fi
+else
+    echo "  - make_making_of.py not found, skipping"
+fi
+check_timeout
+
 # ── Step 9: Deploy ───────────────────────────────────────────
 echo "[step 9] deploying to production..."
 
@@ -561,6 +585,11 @@ echo "$NEXT_ISSUE" > "$DEPLOY_DIR/.issue"
 # ── Step 10: Copy files ───────────────────────────────────────
 echo "[step 10] copying files..."
 cp "$OUTPUT_DIR/index.html" "$DEPLOY_DIR/index.html"
+# Guarded: step 8c is non-fatal, so this file may legitimately not exist.
+if [ -f "$OUTPUT_DIR/making-of.html" ]; then
+    cp "$OUTPUT_DIR/making-of.html" "$DEPLOY_DIR/making-of.html"
+    echo "  ✓ making-of page copied"
+fi
 cp -r "$OUTPUT_DIR/fonts"/* "$DEPLOY_DIR/fonts/" 2>/dev/null || true
 mkdir -p "$DEPLOY_DIR/images"
 cp "$IMAGES_DIR"/*.jpg "$DEPLOY_DIR/images/" 2>/dev/null || true
