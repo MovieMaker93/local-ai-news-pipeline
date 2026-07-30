@@ -171,7 +171,18 @@ def read_edition(path):
         + sum(len(s.get("items") or []) for s in sections)
         + len(d.get("quick_hits") or [])
     )
+    # Trending is passed through from the opensource scout untouched — the
+    # editor neither selects nor spikes it, so it sits outside the editorial
+    # funnel. render.py DOES count it in the masthead total, which is why the
+    # front page says 61 while the desk only chose 36. Tracked separately so
+    # the page can reconcile the two numbers instead of contradicting them.
+    trending = d.get("trending") or {}
+    passthrough = sum(
+        len((trending.get(k) or {}).get("items") or [])
+        for k in ("github", "huggingface")
+    )
     return {
+        "passthrough": passthrough,
         "issue": d.get("issue_no"),
         "date_human": d.get("date_human") or "",
         "date_iso": d.get("date_iso") or "",
@@ -181,6 +192,10 @@ def read_edition(path):
         "top": [s.get("title") for s in (d.get("top_stories") or [])],
         "sections": [(s.get("title"), len(s.get("items") or [])) for s in sections],
         "quick": len(d.get("quick_hits") or []),
+        # Optional: the editor's own record of what it killed, keyed by rule.
+        # Absent until the editor starts emitting it — the page must work either
+        # way, so everything downstream treats this as "may be missing".
+        "spiked": d.get("spiked") if isinstance(d.get("spiked"), dict) else None,
     }
 
 
@@ -291,6 +306,17 @@ def build_events(run, ed, logs, scouts_dir, day):
 
     if ed:
         secs = ", ".join("%s (%d)" % (t, n) for t, n in ed["sections"]) or "no sections"
+        pt = ed.get("passthrough") or 0
+        # Reconcile with the masthead. The front page counts trending entries in
+        # its story total, the desk does not — without saying so, a reader
+        # clicking through from "61 stories" lands on "36 published" and assumes
+        # one of the two is wrong.
+        recon = ""
+        if pt:
+            recon = (" Alongside them the issue carries %d trending entries — GitHub and "
+                     "Hugging Face leaderboards reported as they stand, neither chosen nor "
+                     "spiked by the desk. That is why the front page counts %d where the "
+                     "desk counts %d." % (pt, (published or 0) + pt, published or 0))
         ev.append({
             "t": hhmm(ed_end) if ed_end else (hhmm(prev_end) if prev_end else "—"),
             "who": "Editor", "host": "self",
@@ -298,7 +324,8 @@ def build_events(run, ed, logs, scouts_dir, day):
             "head": "One lead, %d top stories, %d sections, %d quick hits." % (
                 len(ed["top"]), len(ed["sections"]), ed["quick"]),
             "deck": "Sections this morning: %s. Every remaining URL is checked to be real "
-                    "before the file is written — no anchors, no placeholders, no dead links." % secs,
+                    "before the file is written — no anchors, no placeholders, no dead links.%s"
+                    % (secs, recon),
             "published": published,
         })
     if ed_end:
@@ -365,7 +392,8 @@ def build_events(run, ed, logs, scouts_dir, day):
     })
 
     return ev, {"gathered": gathered, "published": published, "spiked": spiked,
-                "total": total, "issue": issue}
+                "total": total, "issue": issue,
+                "by_rule": (ed or {}).get("spiked")}
 
 
 PAGE = """<!DOCTYPE html>
@@ -534,6 +562,8 @@ CSS = """    .mk-intro{ margin:30px 0 0; text-align:center; }
     .mk-rule > summary::-webkit-details-marker{ display:none; }
     .mk-rule > summary:hover{ background:rgba(255,107,53,.05); }
     .mk-rule > summary:focus-visible{ outline:2px solid var(--lux); outline-offset:-2px; }
+    .mk-rule .count{ font-family:var(--sans); font-size:11px; font-weight:600; color:var(--ember);
+      font-variant-numeric:tabular-nums; min-width:26px; }
     .mk-rule .rname{ font-family:var(--serif); font-size:15.5px; color:var(--type); flex:1 1 200px; }
     .mk-rule .rcode{ font-family:var(--sans); font-size:9px; letter-spacing:.14em;
       text-transform:uppercase; color:var(--muted); border:1px solid var(--rule-strong);
@@ -618,7 +648,13 @@ JS = r"""
     var h='<div class="mk-spike"><div class="mk-spikehead">On the spike — '+
           (STATS.spiked!=null ? STATS.spiked+' killed, ' : '')+'seven rules</div>';
     SPIKE.forEach(function(r){
-      h+='<details class="mk-rule"><summary><span class="rname">'+r[1]+
+      // Per-rule counts appear only when the editor actually reported them.
+      // Until then the rule is shown without a number rather than with a
+      // guessed one — the whole page is worth nothing if its figures aren't real.
+      var n = (STATS.by_rule && STATS.by_rule[r[0]] != null) ? STATS.by_rule[r[0]] : null;
+      h+='<details class="mk-rule"><summary>'+
+         (n !== null ? '<span class="count">'+n+'</span>' : '')+
+         '<span class="rname">'+r[1]+
          '</span><span class="rcode">'+r[0]+'</span></summary>'+
          '<div class="body"><p class="why">'+r[2]+'</p></div></details>';
     });

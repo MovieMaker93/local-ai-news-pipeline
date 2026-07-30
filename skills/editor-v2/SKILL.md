@@ -109,6 +109,33 @@ grep -E '"#"|"url": ""' /tmp/v2/edition.json
 ```
 If any match, fix them before proceeding to render. Re-run the editor with explicit instruction if needed:
 *"Step 7 and 8 — validate EVERY single URL field. None can be #, empty, fragment-only, or missing. If a scout returned an item without a real URL, either find it or remove the item."*
+8b. **Tally what you killed** — while doing steps 4, 4b and 5 you discard a lot
+   of items. Keep a running count of *why*, and emit it as a `spiked` object in
+   edition.json. Use exactly these seven keys, omitting any that are zero:
+
+   | key | you killed it because |
+   |-----|----------------------|
+   | `low signal` | signal 1–2: minor bump, rehash, no result behind it |
+   | `out of window` | dated before yesterday |
+   | `duplicate url` | two scouts returned the same URL |
+   | `same story` | same event, different headline/outlet |
+   | `already ran` | matched the 7-day headlines_history sweep |
+   | `thin section` | section under threshold, folded into quick hits |
+   | `no link` | no real URL after searching |
+
+   ```json
+   "spiked": { "low signal": 31, "out of window": 14, "duplicate url": 9 }
+   ```
+
+   This is a **count, not a list** — do not enumerate the discarded titles. It
+   feeds the public "How this issue made itself" page, which currently has to
+   show these rules without numbers because nobody was recording them.
+
+   ⚠️ This must never come at the expense of the edition itself. If you are
+   unsure of an exact figure, omit that key rather than estimating: the page
+   shows a rule without a number quite happily, but a wrong number published
+   as fact is worse than no number at all.
+
 9. Write `/tmp/v2/edition.json` in the canonical shape.
 
 10. **Image path preservation when re-running** — If edition.json already exists (from a prior image-gen run), parse it and extract any `"image": "images/..."` fields BEFORE overwriting. Re-inject them into the new edition.json. The editor overwrites edition.json from scratch and does NOT know about images — without this step, 3 generated images disappear from the rendered HTML despite existing on disk.
@@ -139,9 +166,13 @@ If any match, fix them before proceeding to render. Re-run the editor with expli
     "github": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]},
     "huggingface": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]}
   },
-  "quick_hits": [ … ]
+  "quick_hits": [ … ],
+  "spiked": { "low signal": <int>, "out of window": <int>, … }
 }
 ```
+
+`spiked` is optional and counts only — see step 8b. Omit keys you can't count
+exactly; omit the whole object if you couldn't track it at all.
 
 ## Thin/quiet day rules
 - Thin day: still assemble; set `notice` like `"Light news day — fewer fresh items than usual."`
