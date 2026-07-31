@@ -103,12 +103,38 @@ last_attempt() {
     awk '/^▶ /{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}' "$logfile"
 }
 
+# ── Telegram progress notifications ──────────────────────────
+# The run is fire-and-forget in the background: until now the only thing that
+# ever reached Telegram was the wrapper's "pipeline launched" line at 06:30,
+# leaving two hours of silence and no word at all when something broke.
+#
+# notify() posts one short line at each real milestone. Written to be
+# impossible to break the run:
+#   - every failure path returns 0 (missing .env, empty creds, no network)
+#   - curl has a hard 10s timeout, so it can never hang the pipeline
+#   - output is discarded; the bot token must never reach the run log, which
+#     is tee'd to disk and committed nowhere but still readable
+TG_ENV="/home/nttluke/.hermes/profiles/luke/.env"
+notify() {
+    local text="$1" tok chat
+    [ -f "$TG_ENV" ] || return 0
+    tok=$(grep -m1 '^TELEGRAM_BOT_TOKEN=' "$TG_ENV" 2>/dev/null | cut -d= -f2- || true)
+    chat=$(grep -m1 '^TELEGRAM_HOME_CHANNEL=' "$TG_ENV" 2>/dev/null | cut -d= -f2- || true)
+    [ -n "$tok" ] && [ -n "$chat" ] || return 0
+    curl -s -o /dev/null --max-time 10 \
+        -X POST "https://api.telegram.org/bot${tok}/sendMessage" \
+        -d "chat_id=${chat}" \
+        --data-urlencode "text=${text}" >/dev/null 2>&1 || true
+    return 0
+}
+
 # Master watchdog — if we exceed MASTER_TIMEOUT, kill everything
 START_EPOCH=$(date +%s)
 elapsed() { echo $(( $(date +%s) - START_EPOCH )); }
 check_timeout() {
     if [ "$(elapsed)" -gt "$MASTER_TIMEOUT" ]; then
         echo "⛔ MASTER TIMEOUT after $(elapsed)s — aborting pipeline"
+        notify "⛔ Lux — master timeout after $(( $(elapsed) / 60 ))m. Run aborted, no issue today."
         exit 2
     fi
 }
@@ -185,6 +211,7 @@ else
 fi
 echo "$NEXT_ISSUE" > "$V2_DIR/.issue"
 echo "  ✓ issue #$NEXT_ISSUE"
+notify "▶ Lux #$NEXT_ISSUE — run started $(date '+%H:%M'). Nine scouts, one at a time; expect ~2h."
 check_timeout
 
 # ── Helper: run a scout with safe timeout ──────────────────
@@ -372,6 +399,28 @@ for scout in $SCOUT_NAMES; do
     fi
 done
 echo "  ✓ $SCOUT_COUNT/9 scout files ready"
+
+# Milestone: the scouts are the long stretch (~90 min of the ~2h). Report what
+# actually landed on the desk, and name any scout that came back empty — a
+# timed-out scout is survivable but worth knowing about before the paper lands.
+DESK_ITEMS=$(python3 -c "
+import json, os
+keys = 'x research official opensource tools funding hardware youtube italia'.split()
+t = 0
+for k in keys:
+    try:
+        d = json.load(open(os.path.join('$SCOUTS_DIR', 'scout_%s.json' % k)))
+        t += len(d) if isinstance(d, list) else len(d.get('editorial') or [])
+    except Exception:
+        pass
+print(t)
+" 2>/dev/null || echo "?")
+EMPTY_SCOUTS=$(grep -c "✗ scout .* FAILED or TIMEOUT" "$LOGFILE" 2>/dev/null || echo 0)
+if [ "${EMPTY_SCOUTS:-0}" -gt 0 ]; then
+    notify "🔍 Lux #$NEXT_ISSUE — scouts done, $DESK_ITEMS items on the desk. ⚠ $EMPTY_SCOUTS scout(s) timed out and came back empty. Editor starting."
+else
+    notify "🔍 Lux #$NEXT_ISSUE — scouts done, all nine green, $DESK_ITEMS items on the desk. Editor starting."
+fi
 check_timeout
 
 # ── Step 4: Editor ──────────────────────────────────────────
@@ -391,6 +440,19 @@ Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
 
 if [ -f "$V2_DIR/edition.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition.json'))" 2>/dev/null 2>&1; then
     echo "  ✓ edition.json written"
+    ED_KEPT=$(python3 -c "
+import json
+d = json.load(open('$V2_DIR/edition.json'))
+print((1 if d.get('lead') else 0)
+      + len(d.get('top_stories') or [])
+      + sum(len(s.get('items') or []) for s in (d.get('sections') or []))
+      + len(d.get('quick_hits') or []))
+" 2>/dev/null || echo "?")
+    ED_LEAD=$(python3 -c "
+import json
+print((json.load(open('$V2_DIR/edition.json')).get('lead') or {}).get('title','')[:90])
+" 2>/dev/null || echo "")
+    notify "✍️ Lux #$NEXT_ISSUE — edition assembled. $ED_KEPT kept of $DESK_ITEMS. Lead: ${ED_LEAD:-—}"
 else
     # Say WHICH failure it was. `timeout` returns 124 when it kills the child,
     # and that distinction is the whole diagnosis: 124 means raise
@@ -403,6 +465,13 @@ else
     fi
     echo "     → see $LOG_DIR/editor_${TODAY}.log (appended, not overwritten)"
     echo "FATAL: editor failed"
+    # The one message that matters most: this is the only step whose failure
+    # means no paper at all, and until now it failed in complete silence.
+    if [ "$EDITOR_RC" -eq 124 ]; then
+        notify "⛔ Lux #$NEXT_ISSUE — EDITOR TIMED OUT after $((EDITOR_TIMEOUT_SECS / 60))m. No issue today. The $DESK_ITEMS scouted items are still on disk; a re-run can use them."
+    else
+        notify "⛔ Lux #$NEXT_ISSUE — EDITOR FAILED (exit $EDITOR_RC). No issue today. Check editor_${TODAY}.log."
+    fi
     exit 1
 fi
 check_timeout
@@ -638,3 +707,15 @@ echo "  Podcast: $([ "$SKIP_PODCAST" = true ] && echo 'skipped - no xAI credits'
 echo "  Deploy:  $DEPLOY_DIR"
 echo "  Pushed:  github.com/nttluke/luxintenebris-ai-news"
 echo "═══════════════════════════════════════════════"
+
+# Final milestone. Reports what degraded (images/podcast skipped on exhausted
+# xAI credits) rather than claiming a clean run, so the message is worth
+# trusting on the days it says everything worked.
+RUN_MIN=$(( $(elapsed) / 60 ))
+EXTRAS=""
+[ "$SKIP_IMAGES" = true ]  && EXTRAS="$EXTRAS no images (xAI credits),"
+[ "$SKIP_PODCAST" = true ] && EXTRAS="$EXTRAS no podcast (xAI credits),"
+[ "${WIRE_COUNT:-0}" -eq 0 ] && EXTRAS="$EXTRAS no wire ticker,"
+EXTRAS="${EXTRAS%,}"
+notify "✅ Lux #$NEXT_ISSUE is live — ${ED_KEPT:-?} stories, $IMG_COUNT illustrations, ${WIRE_COUNT:-0} wire, in ${RUN_MIN}m.${EXTRAS:+ Degraded:$EXTRAS.}
+https://luxintenebris.news"
