@@ -684,6 +684,18 @@ python3 "$SCRIPT_DIR/update_headlines_history.py" \
     "$DEPLOY_DIR/headlines_history.json" \
     2>>"$LOGFILE" && echo "  ✓ headlines history updated" || echo "  ⚠ headlines history update failed"
 
+# ── Step 11.5: Build markdown editions (PR #2) ───────────────
+# Regenerates editions/*.md + latest.md + llms.txt from edition.json/archive
+# so every new issue (and its future numbering) is served as LLM-readable
+# markdown. Script lives in the deploy repo (synced via step 1b reset).
+if [ -f "$DEPLOY_DIR/scripts/build_markdown.py" ]; then
+    python3 "$DEPLOY_DIR/scripts/build_markdown.py" 2>>"$LOGFILE" \
+        && echo "  ✓ markdown editions rebuilt" \
+        || echo "  ⚠ markdown build failed, continuing"
+else
+    echo "  ⚠ build_markdown.py not found — markdown skipped"
+fi
+
 cd "$DEPLOY_DIR"
 git add -A
 if ! git diff --cached --quiet; then
