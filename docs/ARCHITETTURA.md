@@ -70,19 +70,19 @@ passes its model explicitly.
 
 | Step | Kind | Model / Provider | Toolset | Reads | Writes |
 |------|------|-------------------|---------|-------|--------|
-| scout-v2-x | agent | deepseek-v4-flash / localAIServer | x_search, file, terminal | — | `scout_x.json` |
-| scout-v2-research | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_research.json` |
-| scout-v2-official | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_official.json` |
-| scout-v2-opensource | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_opensource.json` (editorial + trending) |
+| scout-x | agent | deepseek-v4-flash / localAIServer | x_search, file, terminal | — | `scout_x.json` |
+| scout-research | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_research.json` |
+| scout-official | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_official.json` |
+| scout-opensource | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_opensource.json` (editorial + trending) |
 | `fetch_trending.py` | code | — | curl (GitHub/HuggingFace) | — | merged into `scout_opensource.json`, only if the scout returned < 3 trending items |
-| scout-v2-tools | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_tools.json` |
-| scout-v2-funding | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_funding.json` |
-| scout-v2-hardware | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_hardware.json` |
+| scout-tools | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_tools.json` |
+| scout-funding | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_funding.json` |
+| scout-hardware | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_hardware.json` |
 | `youtube_scout.py` | code | — | RSS + yt-dlp + youtube-transcript-api | 10 fixed channel IDs | `scout_youtube_raw.json` |
-| scout-v2-youtube | agent | deepseek-v4-flash / localAIServer | file | `scout_youtube_raw.json` | `scout_youtube.json` |
-| scout-v2-italia | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_italia.json` |
-| editor-v2 | agent | deepseek-v4-flash / localAIServer | file | all `scout_*.json` + `headlines_history.json` | `edition.json` |
-| image-gen-v2 | agent + tool | deepseek-v4-flash / localAIServer (orchestrator) + xAI Grok Imagine (`image_generate` tool, OAuth) | file, image_gen, terminal | `edition.json` | `images/*.jpg`, updates `edition.json` |
+| scout-youtube | agent | deepseek-v4-flash / localAIServer | file | `scout_youtube_raw.json` | `scout_youtube.json` |
+| scout-italia | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_italia.json` |
+| editor | agent | deepseek-v4-flash / localAIServer | file | all `scout_*.json` + `headlines_history.json` | `edition.json` |
+| image-gen | agent + tool | deepseek-v4-flash / localAIServer (orchestrator) + xAI Grok Imagine (`image_generate` tool, OAuth) | file, image_gen, terminal | `edition.json` | `images/*.jpg`, updates `edition.json` |
 | `render.py` | code | — | — | `edition.json` + `template/` | `index.html` |
 | podcast-pill | agent + tool | deepseek-v4-flash / localAIServer (dialogue) + xAI TTS (Castor/Luna voices, OAuth) | file, terminal | `edition.json` | `podcast_meta.json`, `podcasts/*.ogg` |
 | `inject_podcast_pill.py` | code | — | — | `index.html`, `podcast_meta.json` | `index.html` (pill injected) |
@@ -93,12 +93,17 @@ passes its model explicitly.
 
 ### Meta / operator skills (not part of the daily run)
 
-Four skills exist for humans (or Claude) working *on* the pipeline, not for
+These skills exist for humans (or Claude) working *on* the pipeline, not for
 the pipeline itself — `run_v2.sh` never invokes them with `-s`:
 
-- **orchestrator-v2** — describes the whole pipeline; loaded when someone needs to understand or modify `run_v2.sh`.
-- **lux-v2-operations** — log paths, deploy destinations, debugging procedures.
-- **lux-v2-domain** / **lux-v2-domain-reference** — custom-domain (Cloudflare/GitHub Pages) setup notes.
+- **orchestrator** — describes the whole pipeline; loaded when someone needs to understand or modify `run_v2.sh`.
+- **lux-hotfix** — surgical live-HTML fixes without re-running the pipeline (re-rendering would strip the podcast pill / wire ticker).
+- **lux-status-reports** — Luke's preferred format for pipeline/scout status updates.
+- **lux-image-pitfalls** — production-failure knowledge for image generation, loaded after `image-gen`.
+
+A few more (deploy/domain/log-verification operations) exist only in the
+operator's local Hermes profile, outside this repo, since they're tied to
+personal infra/paths rather than to the pipeline's actual mechanism.
 
 ## Scout Concurrency — why sequential
 

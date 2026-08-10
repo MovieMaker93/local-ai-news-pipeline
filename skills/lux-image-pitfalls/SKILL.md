@@ -1,17 +1,17 @@
 ---
 name: lux-image-pitfalls
-description: "Pitfalls and corrections for Lux in Tenebris image generation. Load after image-gen-v2 for the production-failure knowledge that the base skill doesn't cover."
+description: "Pitfalls and corrections for Lux in Tenebris image generation. Load after image-gen for the production-failure knowledge that the base skill doesn't cover."
 ---
 
 # Lux Image Gen — Pitfalls Reference
 
 ## When to use
-Load AFTER `image-gen-v2` when you're about to generate images for Lux. This skill contains production-failure learnings that the base skill doesn't capture.
+Load AFTER `image-gen` when you're about to generate images for Lux. This skill contains production-failure learnings that the base skill doesn't capture.
 
-## 🔴 P1: You MUST load image-gen-v2 first
+## 🔴 P1: You MUST load image-gen first
 **NEVER** write image prompts from general knowledge or intuition. The Lux style is highly specific: watercolor/ink, editorial metaphor, aged paper/sepia, approach rotator (A-G). Without loading the skill, you'll produce literal/iconic stock-photo-style images that the user will immediately reject.
 
-**Rule:** Always `skill_view(name='image-gen-v2')` before any `image_generate` call.
+**Rule:** Always `skill_view(name='image-gen')` before any `image_generate` call.
 
 ## 🔴 P2: Section images go on the section dict, not the first item
 The base skill's step 2h says "add `\"image\"` to lead or to **first item in each section**" — this is **incorrect**. The render.py template checks `sec["image"]` (the section dict itself):

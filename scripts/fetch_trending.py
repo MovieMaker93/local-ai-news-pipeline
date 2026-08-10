@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 fetch_trending.py — Fetch GitHub and HuggingFace trending via curl (no Firecrawl).
-Outputs JSON matching the scout-v2-opensource trending contract.
+Outputs JSON matching the scout-opensource trending contract.
 
 Usage:
     python3 fetch_trending.py [--output-json PATH]

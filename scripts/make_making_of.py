@@ -49,7 +49,7 @@ SCOUTS = [
     ("italia",     "Italia",           "Italian AI startups and funding. Headline translated to English, link left pointing at the Italian source."),
 ]
 
-# The rules the editor kills by, taken from skills/editor-v2/SKILL.md.
+# The rules the editor kills by, taken from skills/editor/SKILL.md.
 # Counts are deliberately NOT shown: the editor currently logs only a summary,
 # not an itemised list, so a per-rule number would be invented. When the editor
 # starts emitting `spiked` in edition.json, feed it in here and show real counts.
@@ -426,7 +426,7 @@ PAGE = """<!DOCTYPE html>
       <span class="dot">◆</span>
       <span>{PUBLISHED} stories</span>
     </div>
-    <div class="devocracy-credit">Inference server generously provided by <a href="https://x.com/ivanfioravanti" target="_blank" rel="noopener">Devocracy</a> · powered by DS4 Flash Abliterated!</div>
+    <div class="devocracy-credit">Inference server generously provided by <a href="https://x.com/ivanfioravanti" target="_blank" rel="noopener">Devocracy</a> · powered by DwarfStar · DeepSeek V4 Flash 0731 (M3 Ultra)!</div>
     <hr class="rule-thin">
   </header>
 

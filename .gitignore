@@ -28,3 +28,8 @@ tmp/
 output/
 # Local WIP quarantine (never publish)
 .wip-quarantine/
+
+# Secrets — never publish
+.env
+*.env
+.env.*

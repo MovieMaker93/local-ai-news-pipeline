@@ -270,34 +270,34 @@ SCOUT_DATE_BRIEF="Window: from $YESTERDAY to $TODAY. Today is $TODAY, yesterday 
 # for actually finishing.
 echo "[step 2] scouts (sequential, one at a time)..."
 
-run_scout "x" "scout-v2-x" "x_search,file,terminal" \
+run_scout "x" "scout-x" "x_search,file,terminal" \
     "You are the X Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-x and follow it exactly. Use from_date=$YESTERDAY to_date=$TODAY in x_search calls.
+Load skill scout-x and follow it exactly. Use from_date=$YESTERDAY to_date=$TODAY in x_search calls.
 Write the JSON array to $SCOUTS_DIR/scout_x.json using write_file. ENGLISH ONLY."
 
-run_scout "research" "scout-v2-research" "web,file,terminal" \
+run_scout "research" "scout-research" "web,file,terminal" \
     "You are the Research Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-research and follow it exactly. Search arXiv and HuggingFace daily papers.
+Load skill scout-research and follow it exactly. Search arXiv and HuggingFace daily papers.
 Write the JSON array to $SCOUTS_DIR/scout_research.json using write_file. ENGLISH ONLY."
 
-run_scout "official" "scout-v2-official" "web,file,terminal" \
+run_scout "official" "scout-official" "web,file,terminal" \
     "You are the Official Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-official and follow it exactly. Scrape official AI lab blogs.
+Load skill scout-official and follow it exactly. Scrape official AI lab blogs.
 Write the JSON array to $SCOUTS_DIR/scout_official.json using write_file. ENGLISH ONLY."
 
-run_scout "opensource" "scout-v2-opensource" "web,x_search,file,terminal" \
+run_scout "opensource" "scout-opensource" "web,x_search,file,terminal" \
     "You are the Open Source Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-opensource and follow it exactly. Search GitHub Trending and HuggingFace Trending.
+Load skill scout-opensource and follow it exactly. Search GitHub Trending and HuggingFace Trending.
 Write the JSON object (with editorial array + trending object) to $SCOUTS_DIR/scout_opensource.json using write_file. ENGLISH ONLY."
 
-run_scout "tools" "scout-v2-tools" "web,file,terminal" \
+run_scout "tools" "scout-tools" "web,file,terminal" \
     "You are the Tools Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-tools and follow it exactly. Search Product Hunt, Hacker News, tool launches.
+Load skill scout-tools and follow it exactly. Search Product Hunt, Hacker News, tool launches.
 Write the JSON array to $SCOUTS_DIR/scout_tools.json using write_file. ENGLISH ONLY."
 
-run_scout "funding" "scout-v2-funding" "web,file,terminal" \
+run_scout "funding" "scout-funding" "web,file,terminal" \
     "You are the Funding Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-funding and follow it exactly. Search TechCrunch, Crunchbase for AI funding.
+Load skill scout-funding and follow it exactly. Search TechCrunch, Crunchbase for AI funding.
 Write the JSON array to $SCOUTS_DIR/scout_funding.json using write_file. ENGLISH ONLY."
 
 # ── Trending fallback: if opensource scout failed, fetch via curl ──
@@ -349,9 +349,9 @@ except Exception as e:
     fi
 fi
 
-run_scout "hardware" "scout-v2-hardware" "web,x_search,file,terminal" \
+run_scout "hardware" "scout-hardware" "web,x_search,file,terminal" \
     "You are the Hardware Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-hardware and follow it exactly. Search for robots, chips, datacenter hardware news.
+Load skill scout-hardware and follow it exactly. Search for robots, chips, datacenter hardware news.
 Write the JSON array to $SCOUTS_DIR/scout_hardware.json using write_file. ENGLISH ONLY."
 
 # --- YouTube: Python fetch, then LLM extraction over the fetched data ---
@@ -360,13 +360,13 @@ echo "  → running youtube_scout.py (Python fetch)..."
 python3 "$SCRIPT_DIR/youtube_scout.py" --max 10 2>>"$LOGFILE" || echo "  ⚠ youtube scout fetch failed (non-fatal)"
 echo "  ✓ youtube_scout.py done"
 
-echo "  → running scout-v2-youtube..."
+echo "  → running scout-youtube..."
 log_attempt "$LOG_DIR/scout_youtube_${TODAY}.log" "scout youtube"
-timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q 'Load scout-v2-youtube skill. Read /tmp/v2/scouts/scout_youtube_raw.json.
+timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q 'Load scout-youtube skill. Read /tmp/v2/scouts/scout_youtube_raw.json.
 Extract newsworthy items from the video data.
 Write the JSON array to /tmp/v2/scouts/scout_youtube.json using write_file.
 ENGLISH ONLY. Today is '"$TODAY"' ('"$TODAY_HUMAN"'). Window: '"$YESTERDAY"' to '"$TODAY"'."' \
-    --profile "$PROFILE" -s scout-v2-youtube -t file \
+    --profile "$PROFILE" -s scout-youtube -t file \
     -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
     -Q --yolo >>"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
 echo "  ✓ youtube scout done"
@@ -376,10 +376,10 @@ check_timeout
 echo "[step 2] scout italia..."
 log_attempt "$LOG_DIR/scout_italia_${TODAY}.log" "scout italia"
 timeout "$STEP_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Italia AI Spotlight Scout for Lux in Tenebris. $SCOUT_DATE_BRIEF
-Load skill scout-v2-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
+Load skill scout-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
 Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
 All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
-    --profile "$PROFILE" -s scout-v2-italia -t web,file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+    --profile "$PROFILE" -s scout-italia -t web,file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
     >>"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
 echo "  ✓ italia scout done"
 check_timeout
@@ -429,13 +429,13 @@ echo "[step 4] editor..."
 # increment-and-archive-predecessor otherwise).
 
 log_attempt "$LOG_DIR/editor_${TODAY}.log" "editor (timeout ${EDITOR_TIMEOUT_SECS}s)"
-timeout "$EDITOR_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor-v2 and follow it exactly.
+timeout "$EDITOR_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Editor for Lux in Tenebris. Load skill editor and follow it exactly.
 Today is $TODAY. Issue #$NEXT_ISSUE.
 Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup, read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
-    --profile "$PROFILE" -s editor-v2 -t file -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+    --profile "$PROFILE" -s editor -t file -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
     >>"$LOG_DIR/editor_${TODAY}.log" 2>&1 && EDITOR_RC=0 || EDITOR_RC=$?
 
 if [ -f "$V2_DIR/edition.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition.json'))" 2>/dev/null 2>&1; then
@@ -487,11 +487,11 @@ fi
 
 if [ "$SKIP_IMAGES" = false ]; then
     log_attempt "$LOG_DIR/imagegen_${TODAY}.log" "image gen"
-    timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Image Generator for Lux in Tenebris. Load skill image-gen-v2.
+    timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Image Generator for Lux in Tenebris. Load skill image-gen.
 Today is $TODAY. Read $V2_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $V2_DIR/images/. Update edition.json. ENGLISH ONLY." \
-        --profile "$PROFILE" -s image-gen-v2 -t file,image_gen,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
         >>"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 

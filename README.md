@@ -22,23 +22,23 @@ lux-in-tenebris-pipeline/
 │   ├── wire_articles.py        RSS → AI article writer (2-stage)
 │   └── youtube_scout.py        YouTube data fetcher
 ├── skills/           ← 17 SKILL.md files (LLM agent instructions)
-│   ├── orchestrator-v2/
-│   ├── editor-v2/
-│   ├── image-gen-v2/
+│   ├── orchestrator/            Meta: describes the whole pipeline
+│   ├── editor/
+│   ├── image-gen/
 │   ├── podcast-pill/
-│   ├── wire-articles-v2/
-│   ├── scout-v2-x/
-│   ├── scout-v2-research/
-│   ├── scout-v2-official/
-│   ├── scout-v2-opensource/
-│   ├── scout-v2-tools/
-│   ├── scout-v2-funding/
-│   ├── scout-v2-hardware/
-│   ├── scout-v2-youtube/
-│   ├── scout-v2-italia/
-│   ├── lux-v2-operations/
-│   ├── lux-v2-domain/
-│   └── lux-v2-domain-reference/
+│   ├── wire-articles/
+│   ├── scout-x/
+│   ├── scout-research/
+│   ├── scout-official/
+│   ├── scout-opensource/
+│   ├── scout-tools/
+│   ├── scout-funding/
+│   ├── scout-hardware/
+│   ├── scout-youtube/
+│   ├── scout-italia/
+│   ├── lux-hotfix/              Meta: live-HTML hotfix without a full re-run
+│   ├── lux-status-reports/      Meta: status-update format convention
+│   └── lux-image-pitfalls/      Meta: image-gen production-failure notes
 ├── template/         ← HTML template + CSS + fonts
 │   ├── newspaper.html
 │   ├── style.css
