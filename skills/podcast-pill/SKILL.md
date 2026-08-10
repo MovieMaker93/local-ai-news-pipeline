@@ -137,7 +137,7 @@ or trim each line to 1 sentence. The pill is a teaser, not a full podcast.
 The podcast pill is NOT part of the template or render.py. It is injected by a standalone script AFTER render:
 
 ```bash
-python3 /home/nttluke/.hermes/profiles/luke/scripts/v2/inject_podcast_pill.py \
+python3 ~/.hermes/profiles/luke/scripts/v2/inject_podcast_pill.py \
     /tmp/v2/output/index.html \
     "podcasts/lead_<date_iso>.ogg" \
     <duration_sec> \

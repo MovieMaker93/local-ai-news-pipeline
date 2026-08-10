@@ -205,8 +205,8 @@ unnoticed until the day's edition had already been produced on the wrong
 | Path | Description |
 |------|-------------|
 | `~/lux-in-tenebris-pipeline/` | Source repo (pipeline code, skills, templates) |
-| `~/.hermes/profiles/luke/scripts/v2/` | Symlink → pipeline scripts |
-| `~/.hermes/profiles/luke/skills/ai-news-v2/` | Symlink → pipeline skills |
+| `~/.hermes/profiles/<profile>/scripts/v2/` | Symlink → pipeline scripts |
+| `~/.hermes/profiles/<profile>/skills/ai-news-v2/` | Symlink → pipeline skills |
 | `/tmp/v2/` | Working directory (scout JSON, images, output) |
 | `~/ai-news-deploy/` | Deploy repo (published output) |
 
@@ -295,16 +295,16 @@ titles already published on previous days.
 
 ## Cron
 
-- **Pipeline job:** `29fa53d809c4` — 06:30 daily, no_agent=true, fire-and-forget
-- **Watchdog:** `369c43cef23d` — 07:45 daily, verifies deploy succeeded
+- **Pipeline job:** 06:30 daily, `no_agent=true`, fire-and-forget (see `hermes cron create` in [docs/SETUP.md](SETUP.md#5-cron-job))
+- **Watchdog:** 07:45 daily, verifies deploy succeeded — a second, separate cron job pointed at a small check script, not included in this repo
 
 ## Symlink Architecture
 
 The repo is the single source of truth. Hermes accesses pipeline code through symlinks:
 
 ```bash
-~/.hermes/profiles/luke/scripts/v2        →  ~/lux-in-tenebris-pipeline/scripts
-~/.hermes/profiles/luke/skills/ai-news-v2  →  ~/lux-in-tenebris-pipeline/skills
+~/.hermes/profiles/<profile>/scripts/v2        →  ~/lux-in-tenebris-pipeline/scripts
+~/.hermes/profiles/<profile>/skills/ai-news-v2  →  ~/lux-in-tenebris-pipeline/skills
 ```
 
 This means changes pushed to the repo are immediately visible to the Hermes agent

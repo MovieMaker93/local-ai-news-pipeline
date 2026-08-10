@@ -14,17 +14,27 @@
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
-PROFILE="luke"
+# ── Machine-specific config ─────────────────────────────────────
+# Everything below is either self-located (works regardless of where the
+# repo is cloned or how it's symlinked in) or overridable via env var, with
+# defaults that match the original operator's setup so nothing changes for
+# an existing install. Set LUX_* env vars (e.g. in the untracked script that
+# actually launches cron — see docs/SETUP.md) to point this at a different
+# profile/layout.
+SELF_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SELF_PATH")"          # this script's own directory
+PIPELINE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)" # repo root, one level up
+
+PROFILE="${LUX_PROFILE:-luke}"
 V2_DIR="/tmp/v2"
 LOG_DIR="$V2_DIR/logs"
 SCOUTS_DIR="$V2_DIR/scouts"
 IMAGES_DIR="$V2_DIR/images"
 OUTPUT_DIR="$V2_DIR/output"
-HERMES_BIN="/home/nttluke/.local/bin/hermes"
-RENDER_PY="/home/nttluke/lux-in-tenebris-pipeline/scripts/render.py"
-SCRIPT_DIR="/home/nttluke/.hermes/profiles/luke/scripts/v2"
+HERMES_BIN="${LUX_HERMES_BIN:-$HOME/.local/bin/hermes}"
+RENDER_PY="$SCRIPT_DIR/render.py"
 CLEANUP_SH="$V2_DIR/cleanup.sh"
-DEPLOY_DIR="/home/nttluke/ai-news-deploy"
+DEPLOY_DIR="${LUX_DEPLOY_DIR:-$HOME/ai-news-deploy}"
 # Scouts run ONE AT A TIME (see step 2) against a single self-hosted
 # inference server, so these budgets are per-scout wall clock with the whole
 # server to itself, and the master budget has to cover their sum, not their max.
@@ -47,7 +57,7 @@ MEDIA_TIMEOUT_SECS=900   # 15 min for image gen / podcast (xAI-bound, not localA
 MASTER_TIMEOUT=14400     # 4h for the entire pipeline. Budget check against the
                          # measured run: 87 (scouts) + 40 (editor) + 15 + 15
                          # (media) + ~10 (wire) ≈ 2h50m, comfortably inside.
-TEMPLATE_DIR="/home/nttluke/lux-in-tenebris-pipeline/template"
+TEMPLATE_DIR="$PIPELINE_ROOT/template"
 
 # ╔═══════════════════════════════════════════════════════════════════╗
 # ║ PIPELINE_PROVIDER — DO NOT CHANGE without the user explicitly      ║
@@ -114,7 +124,7 @@ last_attempt() {
 #   - curl has a hard 10s timeout, so it can never hang the pipeline
 #   - output is discarded; the bot token must never reach the run log, which
 #     is tee'd to disk and committed nowhere but still readable
-TG_ENV="/home/nttluke/.hermes/profiles/luke/.env"
+TG_ENV="${LUX_TG_ENV:-$HOME/.hermes/profiles/$PROFILE/.env}"
 notify() {
     local text="$1" tok chat
     [ -f "$TG_ENV" ] || return 0
@@ -167,7 +177,7 @@ echo "  ✓ window: $YESTERDAY → $TODAY"
 # Done early (the editor needs the issue number) and against a freshly
 # git-reset deploy dir, so it's immune to local leftovers from a crashed
 # run. Incident that motivated this (2026-07-27): a run crashed after
-# bumping /home/nttluke/ai-news-deploy/.issue locally but before pushing;
+# bumping $DEPLOY_DIR/.issue locally but before pushing;
 # the recovery re-run read that unpushed leftover value and bumped again,
 # silently skipping issue #31. Reading the issue/date from the *live*
 # index.html's own masthead instead of the .issue file (which can go

@@ -165,6 +165,6 @@ When called as `hermes chat -q` from orchestrator or from a cron-triggered pipel
 hermes chat -q "..." --profile luke -s image-gen -t file,image_gen,terminal -Q --yolo
 ```
 
-**Why this matters:** `image_generate` returns either a Hermes cache path (e.g. `/home/nttluke/.hermes/profiles/luke/cache/images/xai_grok-*.jpg`) or a remote URL (e.g. `https://files-cdn.x.ai/...`). The agent MUST check which type it received and use the appropriate command (`cp` for local, `curl` for remote) to copy/download it to `/tmp/v2/images/lead_<date>.jpg`. Without this step, images are generated but never reach the output directory — the HTML references non-existent files. This happened on 2026-07-10: 5 images were generated correctly but never downloaded from the xAI CDN.
+**Why this matters:** `image_generate` returns either a Hermes cache path (e.g. `~/.hermes/profiles/<profile>/cache/images/xai_grok-*.jpg`) or a remote URL (e.g. `https://files-cdn.x.ai/...`). The agent MUST check which type it received and use the appropriate command (`cp` for local, `curl` for remote) to copy/download it to `/tmp/v2/images/lead_<date>.jpg`. Without this step, images are generated but never reach the output directory — the HTML references non-existent files. This happened on 2026-07-10: 5 images were generated correctly but never downloaded from the xAI CDN.
 
 **Rule:** any orchestration that calls image-gen outside interactive chat (bash orchestrator, cron, pipeline) must pass `-t file,image_gen,terminal` — NOT `-t file,image_gen`.

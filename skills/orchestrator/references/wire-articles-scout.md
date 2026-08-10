@@ -248,7 +248,7 @@ lead-zone.
 The `resolve_url()` function in `wire_articles.py` tries two strategies... (see above)
 
 ### Fonts must exist for test page
-`render_wire_test.py` copies fonts from `/home/nttluke/ai-news-deploy/fonts/` to the test output directory. If the production deploy dir doesn't have fonts (fresh clone), the test page renders with system fallbacks (Georgia + system sans-serif) — still functional but slightly different look.
+`render_wire_test.py` copies fonts from `~/ai-news-deploy/fonts/` to the test output directory. If the production deploy dir doesn't have fonts (fresh clone), the test page renders with system fallbacks (Georgia + system sans-serif) — still functional but slightly different look.
 
 ### AI model disclosure is mandatory
 The `build_prompt()` function appends `*— Written by AI (<model_name>)*` to every article. The model name comes from the `WIRE_MODEL` env var or the hardcoded default `deepseek/deepseek-v4-flash`. When running outside the test pipeline, ensure the env var is set or the default matches the intended model.

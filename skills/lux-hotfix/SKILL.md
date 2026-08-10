@@ -18,7 +18,7 @@ of an already-published edition silently DESTROYS that content. Confirmed 2026-0
 (credit edit wiped podcast pill + ticker; restored from backup).
 
 **Correct hotfix = surgical string replacement** on the live HTML in the deploy dir
-(`/home/nttluke/ai-news-deploy/`), never regeneration.
+(`~/ai-news-deploy/`), never regeneration.
 
 ## The Devocracy credit lives in TWO places (not one)
 

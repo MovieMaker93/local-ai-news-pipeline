@@ -43,15 +43,46 @@ lux-in-tenebris-pipeline/
 │   ├── newspaper.html
 │   ├── style.css
 │   └── fonts/
-└── docs/
-    ├── ARCHITETTURA.md
-    └── SETUP.md
+├── docs/
+│   ├── ARCHITETTURA.md
+│   └── SETUP.md
+└── requirements.txt  ← Python deps for the pure-code scripts
 ```
 
 ## Related repos
 
 - **Deploy (output):** [NTTLuke/luxintenebris-ai-news](https://github.com/NTTLuke/luxintenebris-ai-news) — published HTML/images/podcasts/archive
 - **Pipeline (this):** [NTTLuke/lux-in-tenebris-pipeline](https://github.com/NTTLuke/lux-in-tenebris-pipeline) — code, skills, templates
+
+## Running this yourself (Hermes Agent)
+
+Every step that needs judgment is a `SKILL.md`, and every "how do I set this
+up" question is answered in [docs/SETUP.md](docs/SETUP.md) — which means the
+fastest path is usually to let Hermes read it and do the work:
+
+```bash
+git clone git@github.com:NTTLuke/lux-in-tenebris-pipeline.git
+cd lux-in-tenebris-pipeline
+```
+
+Then, in a Hermes chat:
+
+> Read `docs/SETUP.md` in this repo and set the pipeline up for my profile —
+> symlinks, cron job, and tell me what env vars and API keys I still need to
+> provide.
+
+That gets you the symlinks and cron job; you'll still need to supply your own
+LLM provider (or point `localAIServer` at your own OpenAI-compatible endpoint) and,
+optionally, xAI OAuth for images/podcast. None of that is bundled — see
+**Prerequisites** in [docs/SETUP.md](docs/SETUP.md) for exactly what's
+required vs. optional, and what happens if you skip a piece (short version:
+scouts and the editor need an LLM provider to produce anything at all; image
+generation and the podcast pill are non-fatal and just skip themselves if xAI
+isn't connected).
+
+First run bootstraps itself — there's no manual "seed issue #1" step, the
+pipeline reads whatever's live in your deploy repo (nothing, the first time)
+and starts numbering from there.
 
 ## How it works
 
@@ -103,8 +134,8 @@ Each `archive/YYYY-MM-DD/` snapshot is self-contained (own HTML/CSS/fonts/images
 ### Symlink Architecture
 The repo is the single source of truth. Hermes accesses code via symlinks:
 ```
-~/.hermes/profiles/luke/scripts/v2   →  ~/lux-in-tenebris-pipeline/scripts
-~/.hermes/profiles/luke/skills/ai-news-v2 → ~/lux-in-tenebris-pipeline/skills
+~/.hermes/profiles/<profile>/scripts/v2   →  ~/lux-in-tenebris-pipeline/scripts
+~/.hermes/profiles/<profile>/skills/ai-news-v2 → ~/lux-in-tenebris-pipeline/skills
 ```
 Edits committed to this repo are live immediately through the symlink — no restart, no separate publish step. `git commit`/`push` here is for history and backup, not for activation.
 

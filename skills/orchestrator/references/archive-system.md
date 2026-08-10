@@ -12,12 +12,12 @@ Two components — the archive script and the template modification — work tog
 
 **Usage:**
 ```bash
-python3 archive_issue.py /home/nttluke/ai-news-deploy
+python3 archive_issue.py ~/ai-news-deploy
 ```
 
 **Output JSON:**
 ```json
-{"status": "ok", "archived_to": "/home/nttluke/ai-news-deploy/archive/2026-07-02", "issue_no": 7, "date": "2026-07-02"}
+{"status": "ok", "archived_to": "~/ai-news-deploy/archive/2026-07-02", "issue_no": 7, "date": "2026-07-02"}
 ```
 
 Or when nothing to archive (first run, no index.html):

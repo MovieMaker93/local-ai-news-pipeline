@@ -12,8 +12,8 @@ import re
 import sys
 from pathlib import Path
 
-ARCHIVE_DIR = Path("/home/nttluke/ai-news-deploy/archive")
-DEPLOY_DIR = Path("/home/nttluke/ai-news-deploy")
+DEPLOY_DIR = Path(os.environ.get("LUX_DEPLOY_DIR", Path.home() / "ai-news-deploy"))
+ARCHIVE_DIR = DEPLOY_DIR / "archive"
 
 # Correct issue numbers (no issue on 2026-07-12)
 correct_numbers = {
