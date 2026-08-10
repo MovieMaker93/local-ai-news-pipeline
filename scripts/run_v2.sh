@@ -59,22 +59,22 @@ MASTER_TIMEOUT=14400     # 4h for the entire pipeline. Budget check against the
                          # (media) + ~10 (wire) ≈ 2h50m, comfortably inside.
 TEMPLATE_DIR="$PIPELINE_ROOT/template"
 
-# ╔═══════════════════════════════════════════════════════════════════╗
-# ║ PIPELINE_PROVIDER — DO NOT CHANGE without the user explicitly      ║
-# ║ asking for it, in this exact conversation, for this exact reason.  ║
-# ║                                                                    ║
-# ║ This must always be "localAIServer" (the user's friend's dedicated LiteLLM ║
-# ║ server), never "openrouter" or anything else — regardless of what  ║
-# ║ model/provider the *interactive* Hermes session reasoning about    ║
-# ║ this fix happens to be running on. The user uses openrouter for    ║
-# ║ their own chats; the pipeline's own steps must not follow that.    ║
-# ║                                                                    ║
-# ║ Incident (2026-07-27/28): asked to raise the scout timeout, an     ║
-# ║ interactive session swapped every "--provider localAIServer" in this file  ║
-# ║ to "--provider openrouter" — unrequested, unnoticed until the user ║
-# ║ asked why. openrouter is a paid, metered service, separate from    ║
-# ║ the friend's server, with a different cost profile.                ║
-# ╚═══════════════════════════════════════════════════════════════════╝
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║ PIPELINE_PROVIDER — DO NOT CHANGE without the user explicitly          ║
+# ║ asking for it, in this exact conversation, for this exact reason.      ║
+# ║                                                                        ║
+# ║ This must always be "localAIServer" (the user's friend's dedicated     ║
+# ║ LiteLLM server), never "openrouter" or anything else — regardless of   ║
+# ║ what model/provider the *interactive* Hermes session reasoning about   ║
+# ║ this fix happens to be running on. The user uses openrouter for        ║
+# ║ their own chats; the pipeline's own steps must not follow that.        ║
+# ║                                                                        ║
+# ║ Incident (2026-07-27/28): asked to raise the scout timeout, an         ║
+# ║ interactive session swapped every "--provider localAIServer" in this   ║
+# ║ file to "--provider openrouter" — unrequested, unnoticed until the     ║
+# ║ user asked why. openrouter is a paid, metered service, separate from   ║
+# ║ the friend's server, with a different cost profile.                   ║
+# ╚════════════════════════════════════════════════════════════════════════╝
 PIPELINE_PROVIDER="localAIServer"
 
 # ── Setup ────────────────────────────────────────────────────
