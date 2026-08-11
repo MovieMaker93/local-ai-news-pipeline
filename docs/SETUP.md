@@ -59,7 +59,7 @@ ls -la ~/.hermes/profiles/<profile>/skills/ai-news-v2
 
 ### 4. Point the orchestrator at your profile
 
-`scripts/run_v2.sh` self-locates its own script/template paths (works
+`scripts/run.sh` self-locates its own script/template paths (works
 wherever the repo is cloned or symlinked), so the only thing you actually
 need to set is which Hermes profile it should use. Everything below has a
 default that matches the original author's setup — override only what's
@@ -132,7 +132,7 @@ custom_providers:
 ```
 
 **Every pipeline step pins `--provider localAIServer` explicitly** (via the
-`PIPELINE_PROVIDER` variable at the top of `run_v2.sh`). The Hermes profile
+`PIPELINE_PROVIDER` variable at the top of `run.sh`). The Hermes profile
 default is deliberately *not* used, and must not be: the profile default is
 whatever the user chats on, while the pipeline has to stay on this server.
 If your backend is a single self-hosted box like the original author's,
@@ -141,7 +141,7 @@ that's also why scouts run one at a time rather than in parallel — see
 
 ### 8. Telegram notifications (optional)
 
-`run_v2.sh` posts short milestone updates (scout progress, failures, final
+`run.sh` posts short milestone updates (scout progress, failures, final
 report) to Telegram if it finds credentials — silently skips this
 entirely otherwise, no crash either way. To enable it, create the file at
 `LUX_TG_ENV` (default `~/.hermes/profiles/<profile>/.env`) with:

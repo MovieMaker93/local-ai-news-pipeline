@@ -21,10 +21,10 @@ full breakdown of which is which.
 Cron (06:30, no_agent=true, fire-and-forget)
   │
   ▼
-cron_wrapper.sh (nohup → run_v2.sh &)
+cron_wrapper.sh (nohup → run.sh &)
   │
   ▼
-run_v2.sh
+run.sh
   │
   ├─ Step 0:  Cleanup /tmp/v2/
   ├─ Step 1:  Metadata (date window)
@@ -64,7 +64,7 @@ see [Issue Numbering & Archiving](#issue-numbering--archiving) for why.
 
 "Agent" = an LLM call via a `SKILL.md` (judgment: what matters, how to phrase
 it, what to draw). "Code" = plain Python/bash, deterministic, no model in the
-loop. Every model/provider below is read directly out of `run_v2.sh` — none
+loop. Every model/provider below is read directly out of `run.sh` — none
 of these steps fall back to the Hermes profile default; every invocation
 passes its model explicitly.
 
@@ -94,9 +94,9 @@ passes its model explicitly.
 ### Meta / operator skills (not part of the daily run)
 
 These skills exist for humans (or Claude) working *on* the pipeline, not for
-the pipeline itself — `run_v2.sh` never invokes them with `-s`:
+the pipeline itself — `run.sh` never invokes them with `-s`:
 
-- **orchestrator** — describes the whole pipeline; loaded when someone needs to understand or modify `run_v2.sh`.
+- **orchestrator** — describes the whole pipeline; loaded when someone needs to understand or modify `run.sh`.
 - **lux-hotfix** — surgical live-HTML fixes without re-running the pipeline (re-rendering would strip the podcast pill / wire ticker).
 - **lux-status-reports** — Luke's preferred format for pipeline/scout status updates.
 - **lux-image-pitfalls** — production-failure knowledge for image generation, loaded after `image-gen`.
@@ -216,7 +216,7 @@ Image generation (Grok Imagine) and podcast TTS (Castor/Luna) both
 authenticate against the same xAI OAuth account, so it's tempting to treat
 one as a proxy for the other. They don't fail together reliably in
 practice — archived issues for 2026-07-14 and 2026-07-24 both have zero
-images yet a working podcast that same day. Until 2026-07-26, `run_v2.sh`
+images yet a working podcast that same day. Until 2026-07-26, `run.sh`
 skipped the podcast step outright whenever image gen had failed on credits,
 which meant podcast attempts were being preempted on days they'd likely have
 succeeded. Each step now runs its own pre/post credit check against its own
@@ -275,7 +275,7 @@ references). Harmless, just a day later than the old same-day-cleanup
 timing.
 
 This matters because those root folders are otherwise never cleaned —
-`run_v2.sh` only ever adds new files to them (`cp ... "$DEPLOY_DIR/images/"`)
+`run.sh` only ever adds new files to them (`cp ... "$DEPLOY_DIR/images/"`)
 and nothing used to remove old ones. Before this was fixed (2026-07-26),
 every new archive snapshot picked up the entire accumulated history of
 images/podcasts instead of just its own day, so archive size grew roughly

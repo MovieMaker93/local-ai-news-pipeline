@@ -140,7 +140,7 @@ AI Revolution / AI News (daily)
 | Handle X | 16 handle fissi | Sì | Modifica SKILL.md scout-x |
 | Blog URL | 6 URL fissi | Sì | Modifica SKILL.md scout-official |
 | Feed RSS | 4 feed | Sì (in wire_articles.py) | Modifica wire_articles.py |
-| Query web | Template query | Sì (nel prompt scout) | Modifica run_v2.sh prompt |
+| Query web | Template query | Sì (nel prompt scout) | Modifica run.sh prompt |
 | Risultati concreti | Paper, post, funding | **No** — trovati al volo dal LLM | Automatico |
 
-Per espandere le fonti, **modifica il file `.md` della skill scout corrispondente**, non `run_v2.sh`.
+Per espandere le fonti, **modifica il file `.md` della skill scout corrispondente**, non `run.sh`.

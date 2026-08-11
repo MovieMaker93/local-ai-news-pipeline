@@ -110,7 +110,7 @@ correct `/tmp/v2/podcasts/` path.
 Do NOT write a Python sub-script to orchestrate TTS — orchestrate with the native tools.
 ### 2. No hard timeout → pipeline blocks for 30+ minutes  
 **🔴 This is the #1 production risk.**  
-The `run_v2.sh` step 7 call to `hermes chat -q` has no timeout wrapper.  
+The `run.sh` step 7 call to `hermes chat -q` has no timeout wrapper.  
 If the podcast agent hangs (e.g. stuck on a failing TTS call), the entire  
 pipeline stalls and no deploy happens.
 
@@ -119,7 +119,7 @@ longer, move on and skip that line rather than hanging. 30 seconds total is the
 budget. If you cannot complete in 30 seconds, write what you have and move on.
 
 If the pipeline is already stuck (podcast log shows only "[step 7] podcast pill..." for 15+ min):
-- Kill the hanging `run_v2.sh` process
+- Kill the hanging `run.sh` process
 - Complete deploy manually — see `references/podcast-pill-production-fixes.md`
 
 ### 3. Issue counter from edition.json, not assumption
@@ -137,7 +137,7 @@ or trim each line to 1 sentence. The pill is a teaser, not a full podcast.
 The podcast pill is NOT part of the template or render.py. It is injected by a standalone script AFTER render:
 
 ```bash
-python3 ~/.hermes/profiles/luke/scripts/v2/inject_podcast_pill.py \
+python3 ~/.hermes/profiles/luke/scripts/v2/inject/inject_podcast_pill.py \
     /tmp/v2/output/index.html \
     "podcasts/lead_<date_iso>.ogg" \
     <duration_sec> \

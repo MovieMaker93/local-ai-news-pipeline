@@ -16,9 +16,9 @@ isolated and stateless, communicating only through JSON files in `/tmp/v2/`.
 ```
 Cron (06:30, no_agent=true, fire-and-forget)
   ↓
-cron_wrapper.sh (nohup bash run_v2.sh &)
+cron_wrapper.sh (nohup bash run.sh &)
   ↓
-run_v2.sh (bash orchestrator)
+run.sh (bash orchestrator)
   ↓
 Sync deploy dir → resolve issue # → archive predecessor edition
   ↓
@@ -81,7 +81,7 @@ was 90 min while scouts ran in parallel; that is far too tight now.
 Every step passes `--provider "$PIPELINE_PROVIDER"` (= `localAIServer`) explicitly.
 The Hermes profile default is deliberately not used — the user chats on
 openrouter, but the pipeline must stay on their friend's server. See the
-comment block at the top of `run_v2.sh` before changing anything here.
+comment block at the top of `run.sh` before changing anything here.
 
 ### wire_articles.py
 - `--model`, `--provider` args for per-edition model selection
@@ -93,13 +93,13 @@ comment block at the top of `run_v2.sh` before changing anything here.
 - Fetches GitHub Trending (15 repos) and HuggingFace Trending (10 models) via **curl** (bypasses Firecrawl/Tavily)
 - Used as auto-fallback when the opensource scout fails (web_extract connection errors)
 - Outputs JSON matching the scout-opensource `trending` contract
-- **Location:** `~/.hermes/profiles/luke/scripts/v2/fetch_trending.py`
+- **Location:** `~/.hermes/profiles/luke/scripts/v2/content/fetch_trending.py`
 
 ### fix_archive_issue_numbers.py
 - `python3 fix_archive_issue_numbers.py`
 - Fixes incorrect issue numbers in archived HTML files and regenerates the archive listing
 - Also sets `.issue` to the correct value for the next pipeline run
-- **Location:** `~/.hermes/profiles/luke/scripts/v2/fix_archive_issue_numbers.py`
+- **Location:** `~/.hermes/profiles/luke/scripts/v2/maintenance/fix_archive_issue_numbers.py`
 
 ## Edition components
 
@@ -171,4 +171,4 @@ the curl fallbacks described in its own skill before emitting `[]`.
    today ⇒ same-day re-run ⇒ reuse the number. Different date ⇒ increment and
    archive the predecessor *before* this run overwrites it.
 
-5. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract`, which can fail with `Connection error` or simply return nothing. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
+5. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract`, which can fail with `Connection error` or simply return nothing. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/content/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`

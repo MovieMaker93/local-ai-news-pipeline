@@ -115,7 +115,7 @@ Run this **before** deploy in the pipeline, or as a post-deploy QA check. If `hr
 
 ## Pipeline Integration
 
-Add to `run_v2.sh` as a post-render step:
+Add to `run.sh` as a post-render step:
 
 ```bash
 echo "=== Link validation ==="

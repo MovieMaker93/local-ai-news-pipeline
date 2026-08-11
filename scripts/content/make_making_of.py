@@ -24,7 +24,7 @@ Usage:
                              [--logs DIR] [--edition PATH]
 
 Prints a one-line JSON status (same convention as render.py). Exit non-zero on
-error — callers in run_v2.sh treat this step as non-fatal.
+error — callers in run.sh treat this step as non-fatal.
 """
 
 import argparse
@@ -35,7 +35,7 @@ import re
 import sys
 from datetime import date as _date, datetime
 
-# Scouts in the order run_v2.sh runs them. Display name + one-line description
+# Scouts in the order run.sh runs them. Display name + one-line description
 # of what that beat is for; both are stable, neither is derived from a model.
 SCOUTS = [
     ("x",          "X / Twitter",      "Sixteen hand-picked accounts, filtered to the last 24 hours. Announcements from labs, not commentary about them."),

@@ -17,15 +17,15 @@ Stage 2 (LLM, DeepSeek V4 Flash, dedicated model):
 
 ## Stage 1: youtube_scout.py
 
-**Location:** `~/.hermes/profiles/luke/scripts/v2/youtube_scout.py`
+**Location:** `~/.hermes/profiles/luke/scripts/v2/content/youtube_scout.py`
 
 **Usage:**
 ```bash
 # Standalone test (fetch last 24h, max 10 videos)
-python3 ~/.hermes/profiles/luke/scripts/v2/youtube_scout.py --max 10
+python3 ~/.hermes/profiles/luke/scripts/v2/content/youtube_scout.py --max 10
 
 # Window override
-python3 ~/.hermes/profiles/luke/scripts/v2/youtube_scout.py --hours 48 --max 5
+python3 ~/.hermes/profiles/luke/scripts/v2/content/youtube_scout.py --hours 48 --max 5
 ```
 
 ### What it does
@@ -106,7 +106,7 @@ python3 ~/.hermes/profiles/luke/scripts/v2/youtube_scout.py --hours 48 --max 5
 
 ## Pipeline integration
 
-The 8th of 9 scouts in `run_v2.sh` — scouts run **one at a time**, and this one
+The 8th of 9 scouts in `run.sh` — scouts run **one at a time**, and this one
 comes before Step 3 (validation).
 
 ```bash

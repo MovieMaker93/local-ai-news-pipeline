@@ -32,7 +32,7 @@ SCOUTS_DIR="$V2_DIR/scouts"
 IMAGES_DIR="$V2_DIR/images"
 OUTPUT_DIR="$V2_DIR/output"
 HERMES_BIN="${LUX_HERMES_BIN:-$HOME/.local/bin/hermes}"
-RENDER_PY="$SCRIPT_DIR/render.py"
+RENDER_PY="$SCRIPT_DIR/core/render.py"
 CLEANUP_SH="$V2_DIR/cleanup.sh"
 DEPLOY_DIR="${LUX_DEPLOY_DIR:-$HOME/ai-news-deploy}"
 # Scouts run ONE AT A TIME (see step 2) against a single self-hosted
@@ -76,6 +76,11 @@ TEMPLATE_DIR="$PIPELINE_ROOT/template"
 # ║ the friend's server, with a different cost profile.                   ║
 # ╚════════════════════════════════════════════════════════════════════════╝
 PIPELINE_PROVIDER="localAIServer"
+
+# Model for every LLM step (scouts, editor, image-gen, podcast-pill, wire
+# articles) — was hardcoded separately in each of the 7 call sites below;
+# centralized here so it's a one-line change instead of a find-and-replace.
+PIPELINE_MODEL="deepseek-v4-flash"
 
 # ── Setup ────────────────────────────────────────────────────
 mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$IMAGES_DIR" "$OUTPUT_DIR"
@@ -192,7 +197,7 @@ PREV_DATE=""
 if [ -f "$DEPLOY_DIR/index.html" ]; then
     ISSUE_DATE_LINE=$(python3 -c "
 import sys
-sys.path.insert(0, '$SCRIPT_DIR')
+sys.path.insert(0, '$SCRIPT_DIR/core')
 import archive_issue as ai
 no = ai.extract_issue_no('$DEPLOY_DIR/index.html') or 0
 date = ai.extract_issue_date('$DEPLOY_DIR/index.html')
@@ -212,7 +217,7 @@ else
     # This guarantees every published edition gets archived at the latest
     # by the next day's run, even if that edition's own run never reached
     # its own deploy/archive step (as happened to the 2026-07-26 edition).
-    ARCHIVE_SCRIPT="$SCRIPT_DIR/archive_issue.py"
+    ARCHIVE_SCRIPT="$SCRIPT_DIR/core/archive_issue.py"
     if [ -f "$ARCHIVE_SCRIPT" ] && [ -f "$DEPLOY_DIR/index.html" ]; then
         python3 "$ARCHIVE_SCRIPT" "$DEPLOY_DIR" 2>>"$LOGFILE" \
             && echo "  ✓ archived previous issue (#$PREV_ISSUE, $PREV_DATE)" \
@@ -244,7 +249,7 @@ run_scout() {
         --profile "$PROFILE" \
         -s "$skill" \
         -t "$toolsets" \
-        -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
+        -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" \
         -Q --yolo \
         2>>"$LOG_DIR/scout_${name}_${TODAY}.err" \
         >>"$LOG_DIR/scout_${name}_${TODAY}.out" || true
@@ -311,7 +316,7 @@ Load skill scout-funding and follow it exactly. Search TechCrunch, Crunchbase fo
 Write the JSON array to $SCOUTS_DIR/scout_funding.json using write_file. ENGLISH ONLY."
 
 # ── Trending fallback: if opensource scout failed, fetch via curl ──
-TRENDING_FALLBACK="$SCRIPT_DIR/fetch_trending.py"
+TRENDING_FALLBACK="$SCRIPT_DIR/content/fetch_trending.py"
 if [ -f "$TRENDING_FALLBACK" ]; then
     SCOUT_OS="$SCOUTS_DIR/scout_opensource.json"
     has_trending=$(python3 -c "
@@ -367,7 +372,7 @@ Write the JSON array to $SCOUTS_DIR/scout_hardware.json using write_file. ENGLIS
 # --- YouTube: Python fetch, then LLM extraction over the fetched data ---
 echo "[step 2] scout youtube..."
 echo "  → running youtube_scout.py (Python fetch)..."
-python3 "$SCRIPT_DIR/youtube_scout.py" --max 10 2>>"$LOGFILE" || echo "  ⚠ youtube scout fetch failed (non-fatal)"
+python3 "$SCRIPT_DIR/content/youtube_scout.py" --max 10 2>>"$LOGFILE" || echo "  ⚠ youtube scout fetch failed (non-fatal)"
 echo "  ✓ youtube_scout.py done"
 
 echo "  → running scout-youtube..."
@@ -377,7 +382,7 @@ Extract newsworthy items from the video data.
 Write the JSON array to /tmp/v2/scouts/scout_youtube.json using write_file.
 ENGLISH ONLY. Today is '"$TODAY"' ('"$TODAY_HUMAN"'). Window: '"$YESTERDAY"' to '"$TODAY"'."' \
     --profile "$PROFILE" -s scout-youtube -t file \
-    -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" \
+    -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" \
     -Q --yolo >>"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
 echo "  ✓ youtube scout done"
 check_timeout
@@ -389,7 +394,7 @@ timeout "$STEP_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Italia AI Spotli
 Load skill scout-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
 Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
 All titles in ENGLISH, links to Italian sources. ENGLISH ONLY." \
-    --profile "$PROFILE" -s scout-italia -t web,file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+    --profile "$PROFILE" -s scout-italia -t web,file,terminal -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" -Q --yolo \
     >>"$LOG_DIR/scout_italia_${TODAY}.log" 2>&1 || true
 echo "  ✓ italia scout done"
 check_timeout
@@ -445,7 +450,7 @@ Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup, read $DEPLOY_DIR/headlines_history.json via read_file.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
-    --profile "$PROFILE" -s editor -t file -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+    --profile "$PROFILE" -s editor -t file -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" -Q --yolo \
     >>"$LOG_DIR/editor_${TODAY}.log" 2>&1 && EDITOR_RC=0 || EDITOR_RC=$?
 
 if [ -f "$V2_DIR/edition.json" ] && python3 -c "import json; json.load(open('$V2_DIR/edition.json'))" 2>/dev/null 2>&1; then
@@ -501,7 +506,7 @@ if [ "$SKIP_IMAGES" = false ]; then
 Today is $TODAY. Read $V2_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $V2_DIR/images/. Update edition.json. ENGLISH ONLY." \
-        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" -Q --yolo \
         >>"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 
@@ -544,7 +549,7 @@ if last_attempt "$LOG_DIR/podcast_${TODAY}.log" | grep -q "personal-team-blocked
 fi
 
 if [ "$SKIP_PODCAST" = false ]; then
-    PODCAST_INJECT="$SCRIPT_DIR/inject_podcast_pill.py"
+    PODCAST_INJECT="$SCRIPT_DIR/inject/inject_podcast_pill.py"
     mkdir -p "$V2_DIR/podcasts"
     
     log_attempt "$LOG_DIR/podcast_${TODAY}.log" "podcast pill"
@@ -553,7 +558,7 @@ Today is $TODAY. Issue #$NEXT_ISSUE.
 Read $V2_DIR/edition.json. Generate Castor/Luna dialogue from lead.
 Produce TTS audio, concat with ffmpeg, write metadata to $V2_DIR/podcast_meta.json.
 Use text_to_speech tool. Use terminal for ffmpeg. ENGLISH ONLY." \
-        --profile "$PROFILE" -s podcast-pill -t file,terminal -m deepseek-v4-flash --provider "$PIPELINE_PROVIDER" -Q --yolo \
+        --profile "$PROFILE" -s podcast-pill -t file,terminal -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" -Q --yolo \
         >>"$LOG_DIR/podcast_${TODAY}.log" 2>&1 || true
 
     # Check if it failed due to credits (own signal, independent of images)
@@ -593,13 +598,13 @@ check_timeout
 
 # ── Step 8: Wire Articles ────────────────────────────────────
 echo "[step 8] wire articles..."
-WIRE_SCRIPT="$SCRIPT_DIR/wire_articles.py"
+WIRE_SCRIPT="$SCRIPT_DIR/content/wire_articles.py"
 if [ -f "$WIRE_SCRIPT" ]; then
     # --provider passed explicitly (rather than relying on wire_articles.py's
     # own default) so $PIPELINE_PROVIDER stays the single place the backend is
     # decided for the whole pipeline.
     python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" \
-        --model deepseek-v4-flash --provider "$PIPELINE_PROVIDER" 2>>"$LOGFILE" || \
+        --model "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" 2>>"$LOGFILE" || \
         echo "  ⚠ wire articles failed (non-fatal)"
     WIRE_COUNT=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire.json'));print(len(d))" 2>/dev/null || echo "0")
     echo "  ✓ $WIRE_COUNT wire articles written"
@@ -608,7 +613,7 @@ else
 fi
 
 echo "[step 8b] inject wire ticker..."
-INJECT_SCRIPT="$SCRIPT_DIR/inject_wire_ticker.py"
+INJECT_SCRIPT="$SCRIPT_DIR/inject/inject_wire_ticker.py"
 if [ "${WIRE_COUNT:-0}" -gt 0 ] && [ -f "$INJECT_SCRIPT" ] && [ -f "$OUTPUT_DIR/index.html" ]; then
     python3 "$INJECT_SCRIPT" "$OUTPUT_DIR/index.html" "$SCOUTS_DIR/scout_wire.json" --output "$OUTPUT_DIR/index.html" 2>>"$LOGFILE" || \
         echo "  ⚠ ticker injection failed (non-fatal)"
@@ -628,7 +633,7 @@ check_timeout
 # newspaper publishes exactly as it would have without it — the front page
 # link just leads to a 404 for that day. Never let this step block a deploy.
 echo "[step 8c] making-of page..."
-MAKING_SCRIPT="$SCRIPT_DIR/make_making_of.py"
+MAKING_SCRIPT="$SCRIPT_DIR/content/make_making_of.py"
 if [ -f "$MAKING_SCRIPT" ]; then
     if python3 "$MAKING_SCRIPT" "$OUTPUT_DIR/making-of.html" \
          --date "$TODAY" --logs "$LOG_DIR" \
@@ -689,7 +694,7 @@ echo "  ✓ edition.json saved to deploy dir"
 # (archiving the PREVIOUS issue already happened in step 1b, before this
 # run's files were copied in — see the comment there for why)
 echo "[step 11] updating headlines history + deploying..."
-python3 "$SCRIPT_DIR/update_headlines_history.py" \
+python3 "$SCRIPT_DIR/core/update_headlines_history.py" \
     "$V2_DIR/edition.json" \
     "$DEPLOY_DIR/headlines_history.json" \
     2>>"$LOGFILE" && echo "  ✓ headlines history updated" || echo "  ⚠ headlines history update failed"

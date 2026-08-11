@@ -17,11 +17,11 @@ scrolling news ticker on the front page — it is **not** part of `edition.json`
 
 1. Run the deterministic retrieval script:
 ```bash
-python3 ~/.hermes/profiles/luke/scripts/v2/wire_articles.py --max 5 \
+python3 ~/.hermes/profiles/luke/scripts/v2/content/wire_articles.py --max 5 \
   --out /tmp/v2/scouts/scout_wire.json \
   --model deepseek-v4-flash --provider localAIServer
 ```
-⚠️ The provider is **`localAIServer`**, never `openrouter`. `run_v2.sh` passes it
+⚠️ The provider is **`localAIServer`**, never `openrouter`. `run.sh` passes it
 explicitly (as `$PIPELINE_PROVIDER`) rather than relying on the script's own
 defaults, so the backend is chosen in exactly one place.
 
@@ -30,7 +30,7 @@ defaults, so the backend is chosen in exactly one place.
 python3 -c "import json; d=json.load(open('/tmp/v2/scouts/scout_wire.json')); print(f'{len(d)} wire articles')"
 ```
 
-3. If empty → write `[]` and proceed. The run_v2.sh guards with `WIRE_COUNT -gt 0`.
+3. If empty → write `[]` and proceed. The run.sh guards with `WIRE_COUNT -gt 0`.
 
 ## Wire Articles JSON Shape
 
@@ -52,7 +52,7 @@ python3 -c "import json; d=json.load(open('/tmp/v2/scouts/scout_wire.json')); pr
 
 After render.py produces index.html, run:
 ```bash
-python3 ~/.hermes/profiles/luke/scripts/v2/inject_wire_ticker.py \
+python3 ~/.hermes/profiles/luke/scripts/v2/inject/inject_wire_ticker.py \
   /tmp/v2/output/index.html \
   /tmp/v2/scouts/scout_wire.json \
   --output /tmp/v2/output/index.html
@@ -74,7 +74,7 @@ The system is PEP 668-locked: `pip install`, `uv pip install --system`, and `pyt
 Stage 1 makes ~50-80 HTTP requests to ground 5 articles. Direct feeds are faster than Google News (which requires URL resolution + redirect follow for every item).
 
 ### 4. Model / provider override
-The script defaults to `deepseek-v4-flash` via `localAIServer`, but `run_v2.sh` passes
+The script defaults to `deepseek-v4-flash` via `localAIServer`, but `run.sh` passes
 both explicitly anyway. To override for a manual run:
 ```bash
 python3 wire_articles.py --max 5 --model <model> --provider <provider>
@@ -142,7 +142,7 @@ Latin). Same for the `<title>` tag. Editing the deployed `index.html` by hand
 gets overwritten on the next run — fix the **template**, then re-render.
 
 ⚠️ **The live template is `~/lux-in-tenebris-pipeline/template/newspaper.html`**
-(that's what `$TEMPLATE_DIR` in `run_v2.sh` points at, and what `render.py`
+(that's what `$TEMPLATE_DIR` in `run.sh` points at, and what `render.py`
 loads). An old v1 copy still exists at
 `~/.hermes/profiles/luke/skills/ai-news-24h/templates/newspaper.html` — it is
 **not read by anything** and has already diverged from the real one. Editing it

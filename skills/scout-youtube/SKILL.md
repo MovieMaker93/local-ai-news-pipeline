@@ -66,7 +66,7 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 - **Critical: do NOT use x_search or web_search.** All data comes from the raw JSON file and your own knowledge.
 - The `preview` field is a short summary — use it for a quick assessment of each video's relevance.
 
-## Integration in run_v2.sh
+## Integration in run.sh
 The orchestrator calls this skill AFTER the Python script has completed. It is
 the 8th of the 9 scouts, which run **one at a time** (see orchestrator), and
 comes before Step 3 (validation).
@@ -87,7 +87,7 @@ timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q "Load scout-youtube skill. Read /t
 ⚠️ **The provider is `$PIPELINE_PROVIDER` (= `localAIServer`), never `openrouter`.**
 This snippet used to say `openrouter`, and on 2026-07-28 an interactive session
 asked to change an unrelated timeout "helpfully" rewrote every provider flag in
-`run_v2.sh` to match these docs. Keep snippets here consistent with the script.
+`run.sh` to match these docs. Keep snippets here consistent with the script.
 
 ## Channels monitored
 - The AI Daily Brief (daily AI news)

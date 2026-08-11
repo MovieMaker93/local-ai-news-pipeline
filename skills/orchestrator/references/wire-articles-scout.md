@@ -214,7 +214,7 @@ CSS:
 
 ## Integration Points
 
-### Into run_v2.sh (DONE — step 8)
+### Into run.sh (DONE — step 8)
 ```bash
 python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" \
     --model deepseek-v4-flash --provider "$PIPELINE_PROVIDER"
@@ -237,7 +237,7 @@ lead-zone.
 
 | File | Purpose |
 |------|---------|
-| `~/.hermes/profiles/luke/scripts/v2/wire_articles.py` | RSS fetch + LLM write. Model: `deepseek-v4-flash` via `localAIServer` (passed in from `run_v2.sh`) |
+| `~/.hermes/profiles/luke/scripts/v2/content/wire_articles.py` | RSS fetch + LLM write. Model: `deepseek-v4-flash` via `localAIServer` (passed in from `run.sh`) |
 | `~/.hermes/profiles/luke/scripts/v2/render_wire_test.py` | Test renderer (ticker + modal). Copies fonts from `~/ai-news-deploy/fonts/` for self-containment |
 | `~/.hermes/profiles/luke/scripts/v2/test_wire_pipeline.sh` | Full test pipeline: wire_articles.py → render_wire_test.py |
 | `/tmp/v2/test-wire/` | Test output directory (no deploy) |

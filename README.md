@@ -10,17 +10,22 @@ Live at: [luxintenebris.news](https://luxintenebris.news)
 ```
 lux-in-tenebris-pipeline/
 ├── scripts/          ← Pipeline engine (bash orchestrator + Python helpers)
-│   ├── run_v2.sh               Main orchestrator (bash)
+│   ├── run.sh                  Main orchestrator (bash) — start here
 │   ├── cron_wrapper.sh         Cron fire-and-forget launcher
-│   ├── archive_issue.py        Archive previous edition
-│   ├── fetch_trending.py       GitHub/HuggingFace trending via curl fallback
-│   ├── fix_archive_issue_numbers.py
-│   ├── inject_podcast_pill.py  Inline audio player for podcast
-│   ├── inject_wire_ticker.py   Scrolling news ticker + modal
-│   ├── render.py               HTML renderer from edition.json
-│   ├── update_headlines_history.py  Cross-day dedup store
-│   ├── wire_articles.py        RSS → AI article writer (2-stage)
-│   └── youtube_scout.py        YouTube data fetcher
+│   ├── core/                   Runs every day, no exceptions
+│   │   ├── render.py               HTML renderer from edition.json
+│   │   ├── archive_issue.py        Archive previous edition
+│   │   └── update_headlines_history.py  Cross-day dedup store
+│   ├── content/                 Fetch/generate the day's content
+│   │   ├── wire_articles.py        RSS → AI article writer (2-stage)
+│   │   ├── youtube_scout.py        YouTube data fetcher
+│   │   ├── fetch_trending.py       GitHub/HuggingFace trending via curl fallback
+│   │   └── make_making_of.py       Builds the "making-of" replay page
+│   ├── inject/                  Post-process the rendered HTML
+│   │   ├── inject_podcast_pill.py  Inline audio player for podcast
+│   │   └── inject_wire_ticker.py   Scrolling news ticker + modal
+│   └── maintenance/              One-off / rescue tools, not called by run.sh
+│       └── fix_archive_issue_numbers.py
 ├── skills/           ← 17 SKILL.md files (LLM agent instructions)
 │   ├── orchestrator/            Meta: describes the whole pipeline
 │   ├── editor/
@@ -86,7 +91,7 @@ and starts numbering from there.
 
 ## How it works
 
-Cron triggers `cron_wrapper.sh` → `run_v2.sh`, a bash orchestrator that chains **LLM agents** (each one a `SKILL.md` invoked as `hermes chat -s <skill>`, for anything requiring judgment) and **plain scripts** (for anything mechanical), talking to each other only through JSON files on disk — no step calls another directly:
+Cron triggers `cron_wrapper.sh` → `run.sh`, a bash orchestrator that chains **LLM agents** (each one a `SKILL.md` invoked as `hermes chat -s <skill>`, for anything requiring judgment) and **plain scripts** (for anything mechanical), talking to each other only through JSON files on disk — no step calls another directly:
 
 ```
 Sync deploy + resolve issue # + archive predecessor  — pure code
@@ -108,7 +113,7 @@ Full per-agent detail — exact model, toolset, what it reads and writes — is 
 Every step that needs judgment (what's newsworthy, how to phrase it, what an illustration should depict) is an LLM agent. Every step that's mechanical (templating, file copying, dedup, archiving, git operations) is plain Python/bash with **no LLM in the loop**. This is deliberate: it keeps the unpredictable part small and contained, and makes the predictable part impossible to break via a bad model response — see `render.py`'s own docstring for the canonical statement of this.
 
 ### Sequential Scouts, Pinned Provider
-All LLM steps run against a single self-hosted inference server (`localAIServer`), pinned explicitly via `PIPELINE_PROVIDER` in `run_v2.sh` — never the Hermes profile default, which is whatever the operator happens to chat on.
+All LLM steps run against a single self-hosted inference server (`localAIServer`), pinned explicitly via `PIPELINE_PROVIDER` in `run.sh` — never the Hermes profile default, which is whatever the operator happens to chat on.
 
 Because that server is one machine, scouts run **one at a time**. Each scout is a full multi-turn agent session, and three concurrent sessions saturate the box: across 2026-07-26/27/28, every 3-up phase ran to its timeout ceiling and *zero* scouts completed. Serialised, each scout gets the machine to itself. Wall clock is free here — it's a fire-and-forget 06:30 cron — so the master budget is 4h. See [Scout Concurrency](docs/ARCHITETTURA.md#scout-concurrency--why-sequential).
 

@@ -39,7 +39,7 @@ or trim each line to 1 sentence.
 
 #### 4. No timeout on the `hermes chat -q` call
 
-The `run_v2.sh` step 7 call uses the default timeout (none). The podcast agent
+The `run.sh` step 7 call uses the default timeout (none). The podcast agent
 hung for 30+ minutes blocking the entire pipeline.
 
 **Fix in skill:** Added a time budget: "30 seconds total. If a TTS call takes
@@ -51,7 +51,7 @@ If the pipeline is stuck at Step 7 and the release hasn't deployed by 07:30:
 
 ```bash
 # 1. Kill the stuck pipeline
-ps aux | grep "run_v2.sh" | grep -v grep | awk '{print $2}' | xargs kill
+ps aux | grep "run.sh" | grep -v grep | awk '{print $2}' | xargs kill
 
 # 2. Check if podcast was actually generated
 ls -la /tmp/v2/podcasts/lead_$(date +%Y-%m-%d).ogg
@@ -64,7 +64,7 @@ git fetch origin --quiet 2>/dev/null || true
 git reset --hard origin/main --quiet 2>/dev/null || true
 
 # Step 11: archive
-python3 ~/.hermes/profiles/luke/scripts/v2/archive_issue.py ~/ai-news-deploy
+python3 ~/.hermes/profiles/luke/scripts/v2/core/archive_issue.py ~/ai-news-deploy
 
 # Step 12: copy files
 cp /tmp/v2/output/index.html ~/ai-news-deploy/index.html
@@ -75,7 +75,7 @@ cp /tmp/v2/podcasts/lead_$(date +%Y-%m-%d).ogg ~/ai-news-deploy/podcasts/ 2>/dev
 cp /tmp/v2/edition.json ~/ai-news-deploy/edition.json
 
 # Headline history
-python3 ~/.hermes/profiles/luke/scripts/v2/update_headlines_history.py \
+python3 ~/.hermes/profiles/luke/scripts/v2/core/update_headlines_history.py \
     /tmp/v2/edition.json ~/ai-news-deploy/headlines_history.json
 
 # Update issue

@@ -4,11 +4,11 @@
 
 Two components — the archive script and the template modification — work together to preserve every edition as a standalone snapshot.
 
-```\ndeploy flow (run_v2.sh):\n\nStep 9  → git fetch + git reset --hard origin/main (sync to clean committed state)\n          ↓\nStep 10 → archive_issue.py saves previous edition (AFTER reset, BEFORE overwrite)\n          ↓\nStep 11 → copy new HTML/images → git add -A → git commit → git push\n```\n\n**Critical ordering rule:** The archive step runs AFTER `git reset --hard origin/main` but BEFORE copying new files. If it ran before the reset, the regenerated `archive/index.html` listing would be reverted by the reset (see pitfall below). The archive step reads the **committed** (previous day's) `index.html`, not the new one.
+```\ndeploy flow (run.sh):\n\nStep 9  → git fetch + git reset --hard origin/main (sync to clean committed state)\n          ↓\nStep 10 → archive_issue.py saves previous edition (AFTER reset, BEFORE overwrite)\n          ↓\nStep 11 → copy new HTML/images → git add -A → git commit → git push\n```\n\n**Critical ordering rule:** The archive step runs AFTER `git reset --hard origin/main` but BEFORE copying new files. If it ran before the reset, the regenerated `archive/index.html` listing would be reverted by the reset (see pitfall below). The archive step reads the **committed** (previous day's) `index.html`, not the new one.
 
 ## archive_issue.py
 
-**Location:** `~/.hermes/profiles/luke/scripts/v2/archive_issue.py`
+**Location:** `~/.hermes/profiles/luke/scripts/v2/core/archive_issue.py`
 
 **Usage:**
 ```bash
@@ -89,14 +89,14 @@ Should show `href="/luxintenebris-ai-news/archive/"` (absolute). If it shows `hr
 
 ### Archive listing missing an edition
 
-**Root cause (most common):** The archive step ran BEFORE `git reset --hard origin/main` in `run_v2.sh`. The regenerated `archive/index.html` was then reverted by the reset. The archive directory was created (untracked, not affected by reset), and since `git add -A` picks up untracked files, only the directory was committed — the listing stayed stale.
+**Root cause (most common):** The archive step ran BEFORE `git reset --hard origin/main` in `run.sh`. The regenerated `archive/index.html` was then reverted by the reset. The archive directory was created (untracked, not affected by reset), and since `git add -A` picks up untracked files, only the directory was committed — the listing stayed stale.
 
 **Fix:** Move the archive call to AFTER `git reset --hard origin/main` but BEFORE `git add -A` in the deploy sequence. The regenerated listing then survives into the commit.
 
 **To recover a missing listing entry:** Re-run `archive_issue.py` on the deploy dir:
 ```bash
 cd ~/ai-news-deploy
-python3 ~/.hermes/profiles/luke/scripts/v2/archive_issue.py .
+python3 ~/.hermes/profiles/luke/scripts/v2/core/archive_issue.py .
 ```
 This regenerates `archive/index.html` from all directories on disk. Then `git add -A && git commit -m "fix: regenerate archive listing" && git push`.
 

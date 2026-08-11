@@ -2,7 +2,7 @@
 
 > Rewritten 2026-07-26 — the previous version of this doc described an
 > architecture where most steps inherited the Hermes profile default. That's
-> no longer true: verified against the live `run_v2.sh` and the current
+> no longer true: verified against the live `run.sh` and the current
 > `~/.hermes/profiles/luke/config.yaml`, **every** pipeline step now pins its
 > own model and provider explicitly. Nothing in the daily run falls back to
 > the profile default.
@@ -17,7 +17,7 @@ model:
 ```
 
 This is the fallback for ad-hoc/manual `hermes chat` commands run outside
-`run_v2.sh`. Every step the pipeline itself invokes passes an explicit
+`run.sh`. Every step the pipeline itself invokes passes an explicit
 `-m ... --provider localAIServer`, so changing this default has **no effect** on the
 daily run.
 
@@ -25,21 +25,21 @@ daily run.
 
 `localAIServer` is a custom provider pointing at a private, third-party-hosted
 LiteLLM server (URL and key deliberately not in this public repo — see
-`docs/SETUP.md`). Every `hermes chat` call in `run_v2.sh`, and the hardcoded
+`docs/SETUP.md`). Every `hermes chat` call in `run.sh`, and the hardcoded
 default in `wire_articles.py`, targets it directly:
 
 Every step passes the provider through the single `PIPELINE_PROVIDER`
-variable defined at the top of `run_v2.sh` (`PIPELINE_PROVIDER="localAIServer"`), so
+variable defined at the top of `run.sh` (`PIPELINE_PROVIDER="localAIServer"`), so
 there is exactly one place to look and one place to change:
 
 | Step | Model | Provider | Where |
 |------|-------|----------|-------|
-| All 7 `run_scout()` calls (x, research, official, opensource, tools, funding, hardware) | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run_v2.sh` |
-| YouTube scout | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 2 |
-| Italia scout | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 2 |
-| Editor | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 4 |
-| Image gen orchestrator | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 5 (the `image_generate` tool call itself still goes to xAI regardless — see §3) |
-| Podcast pill dialogue | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run_v2.sh`, step 7 (the actual TTS audio still goes to xAI — see §3) |
+| All 7 `run_scout()` calls (x, research, official, opensource, tools, funding, hardware) | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run.sh` |
+| YouTube scout | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run.sh`, step 2 |
+| Italia scout | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run.sh`, step 2 |
+| Editor | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run.sh`, step 4 |
+| Image gen orchestrator | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run.sh`, step 5 (the `image_generate` tool call itself still goes to xAI regardless — see §3) |
+| Podcast pill dialogue | `deepseek-v4-flash` | `$PIPELINE_PROVIDER` | `run.sh`, step 7 (the actual TTS audio still goes to xAI — see §3) |
 | Wire articles | `deepseek-v4-flash` | `localAIServer` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
 
 **Do not swap the provider.** These are not pinned as incidental drift
@@ -67,7 +67,7 @@ unaffected by any of the above:
 Both authenticate against the same xAI account, which is why image gen and
 podcast credit exhaustion look related — but they don't always fail on the
 same day (see `docs/ARCHITETTURA.md#independent-credit-checks-image-gen-vs-podcast`).
-Each has its own independent credit check in `run_v2.sh` as of 2026-07-26.
+Each has its own independent credit check in `run.sh` as of 2026-07-26.
 
 ## 4. Auxiliary Hermes models (`config.yaml`) — unrelated to Lux
 
@@ -83,10 +83,10 @@ features, not invoked by the Lux pipeline:
 
 ## How to Change a Step's Model
 
-1. **Identify the step** in `run_v2.sh` (look for the `hermes chat -q` block, or the `run_scout()` helper if it's one of the 8 parallel scouts).
+1. **Identify the step** in `run.sh` (look for the `hermes chat -q` block, or the `run_scout()` helper if it's one of the 8 parallel scouts).
 2. **Change its `-m <model> --provider <provider>` flags** directly — there's no default to fall back to, so this fully determines what that step uses.
 3. **Test** by running just that step standalone:
    ```bash
    hermes chat -q "..." -s <skill> -t <toolsets> -m <model> --provider <provider> -Q --yolo
    ```
-4. **Confirm with the user before editing `run_v2.sh`** — it's the live production orchestrator, symlinked directly into the cron path.
+4. **Confirm with the user before editing `run.sh`** — it's the live production orchestrator, symlinked directly into the cron path.
