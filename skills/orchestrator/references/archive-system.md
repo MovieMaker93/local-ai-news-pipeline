@@ -4,7 +4,17 @@
 
 Two components — the archive script and the template modification — work together to preserve every edition as a standalone snapshot.
 
-```\ndeploy flow (run.sh):\n\nStep 9  → git fetch + git reset --hard origin/main (sync to clean committed state)\n          ↓\nStep 10 → archive_issue.py saves previous edition (AFTER reset, BEFORE overwrite)\n          ↓\nStep 11 → copy new HTML/images → git add -A → git commit → git push\n```\n\n**Critical ordering rule:** The archive step runs AFTER `git reset --hard origin/main` but BEFORE copying new files. If it ran before the reset, the regenerated `archive/index.html` listing would be reverted by the reset (see pitfall below). The archive step reads the **committed** (previous day's) `index.html`, not the new one.
+```
+deploy flow (run.sh):
+
+Step 9  → git fetch + git reset --hard origin/main (sync to clean committed state)
+          ↓
+Step 10 → archive_issue.py saves previous edition (AFTER reset, BEFORE overwrite)
+          ↓
+Step 11 → copy new HTML/images → git add -A → git commit → git push
+```
+
+**Critical ordering rule:** The archive step runs AFTER `git reset --hard origin/main` but BEFORE copying new files. If it ran before the reset, the regenerated `archive/index.html` listing would be reverted by the reset (see pitfall below). The archive step reads the **committed** (previous day's) `index.html`, not the new one.
 
 ## archive_issue.py
 
@@ -34,22 +44,27 @@ Or when nothing to archive (first run, no index.html):
 ### Paths used
 
 ```python
-ARCHIVE_URL = "/luxintenebris-ai-news/archive/"  # absolute, works from any page
-HOME_URL = "/luxintenebris-ai-news/"              # back link from archive listing
+ARCHIVE_URL = "/archive/"  # absolute, works from any page
+HOME_URL = "/"              # back link from archive listing
 ```
 
-These are hardcoded for the current GitHub Pages deployment. If the repo is renamed or moved to a custom domain, update both constants.
+Absolute root-relative paths, since the live site is served from the custom
+domain root (`luxintenebris.news`), not a GitHub Pages project subpath.
+Updated 2026-07-24 when the site moved off `nttluke.github.io/luxintenebris-ai-news/`
+onto the custom domain — see [docs/ARCHITETTURA.md](../../../docs/ARCHITETTURA.md#issue-numbering--archiving)
+for that migration. If the deploy target ever changes again, update both constants.
 
 ## newspaper.html template
 
-**Location:** `~/.hermes/profiles/luke/skills/ai-news-24h/templates/newspaper.html`
+**Location:** `template/newspaper.html` in this repo (drives the live
+`index.html` via `render.py`). An old, unrelated copy once existed at
+`~/.hermes/profiles/luke/skills/ai-news-24h/templates/newspaper.html` — that
+path is **not read by anything**; don't confuse the two.
 
-**Changed line (17 originally):**
+**Relevant line (the masthead's issue number + archive link):**
 ```html
-<span class="right">No. {{ISSUE_NO}} <a href="/luxintenebris-ai-news/archive/" class="ar" title="Browse past issues">◆ Archive</a></span>
+<span class="right">No. {{ISSUE_NO}} <a href="/archive/" class="ar" title="Browse past issues">◆ Archive</a></span>
 ```
-
-No other line in the template was modified. No changes to `style.css`, `render.py`, or any partial template.
 
 ## Archive listing page
 
@@ -64,11 +79,12 @@ The "← Current Issue" link in the archive page uses `HOME_URL` (absolute) so i
 
 | Page | URL | Notes |
 |------|-----|-------|
-| Current issue | `/luxintenebris-ai-news/` | Unchanged |
-| Archive listing | `/luxintenebris-ai-news/archive/` | Generated static HTML |
-| Archived issue | `/luxintenebris-ai-news/archive/2026-07-02/` | Self-contained |
+| Current issue | `https://luxintenebris.news/` | Custom domain |
+| Archive listing | `https://luxintenebris.news/archive/` | Generated static HTML |
+| Archived issue | `https://luxintenebris.news/archive/2026-07-02/` | Self-contained |
 
-All existing links/bookmarks to the home page continue to work — no URL changes.
+The old `nttluke.github.io/luxintenebris-ai-news/` path 301-redirects to the
+custom domain — legacy links/bookmarks still work.
 
 ## Troubleshooting
 
@@ -85,7 +101,7 @@ Check the archived HTML:
 ```bash
 grep -o 'href="[^"]*archive[^"]*"' ~/ai-news-deploy/archive/2026-07-02/index.html
 ```
-Should show `href="/luxintenebris-ai-news/archive/"` (absolute). If it shows `href="archive/"` (relative), the rewrite failed — re-run the archive script.
+Should show `href="/archive/"` (absolute). If it shows `href="archive/"` (relative), the rewrite failed — re-run the archive script.
 
 ### Archive listing missing an edition
 

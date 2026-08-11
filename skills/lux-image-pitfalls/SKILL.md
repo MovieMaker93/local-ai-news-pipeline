@@ -34,7 +34,7 @@ grep -o '"image": "[^"]*"' /tmp/v2/edition.json
 After re-rendering, `index.html` is regenerated from scratch. The wire ticker is lost. Re-inject:
 
 ```bash
-python3 scripts/inject_wire_ticker.py /tmp/v2/output/index.html /tmp/v2/scouts/scout_wire.json --output /tmp/v2/output/index.html
+python3 scripts/inject/inject_wire_ticker.py /tmp/v2/output/index.html /tmp/v2/scouts/scout_wire.json --output /tmp/v2/output/index.html
 ```
 
 ## 🔴 P4: Re-render also wipes podcast pill

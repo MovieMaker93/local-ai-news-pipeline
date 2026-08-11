@@ -44,17 +44,8 @@ For each grounded item:
 
 ## Wire Articles JSON Shape
 
-```json
-{
-  "headline": "OpenAI Unveils o5 Reasoning Model",
-  "body": "Full article text here...\n\n*Editorial note in italics*\n*— Written by AI (deepseek/deepseek-v4-flash)*",
-  "source": "The Verge",
-  "source_url": "https://www.theverge.com/...",
-  "original_title": "Original RSS headline",
-  "published": "Mon, 30 Jun 2025 14:00:00 GMT",
-  "generated_at": "2025-06-30T14:30:00+00:00"
-}
-```
+See [`wire-articles/SKILL.md`](../../wire-articles/SKILL.md#wire-articles-json-shape)
+for the shape — not duplicated here.
 
 **AI disclosure requirement:** the `body` field MUST end with `\n*— Written by AI (<model_name>)*` where `<model_name>` matches the model used to generate it. This is enforced in the build_prompt() function, which reads `WIRE_MODEL` env var (default: `deepseek/deepseek-v4-flash`).
 
@@ -80,30 +71,12 @@ if m:
 
 **Signs it broke:** the script fetches 50+ items but "0 items grounded with source text".
 
-**Fix:** bypass Google News entirely by adding direct publisher RSS feeds to the `FEEDS` array:
+**Fix:** bypass Google News entirely by adding direct publisher RSS feeds.
+The list lives in `skills/_shared/sources.json`, key `wire-articles.feeds`
+(not hardcoded in `wire_articles.py` anymore — see that file's own note on
+where `FEEDS` comes from).
 
-```python
-FEEDS = [
-    'https://www.marktechpost.com/feed/',
-    'https://techcrunch.com/feed/',
-    'https://www.wired.com/feed/rss',
-    'https://arstechnica.com/feed/',
-    # Google News as fallback only
-    'https://news.google.com/rss/search?...',
-]
-```
-
-## Test Renderer Pattern
-
-`render_wire_test.py` follows the same stdout-JSON convention as the production `render.py`:
-
-```python
-print(json.dumps({'status': 'ok', 'output': '/tmp/v2/test-wire/index.html'}))
-```
-
-This means it can be called from bash and the orchestrator can check `$?` and parse the JSON status line.
-
-### Scrolling Ticker CSS Architecture
+## Scrolling Ticker CSS Architecture
 
 The ticker uses the **exact production Lux in Tenebris CSS variables** (`--ink`, `--type`, `--ember`, `--lux`, `--rule`, `--rule-strong`, `--muted`, `--serif`, `--sans`) — never custom color values. Fonts are Newsreader (serif) and Inter (sans), copied from `~/ai-news-deploy/fonts/` for self-containment.
 
@@ -238,23 +211,18 @@ lead-zone.
 | File | Purpose |
 |------|---------|
 | `~/.hermes/profiles/luke/scripts/v2/content/wire_articles.py` | RSS fetch + LLM write. Model: `deepseek-v4-flash` via `localAIServer` (passed in from `run.sh`) |
-| `~/.hermes/profiles/luke/scripts/v2/render_wire_test.py` | Test renderer (ticker + modal). Copies fonts from `~/ai-news-deploy/fonts/` for self-containment |
-| `~/.hermes/profiles/luke/scripts/v2/test_wire_pipeline.sh` | Full test pipeline: wire_articles.py → render_wire_test.py |
-| `/tmp/v2/test-wire/` | Test output directory (no deploy) |
+| `~/.hermes/profiles/luke/scripts/v2/inject/inject_wire_ticker.py` | Post-render injection of the ticker + modal into `index.html` |
 
 ## Pitfalls
 
 ### Google News URL resolution
 The `resolve_url()` function in `wire_articles.py` tries two strategies... (see above)
 
-### Fonts must exist for test page
-`render_wire_test.py` copies fonts from `~/ai-news-deploy/fonts/` to the test output directory. If the production deploy dir doesn't have fonts (fresh clone), the test page renders with system fallbacks (Georgia + system sans-serif) — still functional but slightly different look.
-
 ### AI model disclosure is mandatory
-The `build_prompt()` function appends `*— Written by AI (<model_name>)*` to every article. The model name comes from the `WIRE_MODEL` env var or the hardcoded default `deepseek/deepseek-v4-flash`. When running outside the test pipeline, ensure the env var is set or the default matches the intended model.
+The `build_prompt()` function appends `*— Written by AI (<model_name>)*` to every article. The model name comes from the `WIRE_MODEL` env var or the hardcoded default `deepseek/deepseek-v4-flash`. Ensure the env var is set or the default matches the intended model.
 
-### Test renderer adds no new styles to production
-The ticker CSS uses the **exact same CSS custom properties** as the production site. The only new CSS is the ticker layout classes (`.wire-ticker`, `.wi-item`, etc.) and the modal overlay — none of which conflict with production class names.
+### The ticker CSS never conflicts with production
+It uses the **exact same CSS custom properties** as the production site. The only new CSS is the ticker layout classes (`.wire-ticker`, `.wi-item`, etc.) and the modal overlay — none of which conflict with production class names.
 
 ### JS regex inside Python f-strings causes SyntaxWarning
 When JS regex patterns containing `\(`, `\)`, `\*`, or `\n` are embedded in Python f-strings, Python 3.12+ issues `SyntaxWarning: invalid escape sequence`. The f-string interprets `\\\(` etc. as invalid Python escapes.

@@ -44,3 +44,31 @@ JS parses it with:
 var idx = b.indexOf('*— Written by AI (');
 var model = b.substring(idx + aiSig.length).split(')')[0];
 ```
+
+**Offset must be exactly `+ aiSig.length`** — don't add extra characters for
+the space/paren the search string already includes. A past bug added `+3`
+on top of a shorter search string (`'*— Written by AI'` without the
+trailing `(`), which truncated the first character of the model name:
+
+```javascript
+// Correct:
+var aiS='*— Written by AI (';
+var i=b.indexOf(aiS);
+var mdl=b.substring(i+aiS.length).split(')')[0];
+
+// Wrong (truncates first letter of the model name):
+var aiS='*— Written by AI';
+var mdl=b.substring(i+aiS.length+3).split(')')[0];
+```
+
+## Operational pitfalls
+
+- **Deploy dir may have stale uncommitted changes.** `~/ai-news-deploy/index.html`
+  on disk may differ from `git HEAD:index.html` (overwritten by external
+  tools/scripts). Before injecting, verify with `git show HEAD:index.html`
+  or `git checkout HEAD -- index.html`. After injection, `git status`
+  showing `M index.html` is the expected uncommitted change.
+- **Duplicate injection from re-running.** The injector looks for
+  `</header>` to insert the ticker. If the page already has a ticker from a
+  previous injection, re-running adds a SECOND ticker after the same
+  `</header>`. Always restore from a clean copy before re-injecting.

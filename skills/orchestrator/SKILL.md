@@ -172,3 +172,17 @@ the curl fallbacks described in its own skill before emitting `[]`.
    archive the predecessor *before* this run overwrites it.
 
 5. **Trending fallback (fetch_trending.py)** — The opensource scout uses `web_extract`, which can fail with `Connection error` or simply return nothing. The pipeline auto-fallback calls `fetch_trending.py` via curl when trending data is missing (<3 items). To manually re-run: `python3 ~/.hermes/profiles/luke/scripts/v2/content/fetch_trending.py --output-json /tmp/v2/scouts/scout_opensource.json`
+
+## Reference files
+
+Deeper technical detail for specific pieces lives in `references/`, not
+inline here:
+
+| File | Covers |
+|------|--------|
+| `references/sources.md` | Why each scout's sources were picked, ideas for expansion (the actual lists live in `skills/_shared/sources.json`) |
+| `references/model-configuration.md` | Full model/provider topology — which step uses what, and why it's pinned |
+| `references/archive-system.md` | How `archive_issue.py` + the template work together, troubleshooting |
+| `references/link-validation.md` | Post-deploy dead-link checking procedure |
+| `references/youtube-scout.md` | YouTube scout's two-stage (Python + LLM) architecture in detail |
+| `references/wire-articles-scout.md` | Wire articles' RSS→LLM pipeline and ticker CSS architecture in detail |

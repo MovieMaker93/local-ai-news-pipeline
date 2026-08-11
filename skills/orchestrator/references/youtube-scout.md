@@ -61,25 +61,14 @@ python3 ~/.hermes/profiles/luke/scripts/v2/content/youtube_scout.py --hours 48 -
 - `youtube-transcript-api` (pip) — for transcripts
 - `requests` (stdlib) — for RSS feeds
 
-### Channel list (hardcoded IDs)
+### Channel list
 
-| Channel | ID | Frequency |
-|---------|-----|:---------:|
-| The AI Daily Brief | UCKelCK4ZaO6HeEI1KQjqzWA | Daily |
-| Bloomberg Technology | UCrM7B7SL_g1edFOnmj-SDKg | Multi/day |
-| Theo - t3.gg | UCbRP3c757lWg9M-U7TyEkXA | Nearly daily |
-| Matt Wolfe | UChpleBmo18P08aKCIgti38g | 3-4/week |
-| Two Minute Papers | UCbfYPyITQ-7l4upoX8nvctg | 2/week |
-| Sabine Hossenfelder | UC1yNl2E66ZzKApQdRuTQ4tw | 2-3/week |
-| Fireship | UCsBjURrPoezykLs9EqgamOA | 1-2/week |
-| AI Explained | UCNJ1Ymd5yFuUPtn21xtRbbw | 1/week |
-| AI Tool Report | UCmeU2DYiVy80wMBGZzEWnbw | ~5/week |
-| Beyond AI News | UC5l7RouTQ60oUjLjt1Nh-UQ | ~6/week |
-
-**Adding a channel:**
-1. Find the channel ID via `yt-dlp --print channel_id "https://www.youtube.com/@HANDLE"` or by scraping the channel search results page
-2. Add `{"id": "UC...", "name": "Display Name"}` to the `CHANNELS` list in `youtube_scout.py`
-3. Update the SKILL.md channel list
+Single source of truth: [`skills/_shared/sources.json`](../../_shared/sources.json),
+key `scout-youtube.channels` (10 channels, with IDs). `youtube_scout.py`
+loads it directly. For selection methodology, frequency data, and the
+step-by-step for adding a channel, see
+[`scout-youtube/references/channels.md`](../../scout-youtube/references/channels.md)
+— don't maintain a third copy of this list here.
 
 ### Common pitfalls
 
@@ -91,7 +80,7 @@ python3 ~/.hermes/profiles/luke/scripts/v2/content/youtube_scout.py --hours 48 -
 ## Stage 2: scout-youtube (LLM)
 
 **Skill:** `scout-youtube`
-**Model:** `deepseek/deepseek-v4-flash` via OpenRouter (different from other scouts)
+**Model:** `$PIPELINE_MODEL` via `$PIPELINE_PROVIDER` — same as every other scout, no exception (see model-configuration.md).
 **Tools:** Only `file` — no x_search, web_search, or terminal.
 
 ### What to extract
@@ -146,7 +135,7 @@ print(f'YouTube in quick_hits: {len(yt_qh)}')
 
 Test Python stage:
 ```bash
-cd ~/.hermes/profiles/luke/scripts/v2
+cd ~/.hermes/profiles/luke/scripts/v2/content
 python3 youtube_scout.py --max 10
 ```
 

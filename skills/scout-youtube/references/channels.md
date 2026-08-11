@@ -12,6 +12,12 @@
 
 ### Current channels & 7-day frequency (verified 04 July 2026)
 
+The authoritative list (with channel IDs) is
+[`skills/_shared/sources.json`](../../_shared/sources.json), key
+`scout-youtube.channels`. The frequency numbers below are from the original
+selection pass and won't auto-update if a channel's posting habits change —
+re-verify with the RSS check in step 3 below before trusting them.
+
 | Channel | Videos/7d | Expected daily |
 |---------|:---------:|:--------------:|
 | Bloomberg Technology | 15 | 1-3 |
@@ -40,11 +46,9 @@
    ```
    Should return Atom XML with recent video entries.
 4. Check 7-day frequency before adding (should have ≥2 videos in last 7 days).
-5. Add to `CHANNELS` in `youtube_scout.py`:
-   ```python
-   {"id": "UC...", "name": "Channel Display Name"},
-   ```
-6. Update skill docs in scout-youtube/SKILL.md and orchestrator/references/youtube-scout.md
+5. Add `{"id": "UC...", "name": "Channel Display Name"}` to the `channels`
+   array under `scout-youtube` in `skills/_shared/sources.json` — that's the
+   only place it needs to change; `youtube_scout.py` reads it from there.
 
 ## Known issues
 
