@@ -90,16 +90,17 @@ asked to change an unrelated timeout "helpfully" rewrote every provider flag in
 `run.sh` to match these docs. Keep snippets here consistent with the script.
 
 ## Channels monitored
-- The AI Daily Brief (daily AI news)
-- Bloomberg Technology (daily tech news)
-- Theo - t3.gg (AI coding, nearly daily)
-- Matt Wolfe (AI tools, 3-4/week)
-- Two Minute Papers (research highlights, 2/week)
-- Sabine Hossenfelder (science/AI, 2-3/week)
-- Fireship (AI dev, 1-2/week)
-- AI Explained (deep analysis, 1/week)
-- AI Tool Report (AI news, 5/week)
-- Beyond AI News (AI news, daily)
+The authoritative list (with channel IDs) is `skills/_shared/sources.json`,
+key `scout-youtube.channels` — that's what `youtube_scout.py` actually reads.
+This skill itself never needs to read it (it only reads the raw JSON the
+Python step already produced), but if you're deciding whether a channel is
+worth adding, this doc's job (not this skill's) is to know what's monitored:
+The AI Daily Brief (daily AI news), Bloomberg Technology (daily tech news),
+Theo - t3.gg (AI coding, nearly daily), Matt Wolfe (AI tools, 3-4/week), Two
+Minute Papers (research highlights, 2/week), Sabine Hossenfelder
+(science/AI, 2-3/week), Fireship (AI dev, 1-2/week), AI Explained (deep
+analysis, 1/week), AI Tool Report (AI news, 5/week), Beyond AI News (AI
+news, daily).
 
 ## Pitfalls
 - The script runs BEFORE the LLM call in the pipeline. Never skip the Python step.

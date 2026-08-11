@@ -5,16 +5,14 @@ description: "V2 scout: Official AI lab blogs. Returns JSON array."
 
 # Scout V2 — Official Blogs
 
-## Sources (fetch and scan for in-window posts)
-- https://www.anthropic.com/news
-- https://openai.com/blog
-- https://deepmind.google/discover/blog/
-- https://ai.meta.com/blog/
-- https://mistral.ai/news/
-- https://x.ai/news
+## Sources
+Read `skills/_shared/sources.json` with `read_file` and take the `blogs`
+array under the `scout-official` key — that's the current list (single
+source of truth; don't hardcode it here, it drifts out of sync with the
+file otherwise).
 
 ## Method
-web_fetch each URL above. Scan for posts dated within [yesterday, today].
+web_fetch each URL from that list. Scan for posts dated within [yesterday, today].
 
 ## Output contract
 Return ONLY a JSON array (no prose, no fences). Each element:

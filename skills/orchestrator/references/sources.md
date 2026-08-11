@@ -1,14 +1,16 @@
 # Lux in Tenebris — Source Inventory
 
-Tutti gli scout V2 con le loro fonti attuali. Aggiungi/modifica qui quando espandi le fonti.
+The **authoritative list** of handles/URLs/feeds/channels lives in
+[`skills/_shared/sources.json`](../../_shared/sources.json) — both the
+Python scripts and the scout `SKILL.md` files read from it, so it only needs
+editing in one place. This doc is the companion: *why* each source was
+picked, and ideas for what to add next. If you're expanding a source list,
+edit the JSON; come back here only to also note the reasoning/idea.
 
 ---
 
 ## Scout X (`scout-x`)
-**Cerca su X/Twitter** con query predefinite su un set di handle fissi.
-
-**Handle attuali:**
-`OpenAI`, `AnthropicAI`, `GoogleDeepMind`, `xai`, `NousResearch`, `sama`, `karpathy`, `huggingface`, `DeepLearningAI`, `ylecun`, `simonw`, `swyx`, `_philschmid`, `omarsar0`, `_akhaliq`, `lmsysorg`
+**Cerca su X/Twitter** con query predefinite su un set di handle fissi (`sources.json` → `scout-x.handles`, 16 attuali).
 
 **Espansioni possibili:**
 - Aziende: `@Cohere`, `@Replit`, `@StabilityAI`, `@Midjourney`, `@Cursor_ai`, `@GitHubCopilot`
@@ -19,17 +21,7 @@ Tutti gli scout V2 con le loro fonti attuali. Aggiungi/modifica qui quando espan
 ---
 
 ## Scout Official Blogs (`scout-official`)
-**Scrape direttamente** i blog ufficiali dei lab AI. Solo annunci (high signal).
-
-**URL attuali:**
-```
-https://www.anthropic.com/news
-https://openai.com/blog
-https://deepmind.google/discover/blog/
-https://ai.meta.com/blog/
-https://mistral.ai/news/
-https://x.ai/news
-```
+**Scrape direttamente** i blog ufficiali dei lab AI. Solo annunci (high signal). (`sources.json` → `scout-official.blogs`, 6 attuali.)
 
 **Espansioni possibili:**
 ```
@@ -49,48 +41,47 @@ https://blog.google/technology/ai/
 ## Scout Research (`scout-research`)
 **Cerca paper** su arXiv e HuggingFace daily papers con query predefinite.
 
-**Metodo:** `web_search` con query su arXiv + HF daily papers.
+**Metodo:** `web_search` con query su arXiv + HF daily papers. Nessuna lista di fonti fisse — query strategy, non è nel JSON.
 
 ---
 
 ## Scout Open Source (`scout-opensource`)
 **Cerca modelli open-weight** su GitHub Trending + HuggingFace Trending.
 
-**Metodo:** `web_search` + `x_search`.
+**Metodo:** `web_search` + `x_search`. Nessuna lista di fonti fisse — query strategy, non è nel JSON. (Gli endpoint di trending usati dal fallback `fetch_trending.py` sono invece hardcoded lì: sono gli URL canonici delle due piattaforme, non una lista editoriale da mantenere.)
 
 ---
 
 ## Scout Tools (`scout-tools`)
 **Cerca tool e prodotti AI** — Product Hunt, Hacker News "Show HN", web search.
 
-**Metodo:** `web_fetch` di producthunt.com e news.ycombinator.com + `web_search` site-scoped.
+**Metodo:** `web_fetch` di producthunt.com e news.ycombinator.com + `web_search` site-scoped. Query strategy, non è nel JSON.
 
 ---
 
 ## Scout Funding (`scout-funding`)
 **Cerca round di finanziamento** — TechCrunch, Crunchbase, web search.
 
-**Metodo:** `web_search` con query su funding rounds, M&A, IPO.
+**Metodo:** `web_search` con query su funding rounds, M&A, IPO. Query strategy, non è nel JSON.
 
 ---
 
 ## Scout Hardware (`scout-hardware`)
 **Cerca chip, robot, datacenter** — Tom's Hardware, NVIDIA blog, web search.
 
-**Metodo:** `web_search` + `x_search`.
+**Metodo:** `web_search` + `x_search`. Query strategy, non è nel JSON.
+
+---
+
+## Scout Italia (`scout-italia`)
+**Feed RSS + web search** per startup/finanziamenti/community AI italiane. (`sources.json` → `scout-italia.feeds`, 2 attuali: AI4Business, La Tech Made in Italy.)
+
+Il resto della raccolta (web/x_search per startup specifiche, finanziamenti, spin-off) è query strategy, non è nel JSON.
 
 ---
 
 ## Wire Articles (`wire-articles`)
-**Feed RSS diretti** — deterministici, senza LLM per lo stage 1.
-
-**Feed attuali:**
-```
-Ars Technica
-TechCrunch
-Wired
-The Verge
-```
+**Feed RSS diretti** — deterministici, senza LLM per lo stage 1. (`sources.json` → `wire-articles.feeds`, 4 attuali: Ars Technica, TechCrunch, Wired, The Verge.)
 
 **Espansioni possibili:**
 ```
@@ -106,21 +97,7 @@ Axios
 ---
 
 ## YouTube Scout (`scout-youtube`)
-**Ibrido:** Python script (`youtube_scout.py`) fetcha video via RSS + LLM (DeepSeek V4 Flash) scrive articoli.
-
-**Canali attuali (10 hardcoded):**
-```
-The AI Daily Brief    → UCKelCK4ZaO6HeEI1KQjqzWA
-Bloomberg Technology  → UCrM7B7SL_g1edFOnmj-SDKg
-Theo - t3.gg         → UCbRP3c757lWg9M-U7TyEkXA
-Matt Wolfe           → UChpleBmo18P08aKCIgti38g
-Two Minute Papers    → UCbfYPyITQ-7l4upoX8nvctg
-Sabine Hossenfelder  → UC1yNl2E66ZzKApQdRuTQ4tw
-Fireship             → UCsBjURrPoezykLs9EqgamOA
-AI Explained         → UCNJ1Ymd5yFuUPtn21xtRbbw
-AI Tool Report       → UCmeU2DYiVy80wMBGZzEWnbw
-Beyond AI News       → UC5l7RouTQ60oUjLjt1Nh-UQ
-```
+**Ibrido:** Python script (`youtube_scout.py`) fetcha video via RSS + LLM scrive articoli. (`sources.json` → `scout-youtube.channels`, 10 attuali con ID canale.)
 
 **Espansioni possibili:**
 ```
@@ -129,18 +106,17 @@ David Shapiro AI (posting infrequente, valutare)
 AI Revolution / AI News (daily)
 ```
 
-**Modello dedicato:** `deepseek/deepseek-v4-flash` su OpenRouter (non il default del profilo).
-
 ---
 
 ## Riassunto — Tipi di fonte
 
-| Tipo | Esempi | Hardcoded? | Aggiornamento |
+| Tipo | Esempi | In sources.json? | Aggiornamento |
 |------|--------|:----------:|:-------------:|
-| Handle X | 16 handle fissi | Sì | Modifica SKILL.md scout-x |
-| Blog URL | 6 URL fissi | Sì | Modifica SKILL.md scout-official |
-| Feed RSS | 4 feed | Sì (in wire_articles.py) | Modifica wire_articles.py |
-| Query web | Template query | Sì (nel prompt scout) | Modifica run.sh prompt |
-| Risultati concreti | Paper, post, funding | **No** — trovati al volo dal LLM | Automatico |
-
-Per espandere le fonti, **modifica il file `.md` della skill scout corrispondente**, non `run.sh`.
+| Handle X | 16 handle fissi | Sì | `sources.json` → `scout-x.handles` |
+| Blog URL | 6 URL fissi | Sì | `sources.json` → `scout-official.blogs` |
+| Feed RSS (Italia) | 2 feed | Sì | `sources.json` → `scout-italia.feeds` |
+| Feed RSS (wire) | 4 feed | Sì | `sources.json` → `wire-articles.feeds` |
+| Canali YouTube | 10 canali | Sì | `sources.json` → `scout-youtube.channels` |
+| Query web/x_search | Template query | No — nel prompt della skill | Modifica il `SKILL.md` dello scout |
+| Endpoint trending | GitHub/HF trending | No — canonici, non editoriali | `fetch_trending.py` |
+| Risultati concreti | Paper, post, funding | No — trovati al volo dal LLM | Automatico |

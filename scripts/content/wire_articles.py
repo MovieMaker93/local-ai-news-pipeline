@@ -36,6 +36,7 @@ import html
 import base64
 import argparse
 import subprocess
+from pathlib import Path
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -45,19 +46,13 @@ import xml.etree.ElementTree as ET
 # CONFIG — tune these, nothing below should need editing for normal use.
 # ----------------------------------------------------------------------------
 
-# One free, AI-prefiltered feed "for now" (Google News search feed). Add direct
-# publisher feeds here too; the resolver handles both Google links and clean ones.
-FEEDS = [
-    'https://feeds.arstechnica.com/arstechnica/index',
-    'https://techcrunch.com/feed/',
-    'https://www.wired.com/feed/rss',
-    'https://www.theverge.com/rss/index.xml',
-    # Google News as fallback (often fails URL resolution)
-    # 'https://news.google.com/rss/search?q=('
-    # '%22artificial%20intelligence%22%20OR%20%22AI%20model%22%20OR%20LLM%20OR%20'
-    # '%22machine%20learning%22%20OR%20OpenAI%20OR%20Anthropic%20OR%20DeepMind)'
-    # '%20when%3A1d&hl=en-US&gl=US&ceid=US:en',
-]
+# Feed list — single source of truth is skills/_shared/sources.json, shared
+# with wire-articles' SKILL.md. Edit there, not here (see that file's
+# _readme key). The resolver below handles both Google-style links and
+# clean publisher URLs, in case a Google News feed is ever added back.
+SOURCES_FILE = Path(__file__).resolve().parents[2] / "skills" / "_shared" / "sources.json"
+with open(SOURCES_FILE) as _f:
+    FEEDS = json.load(_f)["wire-articles"]["feeds"]
 
 # Deterministic AI relevance filter (Stage 1). An item passes if its title+summary
 # contains at least one ALLOW term AND is not dominated by a DENY term.

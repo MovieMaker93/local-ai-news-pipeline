@@ -19,19 +19,11 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 
 
-# ── Channel list (hardcoded channel IDs, resolved once) ─────
-CHANNELS = [
-    {"id": "UCKelCK4ZaO6HeEI1KQjqzWA", "name": "The AI Daily Brief"},
-    {"id": "UCrM7B7SL_g1edFOnmj-SDKg", "name": "Bloomberg Technology"},
-    {"id": "UCbRP3c757lWg9M-U7TyEkXA", "name": "Theo - t3.gg"},
-    {"id": "UChpleBmo18P08aKCIgti38g", "name": "Matt Wolfe"},
-    {"id": "UCbfYPyITQ-7l4upoX8nvctg", "name": "Two Minute Papers"},
-    {"id": "UC1yNl2E66ZzKApQdRuTQ4tw", "name": "Sabine Hossenfelder"},
-    {"id": "UCsBjURrPoezykLs9EqgamOA", "name": "Fireship"},
-    {"id": "UCNJ1Ymd5yFuUPtn21xtRbbw", "name": "AI Explained"},
-    {"id": "UCmeU2DYiVy80wMBGZzEWnbw", "name": "AI Tool Report"},
-    {"id": "UC5l7RouTQ60oUjLjt1Nh-UQ", "name": "Beyond AI News"},
-]
+# ── Channel list — single source of truth is skills/_shared/sources.json,
+# shared with scout-youtube's SKILL.md. Edit there, not here.
+SOURCES_FILE = Path(__file__).resolve().parents[2] / "skills" / "_shared" / "sources.json"
+with open(SOURCES_FILE) as _f:
+    CHANNELS = json.load(_f)["scout-youtube"]["channels"]
 
 OUTPUT_DIR = Path("/tmp/v2/scouts")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
