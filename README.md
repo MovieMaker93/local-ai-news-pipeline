@@ -145,3 +145,7 @@ The repo is the single source of truth. Hermes accesses code via symlinks:
 Edits committed to this repo are live immediately through the symlink — no restart, no separate publish step. `git commit`/`push` here is for history and backup, not for activation.
 
 See [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) for the full pipeline map, the agent responsibility table, and known limitations, and [docs/SETUP.md](docs/SETUP.md) for installation instructions.
+
+## Contributing
+
+Opening a PR? See [CONTRIBUTING.md](CONTRIBUTING.md) — what's safe to change, what needs care, and how to use an AI assistant to prepare a change that's actually verifiable without access to the private backend this pipeline runs on.
