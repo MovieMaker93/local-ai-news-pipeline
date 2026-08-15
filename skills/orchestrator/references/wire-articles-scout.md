@@ -72,9 +72,9 @@ if m:
 **Signs it broke:** the script fetches 50+ items but "0 items grounded with source text".
 
 **Fix:** bypass Google News entirely by adding direct publisher RSS feeds.
-The list lives in `skills/_shared/sources.json`, key `wire-articles.feeds`
-(not hardcoded in `wire_articles.py` anymore — see that file's own note on
-where `FEEDS` comes from).
+The list lives in `skills/_shared/sources.md`, under the `## Wire Articles
+(\`wire-articles\`)` section (not hardcoded in `wire_articles.py` anymore —
+see that file's own note on where `FEEDS` comes from).
 
 ## Scrolling Ticker CSS Architecture
 

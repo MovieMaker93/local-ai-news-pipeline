@@ -19,11 +19,18 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 
 
-# ── Channel list — single source of truth is skills/_shared/sources.json,
-# shared with scout-youtube's SKILL.md. Edit there, not here.
-SOURCES_FILE = Path(__file__).resolve().parents[2] / "skills" / "_shared" / "sources.json"
-with open(SOURCES_FILE) as _f:
-    CHANNELS = json.load(_f)["scout-youtube"]["channels"]
+# ── Channel list — single source of truth is skills/_shared/sources.md,
+# shared with scout-youtube's SKILL.md. Edit the JSON block under the
+# "sources:scout-youtube:channels" anchor there, not here.
+SOURCES_FILE = Path(__file__).resolve().parents[2] / "skills" / "_shared" / "sources.md"
+_SOURCES_TEXT = SOURCES_FILE.read_text()
+_m = re.search(
+    r'<!-- sources:scout-youtube:channels -->\s*```json\s*(.*?)```',
+    _SOURCES_TEXT, re.S,
+)
+if not _m:
+    raise RuntimeError(f"Could not find scout-youtube channels block in {SOURCES_FILE}")
+CHANNELS = json.loads(_m.group(1))
 
 OUTPUT_DIR = Path("/tmp/v2/scouts")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

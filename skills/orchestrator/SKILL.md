@@ -180,7 +180,7 @@ inline here:
 
 | File | Covers |
 |------|--------|
-| `references/sources.md` | Why each scout's sources were picked, ideas for expansion (the actual lists live in `skills/_shared/sources.json`) |
+| `../_shared/sources.md` | Every scout's fixed source list (handles, blogs, feeds, channels) *and* why each was picked / ideas for expansion — single file, not split across a data file and a doc anymore |
 | `references/model-configuration.md` | Full model/provider topology — which step uses what, and why it's pinned |
 | `references/archive-system.md` | How `archive_issue.py` + the template work together, troubleshooting |
 | `references/link-validation.md` | Post-deploy dead-link checking procedure |

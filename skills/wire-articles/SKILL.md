@@ -65,7 +65,7 @@ This injects the scrolling banner between masthead and lead story — no other c
 ## Pitfalls
 
 ### 1. Google News RSS resolution is fragile
-If Google changes its URL token format, `resolve_url()` in `wire_articles.py` may fail. The script falls back to HTTP redirect but many CDNs block headless requests. **Fix:** add direct publisher RSS feeds instead of Google News, in `skills/_shared/sources.json` under `wire-articles.feeds` (that's what `wire_articles.py`'s `FEEDS` now loads — not hardcoded in the script anymore).
+If Google changes its URL token format, `resolve_url()` in `wire_articles.py` may fail. The script falls back to HTTP redirect but many CDNs block headless requests. **Fix:** add direct publisher RSS feeds instead of Google News, in `skills/_shared/sources.md` under the `## Wire Articles (\`wire-articles\`)` section's `json` block (that's what `wire_articles.py`'s `FEEDS` now loads — not hardcoded in the script anymore).
 
 ### 2. No trafilatura available (PEP 668)
 The system is PEP 668-locked: `pip install`, `uv pip install --system`, and `python3 -m venv` all fail. Without `trafilatura`, the crude HTML stripper produces <200 chars for most pages. **Fix:** use direct publisher RSS feeds that include full article text, so the crude extractor has enough content to work with.

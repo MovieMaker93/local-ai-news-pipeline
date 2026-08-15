@@ -63,9 +63,9 @@ python3 ~/.hermes/profiles/luke/scripts/v2/content/youtube_scout.py --hours 48 -
 
 ### Channel list
 
-Single source of truth: [`skills/_shared/sources.json`](../../_shared/sources.json),
-key `scout-youtube.channels` (10 channels, with IDs). `youtube_scout.py`
-loads it directly. For selection methodology, frequency data, and the
+Single source of truth: [`skills/_shared/sources.md`](../../_shared/sources.md),
+under the `## YouTube Scout (\`scout-youtube\`)` section (10 channels, with
+IDs). `youtube_scout.py` loads it directly. For selection methodology, frequency data, and the
 step-by-step for adding a channel, see
 [`scout-youtube/references/channels.md`](../../scout-youtube/references/channels.md)
 — don't maintain a third copy of this list here.

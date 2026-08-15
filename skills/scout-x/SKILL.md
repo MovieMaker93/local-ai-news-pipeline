@@ -16,10 +16,11 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 ```
 
 ## Queries
-First, read `skills/_shared/sources.json` with `read_file` and take the
-`handles` array under the `scout-x` key — that's the current `allowed_x_handles`
-list (single source of truth; don't hardcode it here, it drifts out of sync
-with the file otherwise).
+First, read `skills/_shared/sources.md` with `read_file`, find the
+`## Scout X (\`scout-x\`)` section, and take the array from the `json` code
+block right under it — that's the current `allowed_x_handles` list (single
+source of truth; don't hardcode it here, it drifts out of sync with the
+file otherwise).
 
 Use `x_search` with EXPLICIT from_date/to_date (never `since:` in query):
 
@@ -28,7 +29,7 @@ Use `x_search` with EXPLICIT from_date/to_date (never `since:` in query):
 (AI OR LLM OR "AI agent" OR "open source model") (release OR launch OR paper OR breakthrough)
 ```
 from_date: <yesterday>, to_date: <today>
-allowed_x_handles: <the array you just read from sources.json>
+allowed_x_handles: <the array you just read from sources.md>
 
 **Pass 2 — Business:**
 ```

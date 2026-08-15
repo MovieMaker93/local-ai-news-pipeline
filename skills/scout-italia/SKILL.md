@@ -13,9 +13,10 @@ NOT general international AI news (those have their own scouts).
 ## Sources
 
 ### 📡 RSS feeds (fetch and scan for AI-related posts)
-Read `skills/_shared/sources.json` with `read_file` and take the `feeds`
-array under the `scout-italia` key (single source of truth; don't hardcode
-it here). Currently: AI4Business (pick ONLY startup/innovation/funding
+Read `skills/_shared/sources.md` with `read_file`, find the
+`## Scout Italia (\`scout-italia\`)` section, and take the array from the
+`json` code block right under it (single source of truth; don't hardcode it
+here). Currently: AI4Business (pick ONLY startup/innovation/funding
 articles) and La Tech Made in Italy (deep tech and startup focus).
 
 ### 🔍 Web Search (primary method — startup funding and launches)

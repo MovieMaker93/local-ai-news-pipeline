@@ -46,13 +46,20 @@ import xml.etree.ElementTree as ET
 # CONFIG — tune these, nothing below should need editing for normal use.
 # ----------------------------------------------------------------------------
 
-# Feed list — single source of truth is skills/_shared/sources.json, shared
-# with wire-articles' SKILL.md. Edit there, not here (see that file's
-# _readme key). The resolver below handles both Google-style links and
-# clean publisher URLs, in case a Google News feed is ever added back.
-SOURCES_FILE = Path(__file__).resolve().parents[2] / "skills" / "_shared" / "sources.json"
-with open(SOURCES_FILE) as _f:
-    FEEDS = json.load(_f)["wire-articles"]["feeds"]
+# Feed list — single source of truth is skills/_shared/sources.md, shared
+# with wire-articles' SKILL.md. Edit the JSON block under the
+# "sources:wire-articles:feeds" anchor there, not here. The resolver below
+# handles both Google-style links and clean publisher URLs, in case a
+# Google News feed is ever added back.
+SOURCES_FILE = Path(__file__).resolve().parents[2] / "skills" / "_shared" / "sources.md"
+_SOURCES_TEXT = SOURCES_FILE.read_text()
+_m = re.search(
+    r'<!-- sources:wire-articles:feeds -->\s*```json\s*(.*?)```',
+    _SOURCES_TEXT, re.S,
+)
+if not _m:
+    raise RuntimeError(f"Could not find wire-articles feeds block in {SOURCES_FILE}")
+FEEDS = json.loads(_m.group(1))
 
 # Deterministic AI relevance filter (Stage 1). An item passes if its title+summary
 # contains at least one ALLOW term AND is not dominated by a DENY term.

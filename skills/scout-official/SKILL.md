@@ -6,8 +6,9 @@ description: "V2 scout: Official AI lab blogs. Returns JSON array."
 # Scout V2 — Official Blogs
 
 ## Sources
-Read `skills/_shared/sources.json` with `read_file` and take the `blogs`
-array under the `scout-official` key — that's the current list (single
+Read `skills/_shared/sources.md` with `read_file`, find the
+`## Scout Official Blogs (\`scout-official\`)` section, and take the array
+from the `json` code block right under it — that's the current list (single
 source of truth; don't hardcode it here, it drifts out of sync with the
 file otherwise).
 

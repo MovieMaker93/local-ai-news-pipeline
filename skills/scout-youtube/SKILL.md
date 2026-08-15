@@ -90,8 +90,9 @@ asked to change an unrelated timeout "helpfully" rewrote every provider flag in
 `run.sh` to match these docs. Keep snippets here consistent with the script.
 
 ## Channels monitored
-The authoritative list (with channel IDs) is `skills/_shared/sources.json`,
-key `scout-youtube.channels` — that's what `youtube_scout.py` actually reads.
+The authoritative list (with channel IDs) is in `skills/_shared/sources.md`,
+under the `## YouTube Scout (\`scout-youtube\`)` section — that's what
+`youtube_scout.py` actually reads.
 This skill itself never needs to read it (it only reads the raw JSON the
 Python step already produced), but if you're deciding whether a channel is
 worth adding, this doc's job (not this skill's) is to know what's monitored:
