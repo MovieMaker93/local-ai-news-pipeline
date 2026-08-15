@@ -108,17 +108,24 @@ line. The tool is available in the Hermes toolset alongside `terminal`,
 correct `/tmp/v2/podcasts/` path.
 
 Do NOT write a Python sub-script to orchestrate TTS — orchestrate with the native tools.
-### 2. No hard timeout → pipeline blocks for 30+ minutes  
-**🔴 This is the #1 production risk.**  
-The `run.sh` step 7 call to `hermes chat -q` has no timeout wrapper.  
-If the podcast agent hangs (e.g. stuck on a failing TTS call), the entire  
-pipeline stalls and no deploy happens.
+### 2. Stay well inside the timeout — don't rely on it to save you
+**Fixed 2026-07-28** — `run.sh` step 7 now wraps this call in
+`timeout "$MEDIA_TIMEOUT_SECS"` (15 min), same as image-gen, so a genuinely
+hung call no longer blocks the rest of the pipeline forever. But 15 minutes
+is still the whole run stalling on one non-fatal step — the credit-exhaustion
+check right after this call greps the log for the *previous* attempt, so a
+slow-but-not-hung run still costs real wall clock before anything downstream
+proceeds.
 
-Be fast and decisive. Each TTS call should take ~3-5 seconds. If a call takes  
-longer, move on and skip that line rather than hanging. 30 seconds total is the  
-budget. If you cannot complete in 30 seconds, write what you have and move on.
+Be fast and decisive anyway. Each TTS call should take ~3-5 seconds. If a
+call takes longer, move on and skip that line rather than waiting. 30 seconds
+total is the budget for the whole dialogue generation. If you cannot complete
+in 30 seconds, write what you have and move on.
 
-If the pipeline is already stuck (podcast log shows only "[step 7] podcast pill..." for 15+ min):
+If the pipeline is stuck past the 15-minute ceiling (podcast log shows only
+"[step 7] podcast pill..." for 15+ min with no timeout message yet), the
+timeout will kill it on its own — no manual intervention needed. If it's
+stuck for longer than that with no progress in the log at all:
 - Kill the hanging `run.sh` process
 - Complete deploy manually — see `references/podcast-pill-production-fixes.md`
 

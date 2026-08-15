@@ -18,11 +18,15 @@ full breakdown of which is which.
 ## Flow Diagram
 
 ```
-Cron (06:30, no_agent=true, fire-and-forget)
+Hermes cron (06:30, no_agent=true, fire-and-forget)
   │
   ▼
-cron_wrapper.sh (nohup → run.sh &)
-  │
+lux-v2-cron.sh   outside this repo — a one-line stub Hermes requires
+  │              (cron scripts must live under the profile's own
+  │              scripts/ dir); execs straight into the repo below
+  ▼
+cron_wrapper.sh (nohup → run.sh &, backgrounds it — cron has a 3-min
+  │              hard timeout, the pipeline itself runs ~2-3h)
   ▼
 run.sh
   │
@@ -44,17 +48,25 @@ run.sh
   │            see "Scout Concurrency" below for why this is not parallel
   │
   ├─ Step 3:  Validate 9 scout JSON files (missing/invalid → empty [])
-  ├─ Step 4:  Editor → edition.json                              — LLM agent
+  ├─ Step 4:  Editor → edition.json                              — LLM agent, the only FATAL step
   ├─ Step 5:  Image gen (Grok Imagine)          [non-fatal]      — LLM agent + xAI tool
   ├─ Step 6:  Render → index.html                                — pure code
   ├─ Step 7:  Podcast Pill (Castor/Luna)        [non-fatal]      — LLM agent + xAI TTS tool
-  ├─ Step 8:  Wire Articles + ticker injection  [non-fatal]
+  ├─ Step 8:  Wire articles (RSS → LLM)         [non-fatal]      — code + 1 LLM call/article
+  ├─ Step 8b: Inject wire ticker                [non-fatal]      — pure code
+  ├─ Step 8c: Inject one-shot banner            [non-fatal]      — pure code, marker-driven, self-consuming
+  ├─ Step 8d: Making-of page                    [non-fatal]      — pure code, read-only on pipeline state
   └─ Step 9-11: Deploy
-      ├─ git fetch + reset --hard (defensive re-sync; real sync was step 1b)
-      ├─ Copy new files to deploy dir (today's edition overwrites yesterday's)
+      ├─ Write .issue — deliberately NO second git reset here; step 1b
+      │    already synced the deploy dir, and a second reset was found to
+      │    silently discard the archive listing's own regeneration
+      ├─ Copy new files (index.html, making-of.html, fonts, images,
+      │    podcasts, style.css, edition.json) into the deploy dir
       ├─ update_headlines_history.py (cross-day dedup store)
+      ├─ build_markdown.py — regenerates markdown editions; lives in the
+      │    DEPLOY repo, not this one (see note in the table below)
       ├─ git add → commit → push
-      └─ Final report
+      └─ Final report + Telegram notify() at each milestone
 ```
 
 Archiving happens in step 1b now, **before** today's overwrite, not after —
@@ -70,26 +82,29 @@ passes its model explicitly.
 
 | Step | Kind | Model / Provider | Toolset | Reads | Writes |
 |------|------|-------------------|---------|-------|--------|
-| scout-x | agent | deepseek-v4-flash / localAIServer | x_search, file, terminal | — | `scout_x.json` |
+| scout-x | agent | deepseek-v4-flash / localAIServer | x_search, file, terminal | `skills/_shared/sources.md` | `scout_x.json` |
 | scout-research | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_research.json` |
-| scout-official | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_official.json` |
+| scout-official | agent | deepseek-v4-flash / localAIServer | web, file, terminal | `skills/_shared/sources.md` | `scout_official.json` |
 | scout-opensource | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_opensource.json` (editorial + trending) |
 | `fetch_trending.py` | code | — | curl (GitHub/HuggingFace) | — | merged into `scout_opensource.json`, only if the scout returned < 3 trending items |
 | scout-tools | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_tools.json` |
 | scout-funding | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_funding.json` |
 | scout-hardware | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_hardware.json` |
-| `youtube_scout.py` | code | — | RSS + yt-dlp + youtube-transcript-api | 10 fixed channel IDs | `scout_youtube_raw.json` |
+| `youtube_scout.py` | code | — | RSS + yt-dlp + youtube-transcript-api | `skills/_shared/sources.md` (channel list) | `scout_youtube_raw.json` |
 | scout-youtube | agent | deepseek-v4-flash / localAIServer | file | `scout_youtube_raw.json` | `scout_youtube.json` |
-| scout-italia | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_italia.json` |
-| editor | agent | deepseek-v4-flash / localAIServer | file | all `scout_*.json` + `headlines_history.json` | `edition.json` |
+| scout-italia | agent | deepseek-v4-flash / localAIServer | web, file, terminal | `skills/_shared/sources.md` | `scout_italia.json` |
+| editor | agent | deepseek-v4-flash / localAIServer | file | all `scout_*.json` + `headlines_history.json` | `edition.json` — **the only FATAL step**: no output here means no issue at all |
 | image-gen | agent + tool | deepseek-v4-flash / localAIServer (orchestrator) + xAI Grok Imagine (`image_generate` tool, OAuth) | file, image_gen, terminal | `edition.json` | `images/*.jpg`, updates `edition.json` |
 | `render.py` | code | — | — | `edition.json` + `template/` | `index.html` |
 | podcast-pill | agent + tool | deepseek-v4-flash / localAIServer (dialogue) + xAI TTS (Castor/Luna voices, OAuth) | file, terminal | `edition.json` | `podcast_meta.json`, `podcasts/*.ogg` |
 | `inject_podcast_pill.py` | code | — | — | `index.html`, `podcast_meta.json` | `index.html` (pill injected) |
-| `wire_articles.py` | code + 1 agent call/article | deepseek-v4-flash / localAIServer | curl (4 fixed RSS feeds) + `hermes chat` subprocess per article | RSS feeds | `scout_wire.json` |
+| `wire_articles.py` | code + 1 agent call/article | deepseek-v4-flash / localAIServer | curl (RSS feeds from `skills/_shared/sources.md`) + `hermes chat` subprocess per article | RSS feeds | `scout_wire.json` |
 | `inject_wire_ticker.py` | code | — | — | `index.html`, `scout_wire.json` | `index.html` (ticker injected) |
+| `inject_banner.py` | code | — | — | `index.html`, `scripts/banner.json` | `index.html` (banner injected); deletes `banner.json` after firing so it never runs twice |
 | `archive_issue.py` | code | — | — | `deploy/index.html` + the images/audio it actually references | `archive/YYYY-MM-DD/` snapshot; prunes deploy-root `images/`/`podcasts/` |
+| `make_making_of.py` | code, read-only | — | — | scout JSON, run log, log mtimes, `edition.json` | `making-of.html` — parses what the pipeline already wrote, never touches pipeline state |
 | `update_headlines_history.py` | code | — | — | `edition.json` | `headlines_history.json` |
+| `build_markdown.py` | code | — | — | `edition.json` + `archive/` | `editions/*.md`, `latest.md` — **lives in the deploy repo** (`~/ai-news-deploy/scripts/`), the one piece of processing code outside this repo. `run.sh` step 11.5 calls it conditionally (`if -f ... `) so its absence is non-fatal. It stays deploy-side deliberately: markdown regeneration is entirely a function of what's already in the deploy repo (`edition.json` + `archive/`), so keeping it there means that repo can regenerate its own markdown editions without needing the pipeline repo cloned alongside it. |
 
 ### Meta / operator skills (not part of the daily run)
 
