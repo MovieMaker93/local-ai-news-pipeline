@@ -15,7 +15,7 @@ find their section, use the list in the `json` block.
 ---
 
 ## Scout X (`scout-x`)
-**Cerca su X/Twitter** con query predefinite su un set di handle fissi.
+**Searches X/Twitter** with predefined queries against a fixed set of handles.
 
 <!-- sources:scout-x:handles -->
 ```json
@@ -26,16 +26,16 @@ find their section, use the list in the `json` block.
 ]
 ```
 
-**Espansioni possibili:**
-- Aziende: `@Cohere`, `@Replit`, `@StabilityAI`, `@Midjourney`, `@Cursor_ai`, `@GitHubCopilot`
-- Accademici: `@StanfordHAI`, `@MIT_AI`, `@erichorvitz`, `@demishassabis`, `@andrewyng`
+**Possible expansions:**
+- Companies: `@Cohere`, `@Replit`, `@StabilityAI`, `@Midjourney`, `@Cursor_ai`, `@GitHubCopilot`
+- Academics: `@StanfordHAI`, `@MIT_AI`, `@erichorvitz`, `@demishassabis`, `@andrewyng`
 - Media: `@TechCrunch`, `@TheVerge`, `@WIRED`, `@MIT_TechnologyReview`
 - Open source: `@ollama`, `@LocalLLaMA`
 
 ---
 
 ## Scout Official Blogs (`scout-official`)
-**Scrape direttamente** i blog ufficiali dei lab AI. Solo annunci (high signal).
+**Scrapes official AI lab blogs directly.** Announcements only (high signal).
 
 <!-- sources:scout-official:blogs -->
 ```json
@@ -49,7 +49,7 @@ find their section, use the list in the `json` block.
 ]
 ```
 
-**Espansioni possibili:**
+**Possible expansions:**
 ```
 https://cohere.com/blog
 https://blog.replit.com
@@ -65,42 +65,42 @@ https://blog.google/technology/ai/
 ---
 
 ## Scout Research (`scout-research`)
-**Cerca paper** su arXiv e HuggingFace daily papers con query predefinite.
+**Searches papers** on arXiv and HuggingFace daily papers with predefined queries.
 
-**Metodo:** `web_search` con query su arXiv + HF daily papers. Nessuna lista di fonti fisse — query strategy, non è in questo file.
+**Method:** `web_search` with queries against arXiv + HF daily papers. No fixed source list — query strategy, not in this file.
 
 ---
 
 ## Scout Open Source (`scout-opensource`)
-**Cerca modelli open-weight** su GitHub Trending + HuggingFace Trending.
+**Searches open-weight models** on GitHub Trending + HuggingFace Trending.
 
-**Metodo:** `web_search` + `x_search`. Nessuna lista di fonti fisse — query strategy, non è in questo file. (Gli endpoint di trending usati dal fallback `fetch_trending.py` sono invece hardcoded lì: sono gli URL canonici delle due piattaforme, non una lista editoriale da mantenere.)
+**Method:** `web_search` + `x_search`. No fixed source list — query strategy, not in this file. (The trending endpoints used by the `fetch_trending.py` fallback are hardcoded there instead: they're the two platforms' canonical URLs, not an editorial list to maintain.)
 
 ---
 
 ## Scout Tools (`scout-tools`)
-**Cerca tool e prodotti AI** — Product Hunt, Hacker News "Show HN", web search.
+**Searches AI tools and products** — Product Hunt, Hacker News "Show HN", web search.
 
-**Metodo:** `web_fetch` di producthunt.com e news.ycombinator.com + `web_search` site-scoped. Query strategy, non è in questo file.
+**Method:** `web_fetch` on producthunt.com and news.ycombinator.com + site-scoped `web_search`. Query strategy, not in this file.
 
 ---
 
 ## Scout Funding (`scout-funding`)
-**Cerca round di finanziamento** — TechCrunch, Crunchbase, web search.
+**Searches funding rounds** — TechCrunch, Crunchbase, web search.
 
-**Metodo:** `web_search` con query su funding rounds, M&A, IPO. Query strategy, non è in questo file.
+**Method:** `web_search` with queries on funding rounds, M&A, IPOs. Query strategy, not in this file.
 
 ---
 
 ## Scout Hardware (`scout-hardware`)
-**Cerca chip, robot, datacenter** — Tom's Hardware, NVIDIA blog, web search.
+**Searches chips, robots, datacenters** — Tom's Hardware, NVIDIA blog, web search.
 
-**Metodo:** `web_search` + `x_search`. Query strategy, non è in questo file.
+**Method:** `web_search` + `x_search`. Query strategy, not in this file.
 
 ---
 
 ## Scout Italia (`scout-italia`)
-**Feed RSS + web search** per startup/finanziamenti/community AI italiane.
+**RSS feeds + web search** for Italian AI startups/funding/community.
 
 <!-- sources:scout-italia:feeds -->
 ```json
@@ -110,12 +110,12 @@ https://blog.google/technology/ai/
 ]
 ```
 
-Il resto della raccolta (web/x_search per startup specifiche, finanziamenti, spin-off) è query strategy, non è in questo file.
+The rest of the collection (web/x_search for specific startups, funding, spin-offs) is query strategy, not in this file.
 
 ---
 
 ## Wire Articles (`wire-articles`)
-**Feed RSS diretti** — deterministici, senza LLM per lo stage 1.
+**Direct RSS feeds** — deterministic, no LLM for stage 1.
 
 <!-- sources:wire-articles:feeds -->
 ```json
@@ -127,7 +127,7 @@ Il resto della raccolta (web/x_search per startup specifiche, finanziamenti, spi
 ]
 ```
 
-**Espansioni possibili:**
+**Possible expansions:**
 ```
 MIT Technology Review (feed)
 VentureBeat (feed)
@@ -141,7 +141,7 @@ Axios
 ---
 
 ## YouTube Scout (`scout-youtube`)
-**Ibrido:** Python script (`youtube_scout.py`) fetcha video via RSS + LLM scrive articoli. Per metodologia di selezione e criteri di frequenza vedi [`scout-youtube/references/channels.md`](../scout-youtube/references/channels.md) — qui c'è solo la lista attuale.
+**Hybrid:** Python script (`youtube_scout.py`) fetches videos via RSS + LLM writes articles. For selection methodology and frequency criteria, see [`scout-youtube/references/channels.md`](../scout-youtube/references/channels.md) — this section holds only the current list.
 
 <!-- sources:scout-youtube:channels -->
 ```json
@@ -159,24 +159,24 @@ Axios
 ]
 ```
 
-**Espansioni possibili:**
+**Possible expansions:**
 ```
-Yannic Kilcher (posting infrequente, valutare)
-David Shapiro AI (posting infrequente, valutare)
+Yannic Kilcher (posts infrequently, evaluate)
+David Shapiro AI (posts infrequently, evaluate)
 AI Revolution / AI News (daily)
 ```
 
 ---
 
-## Riassunto — Tipi di fonte
+## Summary — Source types
 
-| Tipo | Esempi | In questo file? | Aggiornamento |
+| Type | Examples | In this file? | How to update |
 |------|--------|:----------:|:-------------:|
-| Handle X | 16 handle fissi | Sì | Sezione `scout-x` sopra |
-| Blog URL | 6 URL fissi | Sì | Sezione `scout-official` sopra |
-| Feed RSS (Italia) | 2 feed | Sì | Sezione `scout-italia` sopra |
-| Feed RSS (wire) | 4 feed | Sì | Sezione `wire-articles` sopra |
-| Canali YouTube | 10 canali | Sì | Sezione `scout-youtube` sopra |
-| Query web/x_search | Template query | No — nel prompt della skill | Modifica il `SKILL.md` dello scout |
-| Endpoint trending | GitHub/HF trending | No — canonici, non editoriali | `fetch_trending.py` |
-| Risultati concreti | Paper, post, funding | No — trovati al volo dal LLM | Automatico |
+| X handles | 16 fixed handles | Yes | `scout-x` section above |
+| Blog URLs | 6 fixed URLs | Yes | `scout-official` section above |
+| RSS feeds (Italy) | 2 feeds | Yes | `scout-italia` section above |
+| RSS feeds (wire) | 4 feeds | Yes | `wire-articles` section above |
+| YouTube channels | 10 channels | Yes | `scout-youtube` section above |
+| Web/x_search queries | Template queries | No — in the skill's prompt | Edit that scout's `SKILL.md` |
+| Trending endpoints | GitHub/HF trending | No — canonical, not editorial | `fetch_trending.py` |
+| Concrete results | Papers, posts, funding | No — found live by the LLM | Automatic |
