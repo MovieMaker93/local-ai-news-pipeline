@@ -87,7 +87,7 @@ passes its model explicitly.
 | scout-official | agent | deepseek-v4-flash / localAIServer | web, file, terminal | `skills/_shared/sources.md` | `scout_official.json` |
 | scout-opensource | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_opensource.json` (editorial + trending) |
 | `fetch_trending.py` | code | — | curl (GitHub/HuggingFace) | — | merged into `scout_opensource.json`, only if the scout returned < 3 trending items |
-| `fetch_free_models.py` | code | — | curl (OpenRouter API + OpenCode Zen docs page) | — | `free_models.json`, passed through by editor into `edition.json`'s `free_models` key, rendered by `render.py` as a second `trending`-style widget. **Built 2026-08-21, not yet called by `run.sh`** — see `orchestrator` SKILL.md. |
+| `fetch_free_models.py` | code | — | curl (OpenRouter API + OpenCode Zen docs page) | — | `free_models.json`, passed through by editor into `edition.json`'s `free_models` key, rendered by `render.py` as a second `trending`-style widget. `run.sh` step 3b calls it, right after scout validation and before the editor. |
 | scout-tools | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_tools.json` |
 | scout-funding | agent | deepseek-v4-flash / localAIServer | web, file, terminal | — | `scout_funding.json` |
 | scout-hardware | agent | deepseek-v4-flash / localAIServer | web, x_search, file, terminal | — | `scout_hardware.json` |

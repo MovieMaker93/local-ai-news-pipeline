@@ -112,11 +112,11 @@ comment block at the top of `run.sh` before changing anything here.
   Models' catalog API returns 410 (being retired); Nous Portal's public
   `/v1/models` is a straight mirror of OpenRouter's own catalog, so it would
   just duplicate the OpenRouter column under a different name.
-- **⚠️ Built 2026-08-21, not yet wired into `run.sh`** — no orchestrator step
-  calls it and no `{{FREE_MODELS}}` data flows in production yet (the render.py
-  support and template partial exist and are tested standalone). Wiring it in
-  is a one-block addition next to the `fetch_trending.py` fallback call —
-  deliberately left out pending an explicit go-ahead to go live.
+- **Wired into `run.sh` as step 3b** (2026-08-22, after an explicit go-ahead),
+  right after scout validation and before the editor — writes
+  `$V2_DIR/free_models.json`, which the editor's prompt explicitly points at
+  (belt-and-suspenders alongside the skill's own "Files to read" entry).
+  Non-fatal: a failed/missing fetch just means the section is skipped that day.
 - **Location:** `scripts/content/fetch_free_models.py` (this repo)
 
 ### fix_archive_issue_numbers.py

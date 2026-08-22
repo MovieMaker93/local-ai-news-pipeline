@@ -438,6 +438,23 @@ else
 fi
 check_timeout
 
+# ── Step 3b: Free models fetch ──────────────────────────────
+# Deterministic, no LLM: currently-free models on OpenRouter + OpenCode Zen.
+# Not one of the 9 scouts — writes straight to $V2_DIR/free_models.json,
+# which the editor passes through unchanged (see editor SKILL.md step 3b).
+# Non-fatal: if this fails or the script is missing, the editor just won't
+# find the file and the Free Models section is skipped for the day.
+echo "[step 3b] free models (OpenRouter + OpenCode Zen)..."
+FREE_MODELS_SCRIPT="$SCRIPT_DIR/content/fetch_free_models.py"
+if [ -f "$FREE_MODELS_SCRIPT" ]; then
+    python3 "$FREE_MODELS_SCRIPT" --output-json "$V2_DIR/free_models.json" 2>>"$LOGFILE" \
+        && echo "  ✓ free_models.json written" \
+        || echo "  ⚠ free models fetch failed (non-fatal, section skipped today)"
+else
+    echo "  - fetch_free_models.py not found, skipping"
+fi
+check_timeout
+
 # ── Step 4: Editor ──────────────────────────────────────────
 echo "[step 4] editor..."
 # NEXT_ISSUE was already resolved in step 1b (reuse-if-same-day-rerun,
@@ -448,6 +465,7 @@ timeout "$EDITOR_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Editor for Lux
 Today is $TODAY. Issue #$NEXT_ISSUE.
 Read all scout JSON files from $SCOUTS_DIR/scout_*.json and the metadata.
 For cross-day dedup, read $DEPLOY_DIR/headlines_history.json via read_file.
+If $V2_DIR/free_models.json exists, read it and pass its content through unchanged into the free_models key (see skill step 3b) — skip the key entirely if the file is missing.
 Assemble edition.json following the skill instructions.
 Write the result to $V2_DIR/edition.json using write_file. ENGLISH ONLY." \
     --profile "$PROFILE" -s editor -t file -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" -Q --yolo \
