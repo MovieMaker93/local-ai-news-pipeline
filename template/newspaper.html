@@ -14,7 +14,7 @@
     <div class="topline"></div>
     <div class="ears">
       <span class="left">Est. MMXXVI</span>
-      <span class="right">No. {{ISSUE_NO}} <a href="/archive/" class="ar" title="Browse past issues">◆ Archive</a></span>
+      <span class="right">No. {{ISSUE_NO}} <a href="/archive/" class="ar" title="Browse past issues">◆ Archive</a>{{FREE_MODELS_MASTHEAD_LINK}}</span>
     </div>
     <div class="nameplate">LVX IN <span class="lux">TENEBRIS</span></div>
       <hr class="rule-double">
@@ -23,7 +23,7 @@
         <span class="dot">◆</span>
         <span class="tag">AI dispatches from the dark</span>
         <span class="dot">◆</span>
-        <span>{{COUNT}} stories <span class="mk-note">(<span class="mk-beta">Beta</span> : <a href="making-of.html" class="mk-link" title="Replay how this issue assembled itself">See how this issue made itself</a>)</span></span>
+        <span>{{COUNT}} stories</span>
       </div>
       <div class="devocracy-credit">Inference server generously provided by <a href="https://x.com/ivanfioravanti" target="_blank" rel="noopener">Devocracy</a> · powered by DwarfStar · DeepSeek V4 Flash 0731 (M3 Ultra)!</div>
       <hr class="rule-thin">
@@ -43,11 +43,14 @@
 
     {{TRENDING}}
 
+    {{FREE_MODELS}}
+
     {{QUICK_HITS}}
 
     <footer class="colophon">
       <p class="mark">Per aspera ad astra</p>
       <p class="meta">Compiled by Hermes Agent · {{DATE_ISO}} · <a href="https://github.com/NTTLuke/luxintenebris-ai-news" target="_blank" rel="noopener">source</a></p>
+      <p class="meta">Beta · <a href="making-of.html" title="Replay how this issue assembled itself">See how this issue made itself</a></p>
     </footer>
 
   </div>

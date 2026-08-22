@@ -95,6 +95,30 @@ comment block at the top of `run.sh` before changing anything here.
 - Outputs JSON matching the scout-opensource `trending` contract
 - **Location:** `~/.hermes/profiles/luke/scripts/v2/content/fetch_trending.py`
 
+### fetch_free_models.py
+- `python3 fetch_free_models.py [--output-json PATH]`
+- Fetches currently-free models from OpenRouter (public models API — free
+  means every pricing sub-field is zero, output is text-only, and the id
+  isn't an `openrouter/*` routing alias; the `:free` id suffix alone was
+  tried first and found both under- and over-inclusive on the live catalog,
+  see `_is_actually_free()` in the script) and OpenCode Zen (joins two tables
+  scraped from their static docs page — no pricing field in their `/v1/models`
+  API) via **curl**, same style as `fetch_trending.py`. No LLM, no API key,
+  deterministic.
+- Outputs the `free_models` contract (`openrouter` + `opencode_zen` sub-objects,
+  each shaped like a `trending` column) — the editor passes it through unchanged
+  (see `editor` SKILL.md step 3b).
+- GitHub Models and Nous Portal/Hermes were investigated and dropped: GitHub
+  Models' catalog API returns 410 (being retired); Nous Portal's public
+  `/v1/models` is a straight mirror of OpenRouter's own catalog, so it would
+  just duplicate the OpenRouter column under a different name.
+- **⚠️ Built 2026-08-21, not yet wired into `run.sh`** — no orchestrator step
+  calls it and no `{{FREE_MODELS}}` data flows in production yet (the render.py
+  support and template partial exist and are tested standalone). Wiring it in
+  is a one-block addition next to the `fetch_trending.py` fallback call —
+  deliberately left out pending an explicit go-ahead to go live.
+- **Location:** `scripts/content/fetch_free_models.py` (this repo)
+
 ### fix_archive_issue_numbers.py
 - `python3 fix_archive_issue_numbers.py`
 - Fixes incorrect issue numbers in archived HTML files and regenerates the archive listing

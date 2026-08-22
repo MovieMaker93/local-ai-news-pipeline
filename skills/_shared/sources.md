@@ -78,6 +78,48 @@ https://blog.google/technology/ai/
 
 ---
 
+## Free Models (`fetch_free_models.py`)
+**Lists currently-free models** — OpenRouter + OpenCode Zen. Not a scout: pure
+curl/regex code, no LLM, no fixed handle list to maintain — the two endpoints
+are hardcoded in the script like `fetch_trending.py`'s GitHub/HuggingFace URLs.
+
+- **OpenRouter**: `https://openrouter.ai/api/v1/models` — official public API,
+  no auth. A model counts as free only when *every* pricing sub-field is zero
+  (not just prompt/completion), its output is text-only, and its id isn't an
+  `openrouter/*` platform routing alias. **Not** based on the `:free` id
+  suffix alone — hand-checking the live catalog on 2026-08-21 found that
+  suffix under-covers (`stealth/ox-alpha` is genuinely free but unsuffixed)
+  and, had we trusted `pricing.prompt == "0"` alone instead, would have
+  over-covered too: `google/lyria-3-*-preview` report `prompt`/`completion`
+  as `"0"` but bill per generated song/clip through a field the structured
+  pricing object doesn't expose at all. See `_is_actually_free()` in the
+  script for the full reasoning.
+- **OpenCode Zen**: `https://opencode.ai/docs/zen/` — no pricing field in their
+  own `/v1/models` API, so the script joins two tables scraped from this
+  static docs page (Model→ID table + Model→pricing table). A row counts as
+  free only when every cost column that has a value (Input, Output, Cached
+  Read) reads "Free" — a bare "-" means "not applicable", not a hidden charge.
+
+**Considered and dropped** (2026-08-21 investigation, see the pipeline
+brainstorm for the full recon):
+- **GitHub Models** — catalog API returns HTTP 410
+  (`github_models_retirement_brownout`); the whole thing is being retired.
+- **Nous Portal / Hermes** — its public `/v1/models` is a straight mirror of
+  OpenRouter's own catalog (identical schema, same handful of `:free` ids
+  already visible on OpenRouter). The genuinely exclusive "free for
+  subscribers" perk lives behind a login-gated dashboard, not observable
+  anonymously. Including it would just duplicate the OpenRouter column under
+  a different vendor name.
+- **Cerebras** — its "Free" tier is an account-wide trial credit, not a
+  per-model flag; doesn't fit an enumerable "these specific models are free"
+  claim.
+- **Groq, Google AI Studio** — free-tier claims exist but aren't in reliably
+  scrapable static markup (Groq's pricing page had zero "free" mentions in
+  its static HTML at check time; Google's rate-limit table looked
+  client-rendered).
+
+---
+
 ## Scout Tools (`scout-tools`)
 **Searches AI tools and products** — Product Hunt, Hacker News "Show HN", web search.
 
