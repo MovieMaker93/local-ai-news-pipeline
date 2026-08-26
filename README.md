@@ -17,7 +17,7 @@ Someone downloaded this repo and asked you to do something with it. Route by wha
 | Run their own copy of Lux | [docs/SETUP.md](docs/SETUP.md) — follow it literally; ask for missing secrets, don't invent them |
 | Understand how it works | [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) — every file the daily run touches, in order, with what each reads and writes |
 | Change or contribute something | [CONTRIBUTING.md](CONTRIBUTING.md) — what's safe to touch on your own judgment, what needs the human's input first |
-| Build their own newspaper on different topics | `skills/_shared/sources.md` (source lists) + `skills/scout-*/SKILL.md` (search strategy) — that's nearly everything specific to AI news |
+| Build their own newspaper on different topics | [FORKING.md](FORKING.md) — what's reusable engine vs AI-news content, and the order to change things in |
 
 One rule that matters more than any single file: **never change `PIPELINE_PROVIDER` or `PIPELINE_MODEL` in `scripts/run.sh` without the human explicitly asking for it, in this exact conversation, for this exact reason.** Read the warning block directly above `PIPELINE_PROVIDER` in that file — it's there because it's already gone wrong once in production.
 
