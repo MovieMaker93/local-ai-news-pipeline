@@ -109,8 +109,8 @@ passes its model explicitly.
 
 ### Meta / operator skills (not part of the daily run)
 
-These skills exist for humans (or Claude) working *on* the pipeline, not for
-the pipeline itself — `run.sh` never invokes them with `-s`:
+These skills exist for humans (or an AI assistant) working *on* the pipeline,
+not for the pipeline itself — `run.sh` never invokes them with `-s`:
 
 - **orchestrator** — describes the whole pipeline; loaded when someone needs to understand or modify `run.sh`.
 - **lux-hotfix** — surgical live-HTML fixes without re-running the pipeline (re-rendering would strip the podcast pill / wire ticker).
