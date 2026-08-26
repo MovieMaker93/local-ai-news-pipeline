@@ -1,9 +1,16 @@
 ---
 name: scout-official
-description: "V2 scout: Official AI lab blogs. Returns JSON array."
+description: "Scout: official blogs of labs that ship open-weight models. Returns JSON array."
 ---
 
-# Scout V2 — Official Blogs
+# Scout — Model Makers (Official Blogs)
+
+## Focus
+Official announcements from the labs whose models you can actually download
+and run: open-weight releases, quantized editions, licensing changes, model
+deprecations, local-runtime news (Ollama library additions, llama.cpp
+compatibility notes).
+NOT: pure API/cloud product news with no downloadable artifact.
 
 ## Sources
 Read `skills/_shared/sources.md` with `read_file`, find the
@@ -24,8 +31,8 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 
 ## Signal guide
 - Official blog posts are HIGH signal by default (3+). These are announcements, not rumours.
-- Major model releases / policy announcements: 4–5
-- Minor feature updates: 3
+- Major open-weight model releases / licensing changes: 4–5
+- Minor feature updates / small model refreshes: 3
 
 ## Rules
 - Every `url` MUST come from the actual fetched page. Never synthesize URLs.
@@ -37,12 +44,9 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 After gathering all items but BEFORE writing the final JSON, validate EVERY item:
 
 1. **Domain consistency:** Extract the domain from `url`. The `source` field and the URL domain must be aligned:
-   - ✓ source="TechCrunch", url="https://techcrunch.com/..." — domain "techcrunch.com" matches
-   - ✓ source="Hacker News", url="https://news.ycombinator.com/..." — "ycombinator" in URL
-   - ✓ source="arXiv", url="https://arxiv.org/abs/..." — "arxiv" in both
-   - ✓ source="@karpathy" / "Karpathy", url="https://x.com/..." — exception for X/Twitter users
-   - ✗ source="Hacker News", url="https://medium.com/..." — domain doesn't match
-   - ✗ source="TechCrunch", url="https://someothersite.com/..." — domain doesn't match
+   - ✓ source="Qwen", url="https://qwenlm.github.io/blog/..." — domain matches
+   - ✓ source="Meta AI", url="https://ai.meta.com/blog/..." — domain matches
+   - ✗ source="Qwen", url="https://someblog.com/..." — domain doesn't match
 
 2. **Auto-fix on mismatch (max 3 attempts per item):** If source and URL domain don't align, use `web_search` with the article title + source name to find the real URL. Each attempt = one search cycle.
 

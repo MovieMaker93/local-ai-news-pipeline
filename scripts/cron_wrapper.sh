@@ -3,6 +3,6 @@
 # The cron system has a 3-minute hard timeout,
 # so we fire-and-forget the real script.
 SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-mkdir -p /tmp/v2/logs
-nohup bash "$SCRIPT_DIR/run.sh" >> /tmp/v2/logs/cron_wrapper.log 2>&1 &
-echo "Lux pipeline launched (PID $!) at $(date)"
+mkdir -p /tmp/lain/logs
+nohup bash "$SCRIPT_DIR/run.sh" >> /tmp/lain/logs/cron_wrapper.log 2>&1 &
+echo "Local AI News pipeline launched (PID $!) at $(date)"

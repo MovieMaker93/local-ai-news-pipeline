@@ -26,7 +26,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-# ── Archive URL paths (hosted on GitHub Pages via luxintenebris.news) ──
+# ── Archive URL paths (GitHub Pages project site) ──
 ARCHIVE_URL = "/archive/"
 HOME_URL = "/"
 
@@ -228,7 +228,7 @@ def regenerate_archive_index(deploy_dir: str):
             continue
         text = idx.read_text(encoding="utf-8")
         title_m = re.search(r'<title>(.+?)</title>', text)
-        title = title_m.group(1) if title_m else f"LVX IN TENEBRIS — {d.name}"
+        title = title_m.group(1) if title_m else f"LOCAL AI NEWS — {d.name}"
         no_m = re.search(r'No\.\s*(\d+)', text)
         issue = no_m.group(1) if no_m else "—"
         entries.append((d.name, issue, title))
@@ -250,8 +250,7 @@ def regenerate_archive_index(deploy_dir: str):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LVX IN TENEBRIS — Archive</title>
-  <link rel="alternate" type="application/rss+xml" title="Lux in Tenebris — AI dispatches" href="/rss.xml">
+  <title>LOCAL AI NEWS — Archive</title>
   <link rel="stylesheet" href="../style.css">
   <style>
     .arch-page{{padding:40px 0}}
@@ -274,9 +273,9 @@ def regenerate_archive_index(deploy_dir: str):
     <div class="topline"></div>
     <div class="ears">
       <span class="left"><a href="{HOME_URL}" class="arch-back">← Current Issue</a></span>
-      <span class="right">Archive · <a href="/rss.xml" class="arch-back" title="Subscribe via RSS">RSS</a></span>
+      <span class="right">Archive</span>
     </div>
-    <div class="nameplate" style="font-size:48px">LVX IN <span class="lux">TENEBRIS</span></div>
+    <div class="nameplate" style="font-size:48px">LOCAL <span class="lux">AI NEWS</span></div>
     <hr class="rule-double">
     <div class="dateline"><span>Past Issues</span></div>
     <hr class="rule-thin">

@@ -15,8 +15,8 @@
 | Folder | What's in it | Called by `run.sh`? |
 |---|---|---|
 | `core/` | The mechanical steps that run every single day, no exceptions: rendering, archiving, cross-day dedup. | Yes, every run |
-| `content/` | Fetches/generates the day's raw material: RSS, YouTube, trending repos, wire articles, the "making-of" replay page. | Yes, every run |
-| `inject/` | Post-processes the already-rendered `index.html` — stitches in the podcast player and the news ticker. | Yes, every run |
+| `content/` | Fetches/generates the day's raw material: RSS, trending repos, wire articles, the "making-of" replay page. | Yes, every run |
+| `inject/` | Post-processes the already-rendered `index.html` — stitches in the news ticker. | Yes, every run |
 | `maintenance/` | Standalone rescue tools for fixing things by hand after an incident. **Never** invoked by `run.sh`. | No — run manually if needed |
 
 `fix_archive_issue_numbers.py` in `maintenance/` is a concrete example: it's

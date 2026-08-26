@@ -1,45 +1,36 @@
 ---
 name: editor
-description: "V2 editor-in-chief. Merges scout JSONs into edition.json. Run after scouts complete."
+description: "Editor-in-chief. Merges the 6 scout JSONs into edition.json. Run after scouts complete."
 ---
 
-# Editor V2 — Assembly
+# Editor — Assembly
 
 ## When to use
-After all 9 scouts have persisted their JSON to `/tmp/v2/scouts/`. The orchestrator calls you.
+After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchestrator calls you.
 
 ## Files to read
-- `/tmp/v2/scouts/scout_x.json` (array)
-- `/tmp/v2/scouts/scout_research.json` (array)
-- `/tmp/v2/scouts/scout_official.json` (array)
-- `/tmp/v2/scouts/scout_opensource.json` (**OBJECT** with `editorial` array + `trending` object)
-- `/tmp/v2/scouts/scout_tools.json` (array)
-- `/tmp/v2/scouts/scout_funding.json` (array)
-- `/tmp/v2/scouts/scout_hardware.json` (array)
-- `/tmp/v2/scouts/scout_youtube.json` (array)
-- `/tmp/v2/scouts/scout_italia.json` (array)
-- `/tmp/v2/free_models.json` (**OBJECT**, `openrouter` + `opencode_zen` sub-objects, pass through
-  unchanged — like `trending`, this is produced by a deterministic non-LLM fetch
-  (`fetch_free_models.py`), not one of the 9 scouts. If the file is missing, skip
-  the `free_models` key entirely rather than inventing one.)
+- `/tmp/lain/scouts/scout_research.json` (array)
+- `/tmp/lain/scouts/scout_official.json` (array)
+- `/tmp/lain/scouts/scout_opensource.json` (**OBJECT** with `editorial` array + `trending` object)
+- `/tmp/lain/scouts/scout_tools.json` (array)
+- `/tmp/lain/scouts/scout_hardware.json` (array)
+- `/tmp/lain/scouts/scout_selfhost.json` (array)
 - **`headlines_history.json`** — `$DEPLOY_DIR/headlines_history.json` (path passed in the prompt).
   Holds every headline published so far. Use it for **cross-day deduplication**
   (step 4b) — do not republish a story already covered in the last 7 days.
-- Date parameters in `/tmp/v2/scouts/_metadata.json` (produced by orchestrator)
+- Date parameters in `/tmp/lain/scouts/_metadata.json` (produced by orchestrator)
 
 ## Workflow
 
 1. Read metadata JSON → get `today`, `yesterday`, `today_human`, next issue number.
-2. Read all 9 scout files.
+2. Read all 6 scout files.
 3. **Special case for opensource:** split into `editorial` array (treat like other scouts) and `trending` object (pass through to output unchanged).
-3b. **Free models:** if `/tmp/v2/free_models.json` exists, pass its content through to the `free_models` key unchanged — same treatment as `trending`. No judgment, no rewriting, no filtering beyond what render.py already does for broken URLs.
 4. **Merge & dedup** all editorial arrays:
    - Drop duplicates by URL and near-identical headline (keep most authoritative source)
    - Discard items clearly dated outside [yesterday, today]
    - **Tag every item with its origin:** while reading, augment each item with
-     `"scout_source": "<scout_name>"` (e.g., `"research"`, `"x"`, `"official"`,
-     `"tools"`, `"funding"`, `"hardware"`, `"youtube"`, `"italia"`). Opensource editorial items
-     get `"opensource"`. This tag is used in step 5 for tiering.
+     `"scout_source": "<scout_name>"` (e.g. `"research"`, `"official"`,
+     `"opensource"`, `"tools"`, `"hardware"`, `"selfhost"`). This tag is used in step 5 for tiering.
 4b. **🔴 Cross-day dedup — CRITICAL** (run this BEFORE step 5):
    - **Read `headlines_history.json`** from `$DEPLOY_DIR/headlines_history.json`
    - **Extract headlines from the last 7 days only** (look at each entry's `"date"`
@@ -49,8 +40,8 @@ After all 9 scouts have persisted their JSON to `/tmp/v2/scouts/`. The orchestra
      - Normalize both: lowercase, strip punctuation, remove stopwords
        (`the`, `a`, `an`, `of`, `in`, `to`, `for`, `and`, `with`).
      - If the normalized title has **>40% word overlap** OR the **core subject
-       is identical** (e.g., "OpenAI drops GPT-5.6 gates" ≈ "OpenAI releases
-       GPT-5.6 with gated access"), consider it a **duplicate topic**.
+       is identical** (e.g., "Qwen 3.5 drops" ≈ "Qwen releases 3.5 with open weights"),
+       consider it a **duplicate topic**.
    - **Action on duplicate:** **DISCARD the item entirely.** Do not include it in
      the edition at any tier. Free up that slot for a different story that wasn't
      covered yet. Even if the new source is more mainstream, the story is already
@@ -61,13 +52,14 @@ After all 9 scouts have persisted their JSON to `/tmp/v2/scouts/`. The orchestra
    - **If `headlines_history.json` does not exist yet** (first run), skip this step.
 5. **Judge importance** and assign tiers:
    - **Before rating, use scout_source tags from step 4 to determine eligibility.**
-   - `lead` (exactly 1): most consequential **mainstream** story.
-     ✅ Eligible scout_sources: `x`, `official`, `tools`, `funding`, `hardware`, `youtube`
+   - `lead` (exactly 1): most consequential story for someone running local AI.
+     ✅ Eligible scout_sources: `official`, `tools`, `hardware`, `selfhost`
      ❌ NOT eligible: `research`, `opensource` — unless the SAME story/topic ALSO
-        appears in an eligible scout (genuine cross-source mainstream coverage).
-        A paper/ML-model that exists ONLY on arXiv or GitHub is **never** lead material.
+        appears in an eligible scout (genuine cross-source coverage).
+        A paper that exists ONLY on arXiv is **never** lead material.
      Write `kicker` (2–4 words), headline, 2–3 sentence deck.
-   - `top` (0–4): next most important. Priority to mainstream sources.
+   - `top` (0–4): next most important. Priority to concrete releases and
+     measurable changes over rumors.
      Research/opensource items can appear here ONLY if the story had genuine
      mainstream impact — i.e., covered by major outlets (NYT, Reuters, Bloomberg,
      The Verge, Ars Technica, Wired, TechCrunch, CNBC, Financial Times).
@@ -75,20 +67,14 @@ After all 9 scouts have persisted their JSON to `/tmp/v2/scouts/`. The orchestra
      One line summary each.
    - `sections` (substantive remainder): group by beat into this order:
      1. Research & Papers (research beat)
-     2. Open Source & Models (opensource editorial beat)
-     3. YouTube & Video (youtube beat)
-     4. Hardware & Robotics (hardware beat)
-     5. Tools & Startups (tools beat)
-     6. Italia AI Spotlight (italia beat)
-     7. Money & Markets (funding beat)
-     Skip empty sections.
-       - YouTube & Video: show if ≥2 items (collapse into quick_hits only if <2).
-             - Italia AI Spotlight: show if ≥2 items (collapse into quick_hits if <2).
-             - All other sections: show if ≥3 items (collapse into quick_hits if <3).
-     ~3–5 items per section, best first. YouTube: 2–3 items, video cards.
+     2. Open Weights & Models (opensource editorial beat)
+     3. Tools & Runtimes (tools beat)
+     4. Self-Hosted Stack (selfhost beat)
+     5. Hardware & Edge (hardware beat)
+     Skip empty sections. Every section: show if ≥2 items (collapse into
+     quick_hits if <2). ~3–5 items per section, best first.
    - `quick_hits` (8–12): real but minor. One headline + source, no summary.
    - `trending`: pass through from opensource scout unchanged.
-   - `free_models`: pass through from `/tmp/v2/free_models.json` unchanged (see step 3b).
 6. **Rewrite for page**: tighten headlines, keep summaries to 1–2 sentences. Sentence case, factual, no clickbait.
 7. **🔴 URL validation — CRITICAL, DO NOT SKIP**:
    - **Every single item MUST have a real `http://` or `https://` URL.** No exceptions.
@@ -105,13 +91,13 @@ After all 9 scouts have persisted their JSON to `/tmp/v2/scouts/`. The orchestra
    ```
    Then write the file, and run the terminal check:
    ```bash
-   grep '"#' /tmp/v2/edition.json
+   grep '"#' /tmp/lain/edition.json
    ```
    If any match, fix them before proceeding to render.
 
 🔴 **KNOWN LLM BLIND SPOT — LLMs commonly skip steps 7-8. This is the #1 source of broken links in the newspaper and a recurring bug.** After writing edition.json, ALWAYS run:
 ```bash
-grep -E '"#"|"url": ""' /tmp/v2/edition.json
+grep -E '"#"|"url": ""' /tmp/lain/edition.json
 ```
 If any match, fix them before proceeding to render. Re-run the editor with explicit instruction if needed:
 *"Step 7 and 8 — validate EVERY single URL field. None can be #, empty, fragment-only, or missing. If a scout returned an item without a real URL, either find it or remove the item."*
@@ -142,9 +128,7 @@ If any match, fix them before proceeding to render. Re-run the editor with expli
    shows a rule without a number quite happily, but a wrong number published
    as fact is worse than no number at all.
 
-9. Write `/tmp/v2/edition.json` in the canonical shape.
-
-10. **Image path preservation when re-running** — If edition.json already exists (from a prior image-gen run), parse it and extract any `"image": "images/..."` fields BEFORE overwriting. Re-inject them into the new edition.json. The editor overwrites edition.json from scratch and does NOT know about images — without this step, 3 generated images disappear from the rendered HTML despite existing on disk.
+9. Write `/tmp/lain/edition.json` in the canonical shape.
 
 ## Edition JSON shape
 
@@ -165,16 +149,14 @@ If any match, fix them before proceeding to render. Re-run the editor with expli
   "top_stories": [ … ],
   "sections": [
     {"title": "Research & Papers", "items": [ … ]},
-    {"title": "Open Source & Models", "items": [ … ]},
-    …
+    {"title": "Open Weights & Models", "items": [ … ]},
+    {"title": "Tools & Runtimes", "items": [ … ]},
+    {"title": "Self-Hosted Stack", "items": [ … ]},
+    {"title": "Hardware & Edge", "items": [ … ]}
   ],
   "trending": {
     "github": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]},
     "huggingface": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]}
-  },
-  "free_models": {
-    "openrouter": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]},
-    "opencode_zen": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]}
   },
   "quick_hits": [ … ],
   "spiked": { "low signal": <int>, "out of window": <int>, … }
@@ -186,9 +168,9 @@ exactly; omit the whole object if you couldn't track it at all.
 
 ## Thin/quiet day rules
 - Thin day: still assemble; set `notice` like `"Light news day — fewer fresh items than usual."`
-- Quiet day (zero items): set `lead: null`, empty arrays, `notice: "Quiet news day — no fresh AI stories in the last 24 hours. The lamp stays lit."`
+- Quiet day (zero items): set `lead: null`, empty arrays, `notice: "Quiet news day — no fresh local AI stories in the last 24 hours. The rig keeps running."`
 
 ## Output
-Write `/tmp/v2/edition.json` with `terminal` heredoc or Python one-liner. Never use `execute_code` (blocked in cron).
+Write `/tmp/lain/edition.json` with `terminal` heredoc or Python one-liner. Never use `execute_code` (blocked in cron).
 
 ## All content MUST be in English.

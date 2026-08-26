@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-render.py — Lux in Tenebris newspaper renderer.
+render.py — Local AI News newspaper renderer.
 
 Turns ONE edited "edition" JSON (produced by the Editor-in-Chief agent) into the
 final front page. No LLM ever writes raw HTML: the editor only decides importance,

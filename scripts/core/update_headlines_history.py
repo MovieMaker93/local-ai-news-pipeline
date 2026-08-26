@@ -74,7 +74,7 @@ def main():
     if history_path.exists():
         history = json.loads(history_path.read_text())
     else:
-        history = {"meta": {"name": "LVX IN TENEBRIS Headline History"}, "headlines": []}
+        history = {"meta": {"name": "LOCAL AI NEWS Headline History"}, "headlines": []}
 
     # Extract new headlines
     new_entries = extract_headlines(edition)

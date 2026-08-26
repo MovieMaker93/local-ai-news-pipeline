@@ -4,7 +4,7 @@
 
 | Element | Injection point | Regex | Notes |
 |---------|----------------|-------|-------|
-| CSS | Before `</head>` | `re.sub(r'</head>', '<style>CSS</style></head>', ...)` | Production Lux uses `<link rel="stylesheet" href="style.css">` — NO inline `<style>` tag |
+| CSS | Before `</head>` | `re.sub(r'</head>', '<style>CSS</style></head>', ...)` | Production uses `<link rel="stylesheet" href="style.css">` — NO inline `<style>` tag |
 | Ticker HTML | After `</header>` | `re.sub(r'</header>', '</header>TICKER', ...)` | Between masthead and lead-zone |
 | Modal HTML | Before `</body>` | `re.sub(r'</body>', 'MODAL</body>', ...)` | |
 | JS | Before `</body>` | `re.sub(r'</body>', 'JS</body>', ...)` | |
@@ -63,7 +63,7 @@ var mdl=b.substring(i+aiS.length+3).split(')')[0];
 
 ## Operational pitfalls
 
-- **Deploy dir may have stale uncommitted changes.** `~/ai-news-deploy/index.html`
+- **Deploy dir may have stale uncommitted changes.** `~/local-ai-news-deploy/index.html`
   on disk may differ from `git HEAD:index.html` (overwritten by external
   tools/scripts). Before injecting, verify with `git show HEAD:index.html`
   or `git checkout HEAD -- index.html`. After injection, `git status`

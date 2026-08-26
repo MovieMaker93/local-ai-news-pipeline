@@ -17,10 +17,10 @@ __pycache__/
 Thumbs.db
 
 # Pipeline output (generated at runtime)
-/tmp/v2/
+/tmp/lain/
 
 # Deploy repo (separate)
-ai-news-deploy/
+local-ai-news-deploy/
 
 # Generated media
 *.ogg

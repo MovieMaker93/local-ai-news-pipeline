@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""inject_wire_ticker.py — Post-process Lux in Tenebris HTML to inject scrolling banner."""
+"""inject_wire_ticker.py — Post-process Local AI News HTML to inject scrolling banner."""
 import sys, os, json, html, re, argparse
 H = html.escape
 
@@ -97,7 +97,7 @@ def build_js():
     )
 
 def main():
-    ap = argparse.ArgumentParser(description='Inject wire ticker into Lux in Tenebris HTML')
+    ap = argparse.ArgumentParser(description='Inject wire ticker into Local AI News HTML')
     ap.add_argument('html', help='Path to rendered index.html')
     ap.add_argument('wire', help='Path to wire_articles.json')
     ap.add_argument('--output', '-o', default=None)

@@ -1,6 +1,3 @@
-# Third-party dependencies for the pure-code pipeline scripts.
-# Everything else used (json, re, pathlib, subprocess, argparse, html, xml,
-# urllib, datetime...) is Python 3 stdlib.
-requests
-youtube-transcript-api
-yt-dlp  # youtube_scout.py shells out to the `yt-dlp` CLI this installs
+# Optional but recommended: far better article-text extraction for the wire
+# articles step. Everything else the pipeline uses is Python 3 stdlib.
+trafilatura

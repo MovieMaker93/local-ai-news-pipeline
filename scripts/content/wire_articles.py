@@ -76,8 +76,8 @@ DENY = [
     'allen iverson', 'air india', 'ai-ais', 'said ai',  # extend as you see noise
 ]
 
-MODEL = 'deepseek-v4-flash'   # AI model used for writing
-PROVIDER = 'localAIServer'                # provider
+MODEL = 'flash'   # AI model used for writing (DGX Spark LiteLLM)
+PROVIDER = 'spark'                # provider
 USE_Z = False       # True -> use `hermes -z` (purest stdout) instead of `chat -q`
 
 MAX_ITEMS = 5            # how many articles to write per run
@@ -88,7 +88,7 @@ LLM_TIMEOUT = 180        # seconds
 USER_AGENT = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
               '(KHTML, like Gecko) Chrome/124.0 Safari/537.36')
 
-OUTPUT_PATH = '/tmp/v2/wire_articles.json'
+OUTPUT_PATH = '/tmp/lain/wire_articles.json'
 
 # ----------------------------------------------------------------------------
 # STAGE 1 — DETERMINISTIC RETRIEVAL (no LLM anywhere in this section)
@@ -288,7 +288,7 @@ def collect(max_items):
 def build_prompt(item):
     """The model sees ONLY this: instructions + the fetched facts. Nothing else."""
     model_name = os.environ.get('WIRE_MODEL', MODEL)
-    return f"""You are a tech-news writer for an AI daily called "Lux in Tenebris".
+    return f"""You are a tech-news writer for an AI daily called "Local AI News".
 Write ONE original short article in ENGLISH based ONLY on the source text below.
 
 STRICT RULES:
@@ -374,9 +374,9 @@ def main():
     ap.add_argument('--max', type=int, default=MAX_ITEMS)
     ap.add_argument('--out', default=OUTPUT_PATH)
     ap.add_argument('--model', default=None,
-                    help='Override model (default: deepseek-v4-flash)')
+                    help='Override model (default: flash)')
     ap.add_argument('--provider', default=None,
-                    help='Override provider (default: localAIServer)')
+                    help='Override provider (default: spark)')
     args = ap.parse_args()
 
     # Override model/provider from args if provided

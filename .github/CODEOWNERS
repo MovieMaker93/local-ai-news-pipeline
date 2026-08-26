@@ -1,19 +1,8 @@
-# Every PR needs a human review regardless of what it touches (see
-# CONTRIBUTING.md) -- these specific paths need review from an owner, not
-# just any collaborator with write access. They're exactly the ones
-# CONTRIBUTING.md flags as "explain your reasoning, don't just diff it":
-# high blast radius, or tied to a documented production incident.
+# CODEOWNERS — Local AI News pipeline
+# The load-bearing files: changing these without review breaks the daily run.
 
-# The orchestrator -- provider/model pinning, timeouts, deploy ordering.
-# A past incident here ran a day's edition on the wrong, metered backend.
-/scripts/run.sh @NTTLuke
-
-# The editor's output contract -- render.py, image-gen, podcast-pill, and
-# make_making_of.py all depend on edition.json's exact shape.
-/skills/editor/ @NTTLuke
-
-# The render contract -- coupled to template/newspaper.html.
-/scripts/core/render.py @NTTLuke
-
-# CI and repo security configuration itself.
-/.github/ @NTTLuke
+/scripts/run.sh @MovieMaker93
+/skills/editor/ @MovieMaker93
+/skills/_shared/sources.md @MovieMaker93
+/scripts/core/render.py @MovieMaker93
+/.github/ @MovieMaker93

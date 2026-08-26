@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-DEPLOY_DIR = Path(os.environ.get("LUX_DEPLOY_DIR", Path.home() / "ai-news-deploy"))
+DEPLOY_DIR = Path(os.environ.get("PAPER_DEPLOY_DIR", Path.home() / "local-ai-news-deploy"))
 ARCHIVE_DIR = DEPLOY_DIR / "archive"
 
 # Correct issue numbers (no issue on 2026-07-12)
@@ -71,7 +71,7 @@ for d in sorted(ARCHIVE_DIR.iterdir()):
         continue
     text = idx.read_text(encoding="utf-8")
     title_m = re.search(r'<title>(.+?)</title>', text)
-    title = title_m.group(1) if title_m else f"LVX IN TENEBRIS — {d.name}"
+    title = title_m.group(1) if title_m else f"LOCAL AI NEWS — {d.name}"
     no_m = re.search(r'No\.\s*(\d+)', text)
     issue = no_m.group(1) if no_m else "—"
     entries.append((d.name, issue, title))
@@ -100,7 +100,7 @@ archive_html = f"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LVX IN TENEBRIS — Archive</title>
+  <title>LOCAL AI NEWS — Archive</title>
   <link rel="stylesheet" href="../style.css">
   <style>
     .arch-page{{padding:40px 0}}
@@ -125,7 +125,7 @@ archive_html = f"""<!DOCTYPE html>
       <span class="left"><a href="{HOME_URL}" class="arch-back">← Current Issue</a></span>
       <span class="right">Archive</span>
     </div>
-    <div class="nameplate" style="font-size:48px">LVX IN <span class="lux">TENEBRIS</span></div>
+    <div class="nameplate" style="font-size:48px">LOCAL <span class="lux">AI NEWS</span></div>
     <hr class="rule-double">
     <div class="dateline"><span>Past Issues</span></div>
     <hr class="rule-thin">

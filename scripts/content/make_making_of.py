@@ -6,15 +6,13 @@ account of the run. Pure code: no LLM, no network, and strictly READ-ONLY on
 pipeline state, so it can never affect the issue it is describing.
 
 Sources, in order of trust:
-  1. /tmp/v2/scouts/scout_*.json  — how much each scout actually returned
-  2. /tmp/v2/logs/run_<date>.log  — which scouts failed, issue no, start/end
+  1. /tmp/lain/scouts/scout_*.json  — how much each scout actually returned
+  2. /tmp/lain/logs/run_<date>.log  — which scouts failed, issue no, start/end
   3. mtimes of the per-step logs  — when each step finished (hence durations)
-  4. /tmp/v2/edition.json         — what actually got published, and the lead
+  4. /tmp/lain/edition.json         — what actually got published, and the lead
 
-Counts come from the scout JSON files rather than the run log on purpose: the
-log line "✓ scout N done (X items)" is only emitted by the seven scouts that go
-through run_scout(); youtube and italia are invoked separately and never print
-it, so parsing the log alone silently undercounts the desk.
+Counts come from the scout JSON files rather than the run log on purpose:
+(robustness against future scouts invoked outside run_scout()).
 
 Everything it prints is derived. Nothing is estimated or invented: if a number
 can't be computed it is omitted rather than guessed.
@@ -38,15 +36,12 @@ from datetime import date as _date, datetime
 # Scouts in the order run.sh runs them. Display name + one-line description
 # of what that beat is for; both are stable, neither is derived from a model.
 SCOUTS = [
-    ("x",          "X / Twitter",      "Sixteen hand-picked accounts, filtered to the last 24 hours. Announcements from labs, not commentary about them."),
-    ("research",   "arXiv &amp; papers",   "The widest net of the morning, and the harshest cut. Volume is not news."),
-    ("official",   "Lab blogs",        "The official announcement pages of the major labs, read directly."),
-    ("opensource", "Open weights",     "New open-weights releases, plus the day's GitHub and Hugging Face trending boards."),
-    ("tools",      "Tools",            "Product launches and developer tools — kept separate from funding so money never masquerades as product."),
-    ("funding",    "Money",            "Who raised, who bought whom, at what valuation."),
-    ("hardware",   "Silicon &amp; robots", "Chips, accelerators, humanoids. The only scout that curls every link to check it answers 200 before trusting it."),
-    ("youtube",    "Video",            "Ten channels pulled by script, then read for actual news. Tutorials and thumbnail-bait are dropped before the desk sees them."),
-    ("italia",     "Italia",           "Italian AI startups and funding. Headline translated to English, link left pointing at the Italian source."),
+    ("research",   "arXiv &amp; papers", "Efficiency research only: quantization, distillation, small models, inference. Volume is not news."),
+    ("official",   "Model makers",     "The official blogs of the labs that ship open weights, read directly."),
+    ("opensource", "Open weights",     "New open-weights releases, plus the day's GitHub and Hugging Face trending boards, filtered for AI."),
+    ("tools",      "Tools",            "Runtimes and tooling — Ollama, llama.cpp, UIs, agent frameworks. What you install to run models at home."),
+    ("hardware",   "Silicon &amp; edge", "Consumer GPUs, VRAM, NPUs, mini PCs. The metal the models run on. The only scout that curls every link to check it answers 200 before trusting it."),
+    ("selfhost",   "Self-hosted",      "The stack around the model: frontends, automation, community know-how from r/LocalLLaMA worth elevating."),
 ]
 
 # The rules the editor kills by, taken from skills/editor/SKILL.md.
@@ -141,10 +136,10 @@ def parse_run_log(path):
     m = re.search(r"✓ issue #(\d+)", text)
     if m:
         out["issue"] = int(m.group(1))
-    m = re.search(r"LUX IN TENEBRIS V2 — (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", text)
+    m = re.search(r"LOCAL AI NEWS — (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", text)
     if m:
         out["start"] = m.group(1)
-    m = re.search(r"V2 PIPELINE COMPLETE — (\d{2}:\d{2}:\d{2})", text)
+    m = re.search(r"LOCAL AI NEWS PIPELINE COMPLETE — (\d{2}:\d{2}:\d{2})", text)
     if m:
         out["end"] = m.group(1)
     m = re.search(r"Images:\s+(\d+)", text)
@@ -401,8 +396,8 @@ PAGE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>How this issue made itself — LVX IN TENEBRIS No. {ISSUE}</title>
-  <meta name="description" content="A replayable account of how issue No. {ISSUE} of Lux in Tenebris assembled itself: nine scouts, one editor, and every story that got killed.">
+  <title>How this issue made itself — LOCAL AI NEWS No. {ISSUE}</title>
+  <meta name="description" content="A replayable account of how issue No. {ISSUE} of Local AI News assembled itself: six scouts, one editor, and every story that got killed.">
   <link rel="stylesheet" href="style.css">
   <style>
 {CSS}
@@ -415,24 +410,24 @@ PAGE = """<!DOCTYPE html>
     <div class="topline"></div>
     <div class="ears">
       <span class="left">Est. MMXXVI</span>
-      <span class="right">No. {ISSUE} <a href="/archive/" class="ar" title="Browse past issues">◆ Archive</a></span>
+      <span class="right">No. {ISSUE} <a href="archive/" class="ar" title="Browse past issues">◆ Archive</a></span>
     </div>
-    <div class="nameplate">LVX IN <span class="lux">TENEBRIS</span></div>
+    <div class="nameplate">LOCAL <span class="lux">AI NEWS</span></div>
     <hr class="rule-double">
     <div class="dateline">
       <span>{DATE_HUMAN}</span>
       <span class="dot">◆</span>
-      <span class="tag">AI dispatches from the dark</span>
+      <span class="tag">open weights, on your metal</span>
       <span class="dot">◆</span>
       <span>{PUBLISHED} stories</span>
     </div>
-    <div class="devocracy-credit">Inference server generously provided by <a href="https://x.com/ivanfioravanti" target="_blank" rel="noopener">Devocracy</a> · powered by DwarfStar · DeepSeek V4 Flash 0731 (M3 Ultra)!</div>
+    <div class="devocracy-credit">Inference self-hosted on a DGX Spark · models served via LiteLLM</div>
     <hr class="rule-thin">
   </header>
 
   <div class="mk-intro">
     <h1>How this issue made itself <span class="mk-betabig">beta</span></h1>
-    <p>Nine scouts, one editor, one illustrator — and not a single human decision.
+    <p>Six scouts, one editor — and not a single human decision.
        Replay the run that produced No. {ISSUE}{SPIKED_LINE}</p>
     <a class="mk-back" href="index.html">← Back to the front page</a>
   </div>
@@ -456,7 +451,7 @@ PAGE = """<!DOCTYPE html>
   </div>
 
   <div class="mk-tally">
-    <div><div class="k">Gathered</div><div class="val" id="t-found">0</div><div class="sub">by nine scouts</div></div>
+    <div><div class="k">Gathered</div><div class="val" id="t-found">0</div><div class="sub">by six scouts</div></div>
     <div><div class="k">Published</div><div class="val amber" id="t-pub">0</div><div class="sub">made the issue</div></div>
     <div><div class="k">Spiked</div><div class="val dim" id="t-kill">0</div><div class="sub">killed on the desk</div></div>
     <div><div class="k">Self-hosted</div><div class="val amber" id="t-self">—</div><div class="sub">of every decision</div></div>
@@ -464,7 +459,7 @@ PAGE = """<!DOCTYPE html>
 
   <footer class="colophon">
     <p class="mark">Per aspera ad astra</p>
-    <p class="meta">Compiled by Hermes Agent · {DATE_ISO} · <a href="https://github.com/NTTLuke/luxintenebris-ai-news" target="_blank" rel="noopener">source</a></p>
+    <p class="meta">Compiled by Hermes Agent · {DATE_ISO} · <a href="https://github.com/MovieMaker93/local-ai-news" target="_blank" rel="noopener">source</a></p>
   </footer>
 
 </div>
@@ -613,8 +608,8 @@ JS = r"""
   var IDLE = {
     who:"Ready", host:"self",
     head:"The run, replayed in a minute.",
-    deck:"Nine scouts comb the web, an editor decides what deserves the front page, "
-       + "and an illustrator paints it. Press replay to watch it happen — or click "
+    deck:"Six scouts comb the web, an editor decides what deserves the front page. "
+       + "Press replay to watch it happen — or click "
        + "any step on the left to go straight there.",
     note:"The interesting part is not what got printed. It is everything that did not."
   };
@@ -760,9 +755,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("output", help="path to write making-of.html")
     ap.add_argument("--date", default=_date.today().isoformat())
-    ap.add_argument("--logs", default="/tmp/v2/logs")
-    ap.add_argument("--edition", default="/tmp/v2/edition.json")
-    ap.add_argument("--scouts", default="/tmp/v2/scouts")
+    ap.add_argument("--logs", default="/tmp/lain/logs")
+    ap.add_argument("--edition", default="/tmp/lain/edition.json")
+    ap.add_argument("--scouts", default="/tmp/lain/scouts")
     args = ap.parse_args()
 
     day = args.date

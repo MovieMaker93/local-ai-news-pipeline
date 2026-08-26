@@ -1,21 +1,24 @@
 ---
 name: scout-tools
-description: "V2 scout: New AI tools, product launches, dev tools. Returns JSON array."
+description: "Scout: local-AI tooling and runtimes — Ollama, llama.cpp, UIs, agent frameworks, MCP. Returns JSON array."
 ---
 
-# Scout V2 — Tools & Launches
+# Scout — Tools & Runtimes
 
 ## Focus
-New AI products, developer tools, app launches, notable feature releases.
-NOT funding, NOT hardware (those have their own scouts).
+New tools and releases that help people RUN models on their own hardware:
+Ollama, LM Studio, llama.cpp, vLLM, Open WebUI, ComfyUI, Jan, Kobold,
+text-generation-webui, LangChain/LlamaIndex local modes, MCP servers and
+tools, local coding agents, RAG stacks, TTS/ASR tooling, model converters
+(GGUF, MLX), Docker images for local inference.
+NOT: cloud-only SaaS launches, funding (no money scout here, but keep
+business out of this beat anyway), hardware (own scout).
 
 ## Sources
-- web_search: `new AI tool launch <yesterday>`, `AI product launch <yesterday>`
-- Site-scoped: `site:techcrunch.com AI tool <yesterday>`, `site:theverge.com AI <yesterday>`
-- web_fetch `https://www.producthunt.com/` — scan day's AI launches
-- web_fetch `https://news.ycombinator.com/` — scan "Show HN" AI tools
-- Optional x_search: `("introducing" OR launched OR "now available") (AI OR agent OR app)`
-  from_date <yesterday>, to_date <today>
+- web_search: `Ollama release <yesterday>`, `llama.cpp release <yesterday>`, `new local LLM tool <yesterday>`, `GGUF converter release <yesterday>`
+- Site-scoped: `site:github.com ollama release`, `site:news.ycombinator.com local LLM <yesterday>`
+- web_fetch `https://www.producthunt.com/` — scan day's AI/dev launches, keep local-relevant only
+- web_fetch `https://news.ycombinator.com/` — scan "Show HN" for local-AI tools
 
 ## Output contract
 Return ONLY a JSON array (no prose, no fences). Each element:
@@ -25,12 +28,12 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 ```
 
 ## Signal guide
-- Widely-adopted or first-of-its-kind tool: 3–4
+- Major release of a widely-used runtime (Ollama, llama.cpp, vLLM, Open WebUI): 4
+- Genuinely useful first-of-its-kind local tool: 3–4
 - Minor feature bump / update: 1–2
 
 ## Rules
-- Every `url` MUST come from real web_search/web_extract result or x_search permalink.
-- Never synthesize URLs. If you can't get a real one, **drop the item** — do not
+- Every `url` MUST come from real web_search/web_extract result. Never synthesize URLs. If you can't get a real one, **drop the item** — do not
   emit `null`, `""` or `"#"`. The renderer discards items without a valid URL,
   so an item without one is wasted work, not a partial win.
 - Only items dated [yesterday, today].
@@ -53,7 +56,7 @@ for m in re.finditer(r'\"name\":\"([^\"]+)\"[^}]*\"tagline\":\"([^\"]+)\"[^}]*\"
 " 2>/dev/null | head -20
 ```
 
-2. **Hacker News Show HN via Algolia API (free):**
+2. **Hacker News (front page + Show HN) via Algolia API (free):**
 ```bash
 curl -s "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn,story&hitsPerPage=20&numericFilters=created_at_i>$(date -d '2 days ago' +%s)" | python3 -c "
 import sys, json; data = json.load(sys.stdin)
@@ -62,7 +65,17 @@ for h in data.get('hits', []):
 "
 ```
 
-3. **Generic site fetch (replaces web_extract):**
+3. **GitHub releases of the core runtimes via API (free, no auth):**
+```bash
+for repo in ollama/ollama ggml-org/llama.cpp open-webui/open-webui vllm-project/vllm; do
+  curl -s "https://api.github.com/repos/$repo/releases?per_page=1" | python3 -c "
+import sys, json; rel = json.load(sys.stdin)
+if rel: print('$repo:', rel[0].get('tag_name',''), '|', rel[0].get('published_at','')[:10])
+"
+done
+```
+
+4. **Generic site fetch (replaces web_extract):**
 ```bash
 curl -sL "URL" | python3 -c "
 import sys, re; html = sys.stdin.read()
@@ -73,17 +86,15 @@ print('BODY:', text)
 "
 ```
 
-4. If ALL fallbacks fail, return `[]`.
+5. If ALL fallbacks fail, return `[]`.
 
 ## Link-Source Validation (MANDATORY — run before writing final JSON)
 
 After gathering all items but BEFORE writing the final JSON, validate EVERY item:
 
 1. **Domain consistency:** Extract the domain from `url`. The `source` field and the URL domain must be aligned:
-   - ✓ source="TechCrunch", url="https://techcrunch.com/..." — domain "techcrunch.com" matches
-   - ✓ source="Hacker News", url="https://news.ycombinator.com/..." — "ycombinator" in URL
-   - ✓ source="arXiv", url="https://arxiv.org/abs/..." — "arxiv" in both
-   - ✓ source="@karpathy" / "Karpathy", url="https://x.com/..." — exception for X/Twitter users
+   - ✓ source="GitHub", url="https://github.com/ollama/ollama/releases/..." — domain matches
+   - ✓ source="Hacker News", url="https://news.ycombinator.com/item?id=..." — "ycombinator" in URL
    - ✗ source="Hacker News", url="https://medium.com/..." — domain doesn't match
    - ✗ source="TechCrunch", url="https://someothersite.com/..." — domain doesn't match
 

@@ -1,16 +1,24 @@
 ---
 name: scout-research
-description: "V2 scout: arXiv + HuggingFace daily papers. Returns JSON array."
+description: "Scout: arXiv + HuggingFace daily papers, filtered to local-AI-relevant research (quantization, distillation, small models, efficient inference). Returns JSON array."
 ---
 
-# Scout V2 — Research
+# Scout — Research (Local AI relevance)
+
+## Focus
+Research that matters for running models LOCALLY: quantization, distillation,
+small language models, MoE efficiency, KV-cache/memory work, speculative
+decoding, on-device/edge inference, fine-tuning on consumer hardware (LoRA/QLoRA),
+long-context efficiency, evaluation of small models.
+NOT: pure scaling-law papers, frontier-lab capability announcements with no
+local angle, theory with no implementation consequence.
 
 ## Sources
-- arXiv (AI/ML papers from last 24h)
+- arXiv (cs.AI/cs.LG/cs.CL papers from last 24h)
 - HuggingFace Daily Papers
 
 ## Queries
-- web_search: `arXiv AI paper <yesterday>`, `Hugging Face daily papers <yesterday>`
+- web_search: `arXiv quantization LLM <yesterday>`, `small language model paper <yesterday>`, `Hugging Face daily papers <yesterday>`
 - web_extract: `https://huggingface.co/papers` — keep entries dated in-window
 
 ## Output contract
@@ -21,8 +29,8 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 ```
 
 ## Signal guide
-- Papers with clear benchmark results / new SOTA: 4–5
-- Solid methods papers: 3
+- Quantization/distillation methods with clear benchmark wins on small models: 4–5
+- Solid efficiency methods papers (inference, memory, decoding): 3
 - Plain preprints with no result: 1–2
 
 ## Rules
@@ -54,7 +62,7 @@ python3 -c "
 import re
 with open('/tmp/hf_papers.html') as f:
     html = f.read()
-aids = re.findall(r'/papers/(\d+\.\d+)\"', html)
+aids = re.findall(r'/papers/(\d+\.\d+)', html)
 for aid in sorted(set(aids))[:20]:
     print(f'https://huggingface.co/papers/{aid} | https://arxiv.org/abs/{aid}')
 "
@@ -84,14 +92,16 @@ import xml.etree.ElementTree as ET, json, re
 tree = ET.parse('/tmp/arxiv_raw.xml')
 root = tree.getroot()
 ns = {'atom': 'http://www.w3.org/2005/Atom', 'arxiv': 'http://arxiv.org/schemas/atom'}
+# Local-AI relevance keywords — this paper exists for people who run models
+# on their own hardware, so efficiency beats capability in the scoring.
 notable_keywords = [
-    'llm', 'large language model', 'reasoning', 'agent', 'multimodal',
-    'alignment', 'reinforcement learning', 'transformer', 'attention',
-    'diffusion', 'benchmark', 'chain-of-thought', 'moe', 'fine-tuning',
-    'quantization', 'distillation', 'rag', 'vision language', 'vlm',
-    'pretraining', 'scaling law', 'world model', 'safety', 'sft',
-    'rlhf', 'dpo', 'grpo', 'kv-cache', 'instruction tuning',
-    'self-improving', 'coding agent', 'spatial reasoning'
+    'quantization', 'quantiz', 'gguf', 'awq', 'gptq', 'distillation',
+    'small language model', 'slm', 'efficient inference', 'inference',
+    'kv-cache', 'kv cache', 'speculative decoding', 'moe', 'mixture of experts',
+    'lora', 'qlora', 'peft', 'fine-tuning consumer', 'on-device', 'edge device',
+    'edge inference', 'memory footprint', 'vram', 'long context efficiency',
+    'context compression', 'pruning', 'sparsity', 'llm compression',
+    'local llm', 'llama', 'qwen', 'gemma', 'phi-', 'mistral', 'smollm'
 ]
 papers = []
 for entry in root.findall('atom:entry', ns):
@@ -101,7 +111,7 @@ for entry in root.findall('atom:entry', ns):
     aid = re.sub(r'v\d+$', '', aid_text.split('/')[-1]) if 'arxiv' in aid_text else aid_text
     pub = entry.find('atom:published', ns).text[:10]
     cats = [c.get('term') for c in entry.findall('atom:category', ns)]
-    if not any(c in cats for c in ['cs.AI','cs.LG','cs.CL','cs.CV','cs.MA','cs.RO','cs.MM']):
+    if not any(c in cats for c in ['cs.AI','cs.LG','cs.CL','cs.CV','cs.AR','cs.DC']):
         continue
     score = sum(1 for kw in notable_keywords if kw in f'{title} {summary}'.lower())
     if score == 0:

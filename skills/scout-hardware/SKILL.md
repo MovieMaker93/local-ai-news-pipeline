@@ -1,26 +1,31 @@
 ---
 name: scout-hardware
-description: "V2 scout: AI chips, robots, embodied AI, datacenter hardware. Returns JSON array."
+description: "Scout: consumer GPUs, NPUs, Apple silicon, edge devices, VRAM and memory — hardware for running models locally. Returns JSON array."
 ---
 
-# Scout V2 — Hardware & Robotics
+# Scout — Hardware & Edge
 
 ## Focus
-AI silicon (GPUs/NPUs/accelerators, custom chips), robots & humanoids, embodied/physical AI, edge & on-device AI, data-center hardware.
-NOT tools, NOT funding.
+Hardware you can buy and run models on: consumer GPUs (NVIDIA/AMD/Intel),
+VRAM and unified-memory news, Apple silicon for inference, NPUs and edge
+devices (Jetson, Snapdragon, RK3588), mini PCs and appliance-style boxes
+(DGX Spark class), eGPUs, memory/RAM price moves that matter for LLM rigs,
+cooling/power for homelab inference boxes.
+NOT: datacenter-scale AI infrastructure (training clusters, hyperscaler
+deals — only if it directly changes what a consumer can buy), tools, funding.
 
 ## Sources
-- web_search: `humanoid robot <yesterday>`, `AI chip accelerator announcement <yesterday>`, `NVIDIA OR AMD OR Qualcomm AI <yesterday>`, `physical AI robot <yesterday>`
+- web_search: `consumer GPU AI inference <yesterday>`, `VRAM LLM <yesterday>`, `NPU on-device AI <yesterday>`, `Apple silicon local LLM <yesterday>`, `DGX Spark <yesterday>`
 - Site-scoped:
-  - `site:therobotreport.com <yesterday>` (robotics industry)
-  - `site:spectrum.ieee.org robotics <yesterday>` (IEEE Spectrum)
-  - `site:tomshardware.com AI <yesterday>` (chips/accelerators)
-  - `site:semianalysis.com <yesterday>` (deep silicon/datacenter)
-- web_fetch `https://blogs.nvidia.com/` + NVIDIA/AMD/Qualcomm newsrooms
+  - `site:tomshardware.com AI GPU <yesterday>` (chips)
+  - `site:videocardz.com <yesterday>` (GPU rumors/launches)
+  - `site:npu-news.com OR site:edge-ai.vision <yesterday>` (edge NPUs)
+- web_fetch NVIDIA/AMD/Qualcomm consumer newsrooms when a launch is suspected
 
 ## Signal guide
-- Major chip launch (NVIDIA/AMD/TPU-class) or humanoid milestone: 4–5
-- Incremental spec bump or demo: 2–3
+- New consumer GPU generation / major memory-capacity shift / new edge-inference device: 4–5
+- Driver, runtime (CUDA/ROCm/RocmPyTorch), or benchmark news that changes local inference: 3–4
+- Rumor, incremental spec bump: 2
 
 ## Output contract
 Return ONLY a JSON array (no prose, no fences). Each element:
@@ -39,12 +44,8 @@ Return ONLY a JSON array (no prose, no fences). Each element:
 After gathering all items but BEFORE writing the final JSON, validate EVERY item:
 
 1. **Domain consistency:** Extract the domain from `url`. The `source` field and the URL domain must be aligned:
-   - ✓ source="TechCrunch", url="https://techcrunch.com/..." — domain "techcrunch.com" matches
-   - ✓ source="Hacker News", url="https://news.ycombinator.com/..." — "ycombinator" in URL
-   - ✓ source="arXiv", url="https://arxiv.org/abs/..." — "arxiv" in both
-   - ✓ source="@karpathy" / "Karpathy", url="https://x.com/..." — exception for X/Twitter users
-   - ✗ source="Hacker News", url="https://medium.com/..." — domain doesn't match
-   - ✗ source="TechCrunch", url="https://someothersite.com/..." — domain doesn't match
+   - ✓ source="Tom's Hardware", url="https://tomshardware.com/..." — domain matches
+   - ✗ source="Tom's Hardware", url="https://aggregator.com/..." — domain doesn't match
 
 2. **Auto-fix on mismatch (max 3 attempts per item):** If source and URL domain don't align, use `web_search` with the article title + source name to find the real URL. Each attempt = one search cycle.
 
