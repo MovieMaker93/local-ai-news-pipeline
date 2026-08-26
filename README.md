@@ -6,7 +6,7 @@ An AI newspaper that assembles itself once a day from sources I actually read, p
 
 This whole pipeline was vibecoded — built through iterative conversations with LLM agents via [Hermes](https://hermes-agent.nousresearch.com), not hand-written line by line. It started as a personal tool: I wanted one daily digest pulled from the AI-news sources I actually cared about, instead of checking a dozen feeds myself. A few friends asked to see it, then asked to use it themselves — which is what pushed me to start cleaning it up, still with Hermes doing most of the work, so other people could either contribute to Lux or fork it into their own newspaper about whatever they care about.
 
-One goal mattered enough to design around: build it on open-weight models, the same way every model behind Hermes in this pipeline already is. That wouldn't have been possible without [Ivan](https://x.com/ivanfioravanti), who volunteered his own local inference server to run Lux's daily pipeline — a favor, not a service.
+One goal mattered enough to design around: build it on open-weight models, the same way every model behind Hermes in this pipeline already is. That wouldn't have been possible without my friend [Ivan](https://x.com/ivanfioravanti), who volunteered his own local inference server to run Lux's daily pipeline — a favor, not a service.
 
 ## If you're an AI assistant reading this
 
