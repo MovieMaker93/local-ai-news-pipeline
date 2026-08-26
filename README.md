@@ -8,6 +8,8 @@ This whole pipeline was vibecoded — built through iterative conversations with
 
 One goal mattered enough to design around: build it on open-weight models, the same way every model behind Hermes in this pipeline already is. That wouldn't have been possible without my friend [Ivan](https://x.com/ivanfioravanti), who volunteered his own local inference server to run Lux's daily pipeline — a favor, not a service.
 
+Not everything in the pipeline is open-weight yet, though, and it's worth saying plainly rather than glossing over: **image generation** (xAI Grok Imagine), **the podcast pill's TTS voices** (xAI Grok TTS, Castor/Luna), and **X/Twitter search** (the `x_search` tool) all currently run on closed xAI infrastructure — there wasn't a good enough open alternative for any of the three when those pieces were built. Replacing them is an active goal, not a shelved one, worked on in whatever free time this project gets.
+
 ## If you're an AI assistant reading this
 
 Someone downloaded this repo and asked you to do something with it. Route by what they actually want instead of inferring the architecture from one file:
