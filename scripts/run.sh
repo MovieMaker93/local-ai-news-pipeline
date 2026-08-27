@@ -437,10 +437,15 @@ fi
 echo "[step 6] wire articles..."
 WIRE_SCRIPT="$SCRIPT_DIR/content/wire_articles.py"
 if [ -f "$WIRE_SCRIPT" ]; then
-    # --provider passed explicitly (rather than relying on wire_articles.py's
-    # own default) so $PIPELINE_PROVIDER stays the single place the backend is
-    # decided for the whole pipeline.
+    # --profile and --provider passed explicitly (rather than relying on
+    # wire_articles.py's own defaults) so the subprocess lands on the same
+    # profile+backend as every other step. Without --profile it used the
+    # operator's DEFAULT profile, which has no `spark` provider — the call
+    # then silently fell back to that profile's paid fallback chain
+    # (observed 2026-08-27: five articles written by gpt-5.5/openai-codex
+    # with fallback warnings pasted into the ticker).
     python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" \
+        --profile "$PROFILE" \
         --model "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" 2>>"$LOGFILE" || \
         echo "  ⚠ wire articles failed (non-fatal)"
     WIRE_COUNT=$(python3 -c "import json;d=json.load(open('$SCOUTS_DIR/scout_wire.json'));print(len(d))" 2>/dev/null || echo "0")
@@ -522,6 +527,19 @@ fi
 
 cp "$WORK_DIR/edition.json" "$DEPLOY_DIR/edition.json"
 echo "  ✓ edition.json saved to deploy dir"
+
+# Bootstrap the archive index if it doesn't exist yet. archive_issue.py only
+# regenerates archive/index.html when it archives a PREDECESSOR edition — on
+# the very first run there is none, so the masthead's archive/ link 404s
+# until day 2 otherwise.
+if [ ! -f "$DEPLOY_DIR/archive/index.html" ]; then
+    python3 -c "
+import sys
+sys.path.insert(0, '$SCRIPT_DIR/core')
+import archive_issue as ai
+ai.regenerate_archive_index('$DEPLOY_DIR')
+" 2>>"$LOGFILE" && echo "  ✓ archive index bootstrapped (empty listing)"
+fi
 
 # ── Step 9: Headlines history + commit + push ────────────────
 # (archiving the PREVIOUS issue already happened in step 1b, before this

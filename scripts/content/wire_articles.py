@@ -78,6 +78,7 @@ DENY = [
 
 MODEL = 'flash'   # AI model used for writing (DGX Spark LiteLLM)
 PROVIDER = 'spark'                # provider
+PROFILE = 'paper'                 # Hermes profile (must define the provider)
 USE_Z = False       # True -> use `hermes -z` (purest stdout) instead of `chat -q`
 
 MAX_ITEMS = 5            # how many articles to write per run
@@ -323,6 +324,8 @@ def call_hermes(prompt):
         cmd = ['hermes', '-z', prompt]
     else:
         cmd = ['hermes', 'chat', '--quiet', '-q', prompt]
+    if PROFILE:
+        cmd += ['--profile', PROFILE]
     if MODEL:
         cmd += ['--model', MODEL]
     if PROVIDER:
@@ -336,9 +339,14 @@ def call_hermes(prompt):
     if res.returncode != 0:
         log(f'  hermes exit {res.returncode}: {res.stderr.strip()[:200]}')
         return None
-    # Filter out hermes warning lines from the output
+    # Filter out hermes warning lines from the output. The '⚠️'-style
+    # fallback notices go to stdout too — without this filter they end up
+    # pasted inside the article body and thus the live ticker.
     lines = res.stdout.strip().splitlines()
-    clean = [l for l in lines if not l.startswith('Warning:')]
+    clean = [l for l in lines if not l.startswith('Warning:')
+             and '⚠️' not in l
+             and 'Primary auth failed' not in l
+             and 'switching to fallback' not in l]
     return '\n'.join(clean).strip() or None
 
 
@@ -377,6 +385,8 @@ def main():
                     help='Override model (default: flash)')
     ap.add_argument('--provider', default=None,
                     help='Override provider (default: spark)')
+    ap.add_argument('--profile', default=None,
+                    help='Override Hermes profile (default: paper)')
     args = ap.parse_args()
 
     # Override model/provider from args if provided
@@ -384,6 +394,8 @@ def main():
         globals()['MODEL'] = args.model
     if args.provider:
         globals()['PROVIDER'] = args.provider
+    if args.profile:
+        globals()['PROFILE'] = args.profile
 
     grounded = collect(args.max)
 
