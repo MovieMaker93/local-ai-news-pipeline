@@ -16,10 +16,17 @@ local angle, theory with no implementation consequence.
 ## Sources
 - arXiv (cs.AI/cs.LG/cs.CL papers from last 24h)
 - HuggingFace Daily Papers
+- **Research blogs** — read the list from `skills/_shared/sources.md`, find the
+  `## Research Blogs (\`scout-research\`)` section, take the array from the
+  `json` block under it, and `web_fetch` each URL (single source of truth;
+  don't hardcode it here). Posts carry dates — treat them exactly like
+  papers: same output contract, `beat: research`, signal by strength of the
+  result. Keep only posts dated within [yesterday, today].
 
 ## Queries
 - web_search: `arXiv quantization LLM <yesterday>`, `small language model paper <yesterday>`, `Hugging Face daily papers <yesterday>`
 - web_extract: `https://huggingface.co/papers` — keep entries dated in-window
+- web_extract: each research-blog URL from `sources.md` — keep posts dated in-window
 
 ## Output contract
 Return ONLY a JSON array (no prose, no fences). Each element:
