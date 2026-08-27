@@ -61,15 +61,23 @@ if not _m:
     raise RuntimeError(f"Could not find wire-articles feeds block in {SOURCES_FILE}")
 FEEDS = json.loads(_m.group(1))
 
-# Deterministic AI relevance filter (Stage 1). An item passes if its title+summary
-# contains at least one ALLOW term AND is not dominated by a DENY term.
+# Deterministic LOCAL-AI relevance filter (Stage 1). An item passes if its
+# title+summary contains at least one ALLOW term AND is not dominated by a
+# DENY term. Deliberately does NOT include generic 'ai'/'artificial
+# intelligence' — with those, every startup-with-an-AI-feature story passes
+# and the ticker drifts off-beat (observed 2026-08-27: fashion-startup
+# funding, Netflix games). This is a local-AI paper: the vocabulary below
+# is the beat.
 ALLOW = [
-    'ai', 'a.i.', 'artificial intelligence', 'machine learning', 'deep learning',
-    'llm', 'large language model', 'neural', 'transformer', 'openai', 'anthropic',
-    'deepmind', 'gemini', 'claude', 'gpt', 'llama', 'mistral', 'qwen', 'deepseek',
-    'hugging face', 'huggingface', 'diffusion', 'inference', 'fine-tun', 'agentic',
-    'ai agent', 'chatbot', 'generative', 'open-weights', 'open weights', 'nvidia',
-    'robot', 'humanoid', 'gpu', 'tpu', 'accelerator', 'foundation model',
+    'llm', 'large language model', 'llama', 'mistral', 'qwen', 'deepseek',
+    'gemma', 'phi-', 'smollm', 'open weights', 'open-weight', 'gguf',
+    'ollama', 'llama.cpp', 'llama-cpp', 'vllm', 'lm studio', 'open webui',
+    'local ai', 'local model', 'local llm', 'run locally', 'on-device',
+    'edge ai', 'npu', 'vram', 'gpu', 'nvidia', 'rtx', 'quantiz', 'fine-tun',
+    'lora', 'comfyui', 'stable diffusion', 'diffusion model', 'rag',
+    'model context protocol', 'mcp server', 'self-host', 'self host',
+    'hugging face', 'huggingface', 'open-source model', 'open source ai',
+    'n8n', 'home assistant', 'inference', 'speculative decoding', 'kv cache',
 ]
 # Words that, when present without a strong AI term, signal a false positive.
 DENY = [
@@ -356,8 +364,8 @@ def write_article(item):
     if not out:
         return None
     lines = out.splitlines()
-    headline = lines[0].strip().strip('"').strip('#').strip()
-    body = '\n'.join(lines[1:]).strip() if len(lines) > 1 else ''
+    headline, idx = _pick_headline(lines)
+    body = '\n'.join(lines[idx + 1:]).strip() if len(lines) > idx + 1 else ''
     if not headline or not body:
         return None
     return {
@@ -369,6 +377,30 @@ def write_article(item):
         'published': item.get('published', ''),
         'generated_at': datetime.now(timezone.utc).isoformat(),
     }
+
+
+# Models occasionally prefix their output with a meta line ("Here is the
+# article:") instead of starting with the headline. Pick the first line that
+# actually looks like a headline; fall back to the first non-empty line.
+_META_HEADLINE = re.compile(
+    r'(?i)^\s*(here is|here\'s|sure,?|article|the article|below is|based on|i have|i\'ve)'
+)
+
+
+def _pick_headline(lines):
+    cands = []
+    for i, l in enumerate(lines[:5]):
+        c = l.strip().strip('"').strip('#').strip()
+        if not c:
+            continue
+        cands.append((c, i))
+        if _META_HEADLINE.match(c):
+            continue
+        if c.endswith(':') and len(c) < 40:
+            continue
+        if len(c) >= 15:
+            return c, i
+    return cands[0] if cands else ('', 0)
 
 
 # ----------------------------------------------------------------------------

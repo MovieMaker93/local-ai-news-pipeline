@@ -102,16 +102,22 @@ last_attempt() {
 #   - every failure path returns 0 (missing .env, empty creds, no network)
 #   - curl has a hard 10s timeout, so it can never hang the pipeline
 #   - output is discarded; the bot token must never reach the run log
+#   - optional TELEGRAM_THREAD_ID in the .env targets a forum topic
+#     (message_thread_id); without it, the group's General chat is used
 TG_ENV="${PAPER_TG_ENV:-$HOME/.hermes/profiles/$PROFILE/.env}"
 notify() {
-    local text="$1" tok chat
+    local text="$1" tok chat thread
     [ -f "$TG_ENV" ] || return 0
     tok=$(grep -m1 '^TELEGRAM_BOT_TOKEN=' "$TG_ENV" 2>/dev/null | cut -d= -f2- || true)
     chat=$(grep -m1 '^TELEGRAM_HOME_CHANNEL=' "$TG_ENV" 2>/dev/null | cut -d= -f2- || true)
+    thread=$(grep -m1 '^TELEGRAM_THREAD_ID=' "$TG_ENV" 2>/dev/null | cut -d= -f2- || true)
     [ -n "$tok" ] && [ -n "$chat" ] || return 0
+    local -a thread_args=()
+    [ -n "$thread" ] && thread_args=(-d "message_thread_id=${thread}")
     curl -s -o /dev/null --max-time 10 \
         -X POST "https://api.telegram.org/bot${tok}/sendMessage" \
         -d "chat_id=${chat}" \
+        "${thread_args[@]}" \
         --data-urlencode "text=${text}" >/dev/null 2>&1 || true
     return 0
 }
