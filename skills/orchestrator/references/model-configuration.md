@@ -39,7 +39,7 @@ Being one self-hosted box is also why scouts run **one at a time** — see
 
 ## 3. How to Change a Step's Model
 
-1. **Identify the step** in `run.sh` (look for the `hermes chat -q` block, or the `run_scout()` helper if it's one of the 6 scouts).
+1. **Identify the step** in `run.sh` (look for the `hermes chat -q` block, or the `run_scout()` helper if it's one of the 10 scouts).
 2. **Change its `-m <model> --provider <provider>` flags** directly — there's no default to fall back to, so this fully determines what that step uses.
 3. **Test** by running just that step standalone:
    ```bash

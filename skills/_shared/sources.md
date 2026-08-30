@@ -79,6 +79,69 @@ https://huggingface.co/blog (already covered by scout-official)
 
 ---
 
+## Scout X (`scout-x`)
+**Searches X/Twitter** with predefined queries against a fixed set of handles.
+
+<!-- sources:scout-x:handles -->
+```json
+[
+  "OpenAI", "AnthropicAI", "GoogleDeepMind", "xai", "NousResearch",
+  "sama", "karpathy", "huggingface", "DeepLearningAI", "ylecun",
+  "simonw", "swyx", "_philschmid", "omarsar0", "_akhaliq", "lmsysorg"
+]
+```
+
+**Possible expansions:**
+- Companies: `@Cohere`, `@Replit`, `@StabilityAI`, `@Midjourney`, `@Cursor_ai`, `@GitHubCopilot`
+- Academics: `@StanfordHAI`, `@MIT_AI`, `@erichorvitz`, `@demishassabis`, `@andrewyng`
+- Media: `@TechCrunch`, `@TheVerge`, `@WIRED`, `@MIT_TechnologyReview`
+- Open source: `@ollama`, `@LocalLLaMA`
+
+---
+
+## Scout Italia (`scout-italia`)
+**RSS feeds + web search** for Italian AI startups/funding/community.
+
+<!-- sources:scout-italia:feeds -->
+```json
+[
+  "https://www.ai4business.it/feed/",
+  "https://www.latechmadeinitaly.com/"
+]
+```
+
+The rest of the collection (web/x_search for specific startups, funding, spin-offs) is query strategy, not in this file.
+
+---
+
+## YouTube Scout (`scout-youtube`)
+**Hybrid:** Python script (`youtube_scout.py`) fetches videos via RSS + LLM writes articles. For selection methodology and frequency criteria, see [`scout-youtube/references/channels.md`](../scout-youtube/references/channels.md) — this section holds only the current list.
+
+<!-- sources:scout-youtube:channels -->
+```json
+[
+  {"id": "UCKelCK4ZaO6HeEI1KQjqzWA", "name": "The AI Daily Brief"},
+  {"id": "UCrM7B7SL_g1edFOnmj-SDKg", "name": "Bloomberg Technology"},
+  {"id": "UCbRP3c757lWg9M-U7TyEkXA", "name": "Theo - t3.gg"},
+  {"id": "UChpleBmo18P08aKCIgti38g", "name": "Matt Wolfe"},
+  {"id": "UCbfYPyITQ-7l4upoX8nvctg", "name": "Two Minute Papers"},
+  {"id": "UC1yNl2E66ZzKApQdRuTQ4tw", "name": "Sabine Hossenfelder"},
+  {"id": "UCsBjURrPoezykLs9EqgamOA", "name": "Fireship"},
+  {"id": "UCNJ1Ymd5yFuUPtn21xtRbbw", "name": "AI Explained"},
+  {"id": "UCmeU2DYiVy80wMBGZzEWnbw", "name": "AI Tool Report"},
+  {"id": "UC5l7RouTQ60oUjLjt1Nh-UQ", "name": "Beyond AI News"}
+]
+```
+
+**Possible expansions:**
+```
+Yannic Kilcher (posts infrequently, evaluate)
+David Shapiro AI (posts infrequently, evaluate)
+AI Revolution / AI News (daily)
+```
+
+---
+
 ## Summary — Source types
 
 | Type | Examples | In this file? | How to update |

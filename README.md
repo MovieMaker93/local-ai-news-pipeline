@@ -5,7 +5,7 @@ the hardware they run on, and the self-hosted stack around them — that
 assembles itself once a day and publishes to GitHub Pages.
 
 Fork of [NTTLuke/lux-in-tenebris-pipeline](https://github.com/NTTLuke/lux-in-tenebris-pipeline)
-(re-engineered for 6 scouts, no media steps, GitHub Pages project URLs). All
+(re-engineered for 10 scouts, no media steps, GitHub Pages project URLs). All
 credit for the architecture to the original — read its README for the design
 philosophy; the agent/code boundary, the JSON-file isolation, and most of the
 scar tissue in the comments come from there.
@@ -19,7 +19,7 @@ through JSON files on disk:
 
 ```
 Sync deploy + resolve issue # + archive predecessor  — pure code
-  → 6 scouts, ONE AT A TIME                          — LLM agents, gather raw items
+  → 10 scouts, ONE AT A TIME                         — LLM agents, gather raw items
   → Editor                                           — LLM agent, curates + assembles edition.json
   → Render HTML                                      — pure code, deterministic, no LLM
   → Wire articles                                    — pure-code retrieval + 1 LLM call per article

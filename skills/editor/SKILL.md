@@ -1,12 +1,12 @@
 ---
 name: editor
-description: "Editor-in-chief. Merges the 6 scout JSONs into edition.json. Run after scouts complete."
+description: "Editor-in-chief. Merges the 10 scout JSONs into edition.json. Run after scouts complete."
 ---
 
 # Editor — Assembly
 
 ## When to use
-After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchestrator calls you.
+After all 10 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchestrator calls you.
 
 ## Files to read
 - `/tmp/lain/scouts/scout_research.json` (array)
@@ -15,9 +15,13 @@ After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchest
 - `/tmp/lain/scouts/scout_tools.json` (array)
 - `/tmp/lain/scouts/scout_hardware.json` (array)
 - `/tmp/lain/scouts/scout_selfhost.json` (array)
+- `/tmp/lain/scouts/scout_x.json` (array) — X/Twitter beats
+- `/tmp/lain/scouts/scout_funding.json` (array) — VC rounds, M&A, IPOs
+- `/tmp/lain/scouts/scout_youtube.json` (array) — video items
+- `/tmp/lain/scouts/scout_italia.json` (array) — Italian AI spotlight (titles in EN, links to IT sources)
 - **`free_models.json`** — `/tmp/lain/free_models.json` (**OBJECT**, `openrouter` + `opencode_zen` sub-objects, pass through
   unchanged — like `trending`, this is produced by a deterministic non-LLM fetch
-  (`content/fetch_free_models.py`), not one of the 6 scouts. If the file is missing, skip
+  (`content/fetch_free_models.py`), not one of the 10 scouts. If the file is missing, skip
   the `free_models` key entirely rather than inventing one.)
 - **`headlines_history.json`** — `$DEPLOY_DIR/headlines_history.json` (path passed in the prompt).
   Holds every headline published so far. Use it for **cross-day deduplication**
@@ -27,7 +31,7 @@ After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchest
 ## Workflow
 
 1. Read metadata JSON → get `today`, `yesterday`, `today_human`, next issue number.
-2. Read all 6 scout files.
+2. Read all 10 scout files.
 3. **Special case for opensource:** split into `editorial` array (treat like other scouts) and `trending` object (pass through to output unchanged).
 3b. **Free models:** if `/tmp/lain/free_models.json` exists, pass its content through to the `free_models` key unchanged — same treatment as `trending`. No judgment, no rewriting, no filtering beyond what render.py already does for broken URLs.
 4. **Merge & dedup** all editorial arrays:
@@ -35,7 +39,8 @@ After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchest
    - Discard items clearly dated outside [yesterday, today]
    - **Tag every item with its origin:** while reading, augment each item with
      `"scout_source": "<scout_name>"` (e.g. `"research"`, `"official"`,
-     `"opensource"`, `"tools"`, `"hardware"`, `"selfhost"`). This tag is used in step 5 for tiering.
+     `"opensource"`, `"tools"`, `"hardware"`, `"selfhost"`, `"x"`, `"funding"`,
+     `"youtube"`, `"italia"`). This tag is used in step 5 for tiering.
 4b. **🔴 Cross-day dedup — CRITICAL** (run this BEFORE step 5):
    - **Read `headlines_history.json`** from `$DEPLOY_DIR/headlines_history.json`
    - **Extract headlines from the last 7 days only** (look at each entry's `"date"`
@@ -135,6 +140,7 @@ If any match, fix them before proceeding to render. Re-run the editor with expli
    as fact is worse than no number at all.
 
 9. Write `/tmp/lain/edition.json` in the canonical shape.
+10. **Image path preservation when re-running** — If edition.json already exists (from a prior image-gen run on the same issue), parse it and extract any `"image": "images/..."` fields BEFORE overwriting. Re-inject them into the new edition.json. The editor overwrites edition.json from scratch and does NOT know about images — without this step, generated images disappear from the rendered HTML despite existing on disk.
 
 ## Edition JSON shape
 

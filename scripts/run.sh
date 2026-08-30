@@ -27,6 +27,7 @@ WORK_DIR="/tmp/lain"
 LOG_DIR="$WORK_DIR/logs"
 SCOUTS_DIR="$WORK_DIR/scouts"
 OUTPUT_DIR="$WORK_DIR/output"
+IMAGES_DIR="$WORK_DIR/images"
 HERMES_BIN="${PAPER_HERMES_BIN:-$HOME/.local/bin/hermes}"
 RENDER_PY="$SCRIPT_DIR/core/render.py"
 CLEANUP_SH="$WORK_DIR/cleanup.sh"
@@ -43,7 +44,8 @@ TIMEOUT_SECS=1200       # 20 min per scout
 # edition.json ⇒ no newspaper at all) and it chews through all scout files
 # with cross-day dedup against headlines_history.json.
 EDITOR_TIMEOUT_SECS=2400 # 40 min
-MASTER_TIMEOUT=10800     # 3h for the entire pipeline (6 scouts, no media steps)
+MEDIA_TIMEOUT_SECS=900   # 15 min for image-gen runs
+MASTER_TIMEOUT=16200     # 4.5h for the entire pipeline (10 scouts)
 TEMPLATE_DIR="$PIPELINE_ROOT/template"
 
 # ╔════════════════════════════════════════════════════════════════════════╗
@@ -337,10 +339,45 @@ run_scout "selfhost" "scout-selfhost" "web,file,terminal" \
 Load skill scout-selfhost and follow it exactly. Search r/LocalLLaMA, r/selfhosted and the web for self-hosting AI stack news (Open WebUI, n8n, Home Assistant, privacy).
 Write the JSON array to $SCOUTS_DIR/scout_selfhost.json using write_file. ENGLISH ONLY."
 
+run_scout "x" "scout-x" "x_search,file,terminal" \
+    "You are the X Scout for Local AI News. $SCOUT_DATE_BRIEF
+Load skill scout-x and follow it exactly. Use from_date=$YESTERDAY to_date=$TODAY in x_search calls.
+Write the JSON array to $SCOUTS_DIR/scout_x.json using write_file. ENGLISH ONLY."
+
+run_scout "funding" "scout-funding" "web,file,terminal" \
+    "You are the Funding Scout for Local AI News. $SCOUT_DATE_BRIEF
+Load skill scout-funding and follow it exactly. Search TechCrunch, Crunchbase for AI funding.
+Write the JSON array to $SCOUTS_DIR/scout_funding.json using write_file. ENGLISH ONLY."
+
+# ── YouTube: Python fetch, then LLM extraction over the fetched data ──
+echo "[step 2] scout youtube..."
+echo "  → running youtube_scout.py (Python fetch)..."
+python3 "$SCRIPT_DIR/content/youtube_scout.py" --max 10 2>>"$LOGFILE" || echo "  ⚠ youtube scout fetch failed (non-fatal)"
+echo "  ✓ youtube_scout.py done"
+
+echo "  → running scout-youtube..."
+log_attempt "$LOG_DIR/scout_youtube_${TODAY}.log" "scout youtube"
+timeout "$TIMEOUT_SECS" "$HERMES_BIN" chat -q 'Load skill scout-youtube and follow it exactly. Read /tmp/lain/scouts/scout_youtube_raw.json.
+Extract newsworthy items from the video data.
+Write the JSON array to /tmp/lain/scouts/scout_youtube.json using write_file.
+ENGLISH ONLY. Today is '"$TODAY"' ('"$TODAY_HUMAN"'). Window: '"$YESTERDAY"' to '"$TODAY"'.' \
+    --profile "$PROFILE" -s scout-youtube -t file \
+    -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" \
+    -Q --yolo >>"$LOG_DIR/scout_youtube_${TODAY}.log" 2>&1 || true
+echo "  ✓ youtube scout done"
+check_timeout
+
+# --- Italia AI Spotlight ---
+run_scout "italia" "scout-italia" "web,file,terminal" \
+    "You are the Italia AI Spotlight Scout for Local AI News. $SCOUT_DATE_BRIEF
+Load skill scout-italia and follow it exactly. Fetch AI4Business RSS, search web for Italian AI news.
+Write the JSON array to $SCOUTS_DIR/scout_italia.json using write_file.
+All titles in ENGLISH, links to Italian sources. ENGLISH ONLY."
+
 # ── Step 3: Validate all scout files ────────────────────────
 echo "[step 3] validating scout files..."
 SCOUT_COUNT=0
-SCOUT_NAMES="research official opensource tools hardware selfhost"
+SCOUT_NAMES="research official opensource tools hardware selfhost x funding youtube italia"
 for scout in $SCOUT_NAMES; do
     f="$SCOUTS_DIR/scout_${scout}.json"
     if [ -f "$f" ] && python3 -c "import json; json.load(open('$f'))" 2>/dev/null 2>&1; then
@@ -351,7 +388,7 @@ for scout in $SCOUT_NAMES; do
         SCOUT_COUNT=$((SCOUT_COUNT + 1))
     fi
 done
-echo "  ✓ $SCOUT_COUNT/6 scout files ready"
+echo "  ✓ $SCOUT_COUNT/10 scout files ready"
 
 # Milestone: report what actually landed on the desk, and name any scout
 # that came back empty — a timed-out scout is survivable but worth knowing
@@ -378,7 +415,7 @@ check_timeout
 
 # ── Step 3b: Free models fetch ──────────────────────────────
 # Deterministic, no LLM: currently-free models on OpenRouter + OpenCode Zen.
-# Not one of the 6 scouts — writes straight to $WORK_DIR/free_models.json,
+# Not one of the 10 scouts — writes straight to $WORK_DIR/free_models.json,
 # which the editor passes through unchanged (see editor SKILL.md step 3b).
 # Non-fatal: if this fails or the script is missing, the editor just won't
 # find the file and the Free Models section is skipped for the day.
@@ -445,6 +482,35 @@ else
     fi
     exit 1
 fi
+check_timeout
+
+# ── Step 4b: Image Gen (OpenRouter/Seedream) ────────────────
+echo "[step 4b] image gen..."
+SKIP_IMAGES=false
+
+# Pre-check: if the last attempt hit the image provider's usage limit, skip entirely.
+if last_attempt "$LOG_DIR/imagegen_${TODAY}.log" | grep -q "usage limit has been reached\|429\|credits exhausted\|spending-limit\|402"; then
+    SKIP_IMAGES=true
+    echo "  ⚠ image provider limit reached previously — skipping image gen"
+fi
+
+if [ "$SKIP_IMAGES" = false ]; then
+    log_attempt "$LOG_DIR/imagegen_${TODAY}.log" "image gen"
+    timeout "$MEDIA_TIMEOUT_SECS" "$HERMES_BIN" chat -q "You are the Image Generator for Local AI News. Load skill image-gen.
+Today is $TODAY. Read $WORK_DIR/edition.json.
+Generate images for lead + each non-empty section using image_generate tool.
+Save images to $IMAGES_DIR/. Update edition.json with image paths like 'images/<file>.jpg'. ENGLISH ONLY." \
+        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m flash --provider spark -Q --yolo \
+        >>"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
+fi
+
+# Post-check: if it failed due to limits, remember and skip tomorrow
+if last_attempt "$LOG_DIR/imagegen_${TODAY}.log" | grep -q "usage limit has been reached\|429\|credits exhausted\|spending-limit\|402"; then
+    echo "  ⚠ image provider usage limit reached — will skip image gen next runs too"
+    SKIP_IMAGES=true
+fi
+
+echo "  ✓ image gen complete ($([ "$SKIP_IMAGES" = true ] && echo 'skipped - limit' || echo 'done'))"
 check_timeout
 
 # ── Step 5: Render HTML ─────────────────────────────────────
@@ -547,6 +613,13 @@ if [ -f "$TEMPLATE_DIR/style.css" ]; then
     echo "  ✓ style.css copied from template"
 else
     echo "  ⚠ template style.css not found"
+fi
+
+# Generated images — non-fatal: step 4b may have skipped (provider limit)
+if [ -d "$IMAGES_DIR" ] && ls "$IMAGES_DIR"/*.jpg "$IMAGES_DIR"/*.png "$IMAGES_DIR"/*.webp 2>/dev/null | grep -q .; then
+    mkdir -p "$DEPLOY_DIR/images"
+    cp "$IMAGES_DIR"/*.jpg "$IMAGES_DIR"/*.png "$IMAGES_DIR"/*.webp "$DEPLOY_DIR/images/" 2>/dev/null || true
+    echo "  ✓ images copied to deploy dir"
 fi
 
 cp "$WORK_DIR/edition.json" "$DEPLOY_DIR/edition.json"

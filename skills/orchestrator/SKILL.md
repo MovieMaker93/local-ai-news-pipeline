@@ -6,7 +6,7 @@ description: "Local AI News production pipeline. Bash orchestrator with fire-and
 # Orchestrator — Production Pipeline
 
 ## Purpose
-Daily local-AI news production: 6 scouts → editor → HTML render → wire articles → deploy to GitHub Pages.
+Daily local-AI news production: 10 scouts → editor → HTML render → wire articles → deploy to GitHub Pages.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ run.sh (bash orchestrator)
   ↓
 Sync deploy dir → resolve issue # → archive predecessor edition
   ↓
-6 scouts, ONE AT A TIME (see "Why sequential" below)
+10 scouts, ONE AT A TIME (see "Why sequential" below)
   ↓
 Editor (flash via spark) → edition.json
   ↓

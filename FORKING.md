@@ -19,7 +19,7 @@ map of which is which.
 
 ## The actual process
 
-1. **Ask the human what their beats are** before writing anything. 3-5 beats is a reasonable range; this pipeline runs 6 scouts, but that's a choice, not a requirement.
+1. **Ask the human what their beats are** before writing anything. 3-5 beats is a reasonable range; this pipeline runs 10 scouts, but that's a choice, not a requirement.
 2. **Decide scout count.** To drop a scout: delete its `run_scout()` call in `run.sh`, remove it from the `SCOUT_NAMES` validation list in step 3, delete its `skills/<name>/` directory.
 3. **Rewrite `skills/_shared/sources.md`** for the new beats — same anchor format, new content.
 4. **Rewrite each scout's `SKILL.md`** — search strategy, what counts as signal, output contract (keep the JSON shape unless you're also changing the editor to match).

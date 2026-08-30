@@ -397,7 +397,7 @@ PAGE = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>How this issue made itself — LOCAL AI NEWS No. {ISSUE}</title>
-  <meta name="description" content="A replayable account of how issue No. {ISSUE} of Local AI News assembled itself: six scouts, one editor, and every story that got killed.">
+  <meta name="description" content="A replayable account of how issue No. {ISSUE} of Local AI News assembled itself: ten scouts, one editor, and every story that got killed.">
   <link rel="stylesheet" href="style.css">
   <style>
 {CSS}
@@ -451,7 +451,7 @@ PAGE = """<!DOCTYPE html>
   </div>
 
   <div class="mk-tally">
-    <div><div class="k">Gathered</div><div class="val" id="t-found">0</div><div class="sub">by six scouts</div></div>
+    <div><div class="k">Gathered</div><div class="val" id="t-found">0</div><div class="sub">by ten scouts</div></div>
     <div><div class="k">Published</div><div class="val amber" id="t-pub">0</div><div class="sub">made the issue</div></div>
     <div><div class="k">Spiked</div><div class="val dim" id="t-kill">0</div><div class="sub">killed on the desk</div></div>
     <div><div class="k">Self-hosted</div><div class="val amber" id="t-self">—</div><div class="sub">of every decision</div></div>

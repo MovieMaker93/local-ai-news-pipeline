@@ -3,7 +3,7 @@
 ## Overview
 
 Daily pipeline that produces a local-AI newspaper in dark broadsheet style.
-Cron → wrapper → bash orchestrator → 6 scouts + wire → editor → HTML render → deploy.
+Cron → wrapper → bash orchestrator → 10 scouts + wire → editor → HTML render → deploy.
 
 Every step is either an **LLM agent** (a `SKILL.md`, invoked as `hermes chat
 -s <skill>`, used wherever the task needs judgment) or **plain code**
@@ -38,15 +38,19 @@ run.sh
   │   │     (+ fetch_trending.py curl fallback if trending < 3 items)
   │   ├─ tools
   │   ├─ hardware
-  │   └─ selfhost
+  │   ├─ selfhost
+  │   ├─ x (x_search, falls back to DuckDuckGo/Bing if no creds)
+  │   ├─ funding
+  │   ├─ youtube (youtube_scout.py Python fetch → LLM extraction)
+  │   └─ italia
   │
-  ├─ Step 3:  Validate 6 scout JSON files (missing/invalid → empty [])
+  ├─ Step 3:  Validate 10 scout JSON files (missing/invalid → empty [])
   ├─ Step 3b: Free models (OpenRouter + OpenCode Zen) [non-fatal] — pure code, writes free_models.json
   ├─ Step 4:  Editor → edition.json                    — LLM agent, the only FATAL step
   ├─ Step 5:  Render → index.html                      — pure code
   ├─ Step 6:  Wire articles (RSS → LLM)  [non-fatal]   — code + 1 LLM call/article
   ├─ Step 6b: Inject wire ticker         [non-fatal]   — pure code
-  └─ Step 6c: Making-of page             [non-fatal]   — pure code, read-only on pipeline state
+  ├─ Step 6c: Making-of page             [non-fatal]   — pure code, read-only on pipeline state
   └─ Step 7-9: Deploy (copy files, headlines history, git commit + push)
 ```
 
@@ -72,6 +76,12 @@ explicitly.
 | scout-tools | agent | flash / spark | web, file, terminal | — | `scout_tools.json` |
 | scout-hardware | agent | flash / spark | web, file, terminal | — | `scout_hardware.json` |
 | scout-selfhost | agent | flash / spark | web, file, terminal | — | `scout_selfhost.json` |
+| scout-x | agent | flash / spark | x_search, file, terminal | — | `scout_x.json` (falls back to DuckDuckGo/Bing if no X creds) |
+| scout-funding | agent | flash / spark | web, file, terminal | — | `scout_funding.json` |
+| scout-youtube | agent | flash / spark | file | `scout_youtube_raw.json` (from `youtube_scout.py` fetch) | `scout_youtube.json` |
+| scout-italia | agent | flash / spark | web, file, terminal | `skills/_shared/sources.md` (Italia feeds) | `scout_italia.json` |
+| `youtube_scout.py` | code | — | yt-dlp + YouTube RSS | `skills/_shared/sources.md` (channels) | `scout_youtube_raw.json` |
+| image-gen (step 4b) | agent | flash / spark | file, image_gen, terminal | `edition.json` | `images/*.jpg` + updates `edition.json` — **non-fatal, skips on provider limit** |
 | editor | agent | flash / spark | file | all `scout_*.json` + `headlines_history.json` + `free_models.json` | `edition.json` — **the only FATAL step** |
 | `render.py` | code | — | — | `edition.json` + `template/` | `index.html` |
 | `wire_articles.py` | code + 1 agent call/article | flash / spark | curl (RSS from `sources.md`) + hermes chat subprocess | RSS feeds | `scout_wire.json` |
@@ -105,7 +115,7 @@ Every LLM call is wrapped in `timeout`.
 | `MASTER_TIMEOUT` | 3h | the whole pipeline |
 
 The editor is the only **FATAL** step: no `edition.json` means no newspaper at
-all, and it does the most work of any single call (6 scout files, cross-day
+all, and it does the most work of any single call (10 scout files, cross-day
 dedup against `headlines_history.json`), so it gets double budget. Re-measure
 after a week of runs and tune.
 
