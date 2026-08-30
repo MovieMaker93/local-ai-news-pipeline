@@ -62,14 +62,18 @@ local-ai-news-pipeline/
 │   ├── content/                 Fetch/generate the day's content
 │   │   ├── wire_articles.py        RSS → AI article writer (2-stage)
 │   │   ├── fetch_trending.py       GitHub/HuggingFace trending via curl fallback
+│   │   ├── fetch_free_models.py    Currently-free models (OpenRouter + OpenCode Zen)
 │   │   └── make_making_of.py       Builds the "making-of" replay page
 │   ├── inject/                  Post-process the rendered HTML
 │   │   └── inject_wire_ticker.py   Scrolling news ticker + modal
 │   └── maintenance/              One-off / rescue tools, not called by run.sh
-├── skills/           ← 8 SKILL.md files (LLM agent instructions)
+├── skills/           ← 11 SKILL.md files (LLM agent instructions + meta skills)
 │   ├── orchestrator/            Meta: describes the whole pipeline
+│   │   └── references/         Archive, model-config, wire-articles, link-validation
 │   ├── editor/
 │   ├── scout-research/ … scout-selfhost/
+│   ├── local-ai-news-hotfix/   Meta: live-HTML hotfix without a full re-run
+│   ├── local-ai-news-status-reports/  Meta: status-update format convention
 │   └── _shared/sources.md       Single source of truth for fixed source lists
 ├── template/         ← HTML template + CSS + fonts
 ├── docs/             ← SETUP.md, ARCHITETTURA.md

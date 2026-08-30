@@ -15,6 +15,10 @@ After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchest
 - `/tmp/lain/scouts/scout_tools.json` (array)
 - `/tmp/lain/scouts/scout_hardware.json` (array)
 - `/tmp/lain/scouts/scout_selfhost.json` (array)
+- **`free_models.json`** — `/tmp/lain/free_models.json` (**OBJECT**, `openrouter` + `opencode_zen` sub-objects, pass through
+  unchanged — like `trending`, this is produced by a deterministic non-LLM fetch
+  (`content/fetch_free_models.py`), not one of the 6 scouts. If the file is missing, skip
+  the `free_models` key entirely rather than inventing one.)
 - **`headlines_history.json`** — `$DEPLOY_DIR/headlines_history.json` (path passed in the prompt).
   Holds every headline published so far. Use it for **cross-day deduplication**
   (step 4b) — do not republish a story already covered in the last 7 days.
@@ -25,6 +29,7 @@ After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchest
 1. Read metadata JSON → get `today`, `yesterday`, `today_human`, next issue number.
 2. Read all 6 scout files.
 3. **Special case for opensource:** split into `editorial` array (treat like other scouts) and `trending` object (pass through to output unchanged).
+3b. **Free models:** if `/tmp/lain/free_models.json` exists, pass its content through to the `free_models` key unchanged — same treatment as `trending`. No judgment, no rewriting, no filtering beyond what render.py already does for broken URLs.
 4. **Merge & dedup** all editorial arrays:
    - Drop duplicates by URL and near-identical headline (keep most authoritative source)
    - Discard items clearly dated outside [yesterday, today]
@@ -75,6 +80,7 @@ After all 6 scouts have persisted their JSON to `/tmp/lain/scouts/`. The orchest
      quick_hits if <2). ~3–5 items per section, best first.
    - `quick_hits` (8–12): real but minor. One headline + source, no summary.
    - `trending`: pass through from opensource scout unchanged.
+  - `free_models`: pass through from `/tmp/lain/free_models.json` unchanged (see step 3b).
 6. **Rewrite for page**: tighten headlines, keep summaries to 1–2 sentences. Sentence case, factual, no clickbait.
 7. **🔴 URL validation — CRITICAL, DO NOT SKIP**:
    - **Every single item MUST have a real `http://` or `https://` URL.** No exceptions.
@@ -157,6 +163,10 @@ If any match, fix them before proceeding to render. Re-run the editor with expli
   "trending": {
     "github": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]},
     "huggingface": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]}
+  },
+  "free_models": {
+    "openrouter": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]},
+    "opencode_zen": {"title": "…", "url": "…", "link_label": "…", "date": "…", "items": [ … ]}
   },
   "quick_hits": [ … ],
   "spiked": { "low signal": <int>, "out of window": <int>, … }

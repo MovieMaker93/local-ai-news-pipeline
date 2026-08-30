@@ -41,6 +41,7 @@ run.sh
   │   └─ selfhost
   │
   ├─ Step 3:  Validate 6 scout JSON files (missing/invalid → empty [])
+  ├─ Step 3b: Free models (OpenRouter + OpenCode Zen) [non-fatal] — pure code, writes free_models.json
   ├─ Step 4:  Editor → edition.json                    — LLM agent, the only FATAL step
   ├─ Step 5:  Render → index.html                      — pure code
   ├─ Step 6:  Wire articles (RSS → LLM)  [non-fatal]   — code + 1 LLM call/article
@@ -67,10 +68,11 @@ explicitly.
 | scout-official | agent | flash / spark | web, file, terminal | `skills/_shared/sources.md` | `scout_official.json` |
 | scout-opensource | agent | flash / spark | web, file, terminal | — | `scout_opensource.json` (editorial + trending) |
 | `fetch_trending.py` | code | — | curl | — | merged into `scout_opensource.json` if trending < 3 |
+| `fetch_free_models.py` | code | — | curl | OpenRouter + OpenCode Zen catalogs | `free_models.json` (step 3b) |
 | scout-tools | agent | flash / spark | web, file, terminal | — | `scout_tools.json` |
 | scout-hardware | agent | flash / spark | web, file, terminal | — | `scout_hardware.json` |
 | scout-selfhost | agent | flash / spark | web, file, terminal | — | `scout_selfhost.json` |
-| editor | agent | flash / spark | file | all `scout_*.json` + `headlines_history.json` | `edition.json` — **the only FATAL step** |
+| editor | agent | flash / spark | file | all `scout_*.json` + `headlines_history.json` + `free_models.json` | `edition.json` — **the only FATAL step** |
 | `render.py` | code | — | — | `edition.json` + `template/` | `index.html` |
 | `wire_articles.py` | code + 1 agent call/article | flash / spark | curl (RSS from `sources.md`) + hermes chat subprocess | RSS feeds | `scout_wire.json` |
 | `inject_wire_ticker.py` | code | — | — | `index.html`, `scout_wire.json` | `index.html` (ticker injected) |

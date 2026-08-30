@@ -80,6 +80,24 @@ backend and a full edition was produced on it before anyone noticed.
 - Used as auto-fallback when the opensource scout fails to produce trending data
 - Outputs JSON matching the scout-opensource `trending` contract
 
+### fetch_free_models.py
+- `python3 fetch_free_models.py [--output-json PATH]`
+- Fetches currently-free models from OpenRouter + OpenCode Zen via curl (no LLM)
+- Runs as step 3b, non-fatal; writes `free_models.json`
+- Outputs JSON matching the editor's `free_models` pass-through contract (see `editor` skill step 3b)
+
+## Reference docs
+
+For deep dives on a specific subsystem, load the matching reference under
+`skills/orchestrator/references/`:
+
+| When you need | Read |
+|---|---|
+| How archives + issue numbers work, or why a listing is stale | `archive-system.md` |
+| Which model/provider each step uses, and how to change one | `model-configuration.md` |
+| How RSS wire articles + the ticker are built | `wire-articles-scout.md` |
+| How to batch-check links after a deploy | `link-validation.md` |
+
 ## The scouts
 
 | # | name | beat |
