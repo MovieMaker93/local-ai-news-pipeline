@@ -616,10 +616,19 @@ else
 fi
 
 # Generated images — non-fatal: step 4b may have skipped (provider limit)
-if [ -d "$IMAGES_DIR" ] && ls "$IMAGES_DIR"/*.jpg "$IMAGES_DIR"/*.png "$IMAGES_DIR"/*.webp 2>/dev/null | grep -q .; then
-    mkdir -p "$DEPLOY_DIR/images"
-    cp "$IMAGES_DIR"/*.jpg "$IMAGES_DIR"/*.png "$IMAGES_DIR"/*.webp "$DEPLOY_DIR/images/" 2>/dev/null || true
-    echo "  ✓ images copied to deploy dir"
+if [ -d "$IMAGES_DIR" ]; then
+    shopt -s nullglob
+    imgs=("$IMAGES_DIR"/*.jpg "$IMAGES_DIR"/*.png "$IMAGES_DIR"/*.webp)
+    shopt -u nullglob
+    if [ ${#imgs[@]} -gt 0 ] && [ -f "${imgs[0]}" ]; then
+        mkdir -p "$DEPLOY_DIR/images"
+        cp "$IMAGES_DIR"/*.jpg "$IMAGES_DIR"/*.png "$IMAGES_DIR"/*.webp "$DEPLOY_DIR/images/" 2>/dev/null || true
+        echo "  ✓ images copied to deploy dir: $(ls "$DEPLOY_DIR/images" 2>/dev/null | wc -l) file(s)"
+    else
+        echo "  ⚠ no image files found in $IMAGES_DIR"
+    fi
+else
+    echo "  ⚠ images dir $IMAGES_DIR does not exist (step 4b skipped)"
 fi
 
 cp "$WORK_DIR/edition.json" "$DEPLOY_DIR/edition.json"
