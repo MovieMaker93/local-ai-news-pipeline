@@ -39,13 +39,16 @@ SITE_URL="${PAPER_SITE_URL:-https://moviemaker93.github.io/local-ai-news/}"
 # sum, not their max. Original Lux measurements (2026-07-29, 9 scouts):
 # five of nine exceeded 10 min, slowest ~13.5 min — hence the 20-min ceiling.
 # Re-measure after a week of runs and tune.
-TIMEOUT_SECS=1200       # 20 min per scout
+# 2026-09-05: morning proxy-slaggy run had 4 scouts SIGKILLed at the 20-min
+# cap before write_file ran (empty fallbacks); same scouts succeeded in 7-19
+# min when the proxy was healthy. Ceiling had no headroom — raised to 30 min.
+TIMEOUT_SECS=1800       # 30 min per scout
 # The editor gets its own, larger budget: it is the only FATAL step (no
 # edition.json ⇒ no newspaper at all) and it chews through all scout files
 # with cross-day dedup against headlines_history.json.
 EDITOR_TIMEOUT_SECS=2400 # 40 min
 MEDIA_TIMEOUT_SECS=900   # 15 min for image-gen runs
-MASTER_TIMEOUT=16200     # 4.5h for the entire pipeline (10 scouts)
+MASTER_TIMEOUT=23400     # ~6.5h master budget: 10 scouts x 30m + editor 40m + media 15m + slack
 TEMPLATE_DIR="$PIPELINE_ROOT/template"
 
 # ╔════════════════════════════════════════════════════════════════════════╗
@@ -67,7 +70,10 @@ PIPELINE_PROVIDER="spark"
 
 # Model for every LLM step (scouts, editor, wire articles) — served by the
 # Spark's LiteLLM proxy. Centralized here so it's a one-line change.
-PIPELINE_MODEL="flash"
+# 2026-09-04: flash (deepseek-v4-flash) removed from the proxy — now serves
+# qwen3.8-flash-next (vLLM NVFP4, port 8888).
+# 2026-09-06: switched to qwen-nvidia at Alfonso's request (Spark LiteLLM).
+PIPELINE_MODEL="qwen-nvidia"
 
 # ── Setup ────────────────────────────────────────────────────
 mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$OUTPUT_DIR"
@@ -500,7 +506,7 @@ if [ "$SKIP_IMAGES" = false ]; then
 Today is $TODAY. Read $WORK_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $IMAGES_DIR/. Update edition.json with image paths like 'images/<file>.jpg'. ENGLISH ONLY." \
-        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m flash --provider spark -Q --yolo \
+        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m "$PIPELINE_MODEL" --provider spark -Q --yolo \
         >>"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 

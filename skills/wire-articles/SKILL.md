@@ -19,7 +19,7 @@ scrolling news ticker on the front page — it is **not** part of `edition.json`
 ```bash
 python3 <repo>/scripts/content/wire_articles.py --max 5 \
   --out /tmp/lain/scouts/scout_wire.json \
-  --model flash --provider spark
+  --model qwen-nvidia --provider spark
 ```
 ⚠️ The provider is **`spark`**, never anything else. `run.sh` passes it
 explicitly (as `$PIPELINE_PROVIDER`) rather than relying on the script's own

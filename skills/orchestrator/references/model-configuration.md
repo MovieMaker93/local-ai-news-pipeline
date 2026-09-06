@@ -12,17 +12,20 @@ through the single `PIPELINE_PROVIDER` variable defined at the top of
 
 ```bash
 PIPELINE_PROVIDER="spark"
-PIPELINE_MODEL="flash"
+PIPELINE_MODEL="qwen-nvidia"
 ```
 
 There is exactly one place to look and one place to change. This fork uses
-`flash` (served by the Spark's LiteLLM proxy), not `deepseek-v4-flash`.
+`qwen-nvidia` (served by the Spark's LiteLLM proxy). The old
+`flash`/`deepseek-v4-flash` route was removed from LiteLLM on 2026-09-04;
+`qwen3.8-flash-next` was the 2026-09-04/05 stopgap, replaced by `qwen-nvidia`
+on 2026-09-06.
 
 | Step | Model | Provider | Where |
 |------|-------|----------|-------|
-| All 6 `run_scout()` calls (research, official, opensource, tools, hardware, selfhost) | `flash` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run.sh` |
-| Editor | `flash` | `$PIPELINE_PROVIDER` | `run.sh`, step 4 |
-| Wire articles | `flash` | `spark` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
+| All 10 `run_scout()` calls | `qwen-nvidia` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run.sh` |
+| Editor | `qwen-nvidia` | `$PIPELINE_PROVIDER` | `run.sh`, step 4 |
+| Wire articles | `qwen-nvidia` | `spark` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
 
 ## 2. Do not swap the provider
 
