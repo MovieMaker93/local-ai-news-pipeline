@@ -73,7 +73,8 @@ PIPELINE_PROVIDER="spark"
 # 2026-09-04: flash (deepseek-v4-flash) removed from the proxy — now serves
 # qwen3.8-flash-next (vLLM NVFP4, port 8888).
 # 2026-09-06: switched to qwen-nvidia at Alfonso's request (Spark LiteLLM).
-PIPELINE_MODEL="qwen-nvidia"
+# 2026-09-06: switched to qwen-mia at Alfonso's request (Spark LiteLLM, reasoning model).
+PIPELINE_MODEL="qwen-mia"
 
 # ── Setup ────────────────────────────────────────────────────
 mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$OUTPUT_DIR"
@@ -246,6 +247,8 @@ run_scout() {
         echo "  ✓ scout $name done ($count items)"
     else
         echo "  ✗ scout $name FAILED or TIMEOUT — writing empty fallback"
+        grep -ihoE 'quota[^"]{0,60}|credits[^"]{0,40}|HTTP [45][0-9][0-9][^"]{0,80}' \
+          "$LOG_DIR/scout_${name}_${TODAY}.err" 2>/dev/null | sort -u | head -3
         echo "[]" > "$outfile"
     fi
     check_timeout

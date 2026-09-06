@@ -24,7 +24,7 @@ Sync deploy dir → resolve issue # → archive predecessor edition
   ↓
 10 scouts, ONE AT A TIME (see "Why sequential" below)
   ↓
-Editor (qwen-nvidia via spark) → edition.json
+Editor (qwen-mia via spark) → edition.json
   ↓
 Render → index.html → wire articles → ticker injection → making-of
   ↓
