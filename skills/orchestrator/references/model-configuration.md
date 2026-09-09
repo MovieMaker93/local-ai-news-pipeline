@@ -4,28 +4,29 @@
 > pipeline step pins its own model and provider explicitly; nothing in the
 > daily run falls back to the profile default.
 
-## 1. The pipeline's provider: the `spark` custom provider
+## 1. The pipeline's provider: the `litellm` custom provider
 
 Every `hermes chat` call in `run.sh` targets the DGX Spark's LiteLLM proxy
 through the single `PIPELINE_PROVIDER` variable defined at the top of
 `run.sh`:
 
 ```bash
-PIPELINE_PROVIDER="spark"
-PIPELINE_MODEL="qwen-mia"
+PIPELINE_PROVIDER="litellm"
+PIPELINE_MODEL="deepseek-v4-flash-0731"
 ```
 
 There is exactly one place to look and one place to change. This fork uses
-`qwen-mia` (served by the Spark's LiteLLM proxy). The old
+`deepseek-v4-flash-0731` (served by the Spark's LiteLLM proxy). The old
 `flash`/`deepseek-v4-flash` route was removed from LiteLLM on 2026-09-04;
 `qwen3.8-flash-next` was the 2026-09-04/05 stopgap, replaced by `qwen-nvidia`
-on 2026-09-06, then by `qwen-mia` (reasoning model) later the same day.
+on 2026-09-06, then by `qwen-mia` later the same day, and switched to
+`deepseek-v4-flash-0731` on 2026-09-09 at Alfonso's request.
 
 | Step | Model | Provider | Where |
 |------|-------|----------|-------|
-| All 10 `run_scout()` calls | `qwen-mia` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run.sh` |
-| Editor | `qwen-mia` | `$PIPELINE_PROVIDER` | `run.sh`, step 4 |
-| Wire articles | `qwen-mia` | `spark` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
+| All 10 `run_scout()` calls | `deepseek-v4-flash-0731` | `$PIPELINE_PROVIDER` | inside the `run_scout()` helper, `run.sh` |
+| Editor | `deepseek-v4-flash-0731` | `$PIPELINE_PROVIDER` | `run.sh`, step 4 |
+| Wire articles | `deepseek-v4-flash-0731` | `litellm` | `wire_articles.py` defaults (`MODEL`/`PROVIDER`, overridable via `--model`/`--provider`) |
 
 ## 2. Do not swap the provider
 

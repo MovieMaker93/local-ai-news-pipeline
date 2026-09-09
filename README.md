@@ -34,7 +34,7 @@ the unpredictable part stays small and contained and the predictable part
 can't break on a bad model response.
 
 All inference runs on a self-hosted DGX Spark via a LiteLLM proxy,
-configured as the `spark` custom provider in the Hermes profile. The editor
+configured as the `litellm` custom provider in the Hermes profile. The editor
 is the only FATAL step; wire articles, ticker, and making-of are non-fatal.
 
 ## The scouts

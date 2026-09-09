@@ -19,9 +19,9 @@ scrolling news ticker on the front page — it is **not** part of `edition.json`
 ```bash
 python3 <repo>/scripts/content/wire_articles.py --max 5 \
   --out /tmp/lain/scouts/scout_wire.json \
-  --model qwen-mia --provider spark
+  --model deepseek-v4-flash-0731 --provider litellm
 ```
-⚠️ The provider is **`spark`**, never anything else. `run.sh` passes it
+⚠️ The provider is **`litellm`**, never anything else. `run.sh` passes it
 explicitly (as `$PIPELINE_PROVIDER`) rather than relying on the script's own
 defaults, so the backend is chosen in exactly one place.
 
@@ -74,7 +74,7 @@ The system is PEP 668-locked: `pip install`, `uv pip install --system`, and `pyt
 Stage 1 makes ~50-80 HTTP requests to ground 5 articles. Direct feeds are faster than Google News (which requires URL resolution + redirect follow for every item).
 
 ### 4. Model / provider override
-The script defaults to `flash` via `spark`, but `run.sh` passes
+The script defaults to `deepseek-v4-flash-0731` via `litellm`, but `run.sh` passes
 both explicitly anyway. To override for a manual run:
 ```bash
 python3 wire_articles.py --max 5 --model <model> --provider <provider>

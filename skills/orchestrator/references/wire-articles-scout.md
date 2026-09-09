@@ -118,7 +118,7 @@ python3 "$WIRE_SCRIPT" --max 5 --out "$SCOUTS_DIR/scout_wire.json" \
     --profile "$PROFILE" \
     --model "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER"
 ```
-⚠️ `--profile "$PROFILE"` and `--provider "$PIPELINE_PROVIDER"` are passed explicitly rather than relying on `wire_articles.py`'s own defaults, so the subprocess lands on the same profile+backend as every other step. Observed 2026-08-27: without `--profile` it used the operator's DEFAULT profile (no `spark` provider), silently falling back to that profile's paid chain with fallback warnings pasted into the ticker.
+⚠️ `--profile "$PROFILE"` and `--provider "$PIPELINE_PROVIDER"` are passed explicitly rather than relying on `wire_articles.py`'s own defaults, so the subprocess lands on the same profile+backend as every other step. Observed 2026-08-27: without `--profile` it used the operator's DEFAULT profile (no `litellm` provider), silently falling back to that profile's paid chain with fallback warnings pasted into the ticker.
 
 The ticker is then injected into the rendered page by `inject_wire_ticker.py` (step 6b) — it is **not** part of `edition.json` and `render.py` knows nothing about it. Injection happens post-render, between the masthead and the lead-zone.
 
@@ -129,7 +129,7 @@ The ticker is then injected into the rendered page by `inject_wire_ticker.py` (s
 
 | File | Purpose |
 |------|---------|
-| `scripts/content/wire_articles.py` | RSS fetch + LLM write. Model: `flash` via `spark` (passed in from `run.sh`) |
+| `scripts/content/wire_articles.py` | RSS fetch + LLM write. Model: `deepseek-v4-flash-0731` via `litellm` (passed in from `run.sh`) |
 | `scripts/inject/inject_wire_ticker.py` | Post-render injection of the ticker + modal into `index.html` |
 
 ## Pitfalls

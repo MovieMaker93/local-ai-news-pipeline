@@ -24,7 +24,7 @@ Sync deploy dir → resolve issue # → archive predecessor edition
   ↓
 10 scouts, ONE AT A TIME (see "Why sequential" below)
   ↓
-Editor (qwen-mia via spark) → edition.json
+Editor (deepseek-v4-flash-0731 via litellm) → edition.json
   ↓
 Render → index.html → wire articles → ticker injection → making-of
   ↓
@@ -64,7 +64,7 @@ attempt that just failed.
 
 ## Provider pinning
 
-Every step passes `--provider "$PIPELINE_PROVIDER"` (= `spark`) explicitly.
+Every step passes `--provider "$PIPELINE_PROVIDER"` (= `litellm`) explicitly.
 The Hermes profile default is deliberately not used. See the warning block
 at the top of `run.sh` before changing anything here — upstream, an
 interactive session once silently swapped every provider flag to a paid

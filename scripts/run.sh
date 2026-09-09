@@ -55,7 +55,7 @@ TEMPLATE_DIR="$PIPELINE_ROOT/template"
 # ║ PIPELINE_PROVIDER — DO NOT CHANGE without the user explicitly          ║
 # ║ asking for it, in this exact conversation, for this exact reason.      ║
 # ║                                                                        ║
-# ║ This must always be "spark" (the DGX Spark's LiteLLM proxy), never    ║
+# ║ This must always be "litellm" (the DGX Spark's LiteLLM proxy), never    ║
 # ║ "openrouter", "zai" or anything else — regardless of what             ║
 # ║ model/provider the *interactive* Hermes session reasoning about this   ║
 # ║ file happens to be running on. The pipeline's own steps must not       ║
@@ -66,7 +66,7 @@ TEMPLATE_DIR="$PIPELINE_ROOT/template"
 # ║ "openrouter" — unrequested, unnoticed until the day's edition had      ║
 # ║ already been produced on the wrong (paid, metered) backend.            ║
 # ╚════════════════════════════════════════════════════════════════════════╝
-PIPELINE_PROVIDER="spark"
+PIPELINE_PROVIDER="litellm"
 
 # Model for every LLM step (scouts, editor, wire articles) — served by the
 # Spark's LiteLLM proxy. Centralized here so it's a one-line change.
@@ -74,7 +74,8 @@ PIPELINE_PROVIDER="spark"
 # qwen3.8-flash-next (vLLM NVFP4, port 8888).
 # 2026-09-06: switched to qwen-nvidia at Alfonso's request (Spark LiteLLM).
 # 2026-09-06: switched to qwen-mia at Alfonso's request (Spark LiteLLM, reasoning model).
-PIPELINE_MODEL="qwen-mia"
+# 2026-09-09: switched to deepseek-v4-flash-0731 at Alfonso's request (Spark LiteLLM).
+PIPELINE_MODEL="deepseek-v4-flash-0731"
 
 # ── Setup ────────────────────────────────────────────────────
 mkdir -p "$LOG_DIR" "$SCOUTS_DIR" "$OUTPUT_DIR"
@@ -247,8 +248,8 @@ run_scout() {
         echo "  ✓ scout $name done ($count items)"
     else
         echo "  ✗ scout $name FAILED or TIMEOUT — writing empty fallback"
-        grep -ihoE 'quota[^"]{0,60}|credits[^"]{0,40}|HTTP [45][0-9][0-9][^"]{0,80}' \
-          "$LOG_DIR/scout_${name}_${TODAY}.err" 2>/dev/null | sort -u | head -3
+        { grep -ihoE 'quota[^"]{0,60}|credits[^"]{0,40}|HTTP [45][0-9][0-9][^"]{0,80}' \
+          "$LOG_DIR/scout_${name}_${TODAY}.err" 2>/dev/null | sort -u | head -3; } || true
         echo "[]" > "$outfile"
     fi
     check_timeout
@@ -509,7 +510,7 @@ if [ "$SKIP_IMAGES" = false ]; then
 Today is $TODAY. Read $WORK_DIR/edition.json.
 Generate images for lead + each non-empty section using image_generate tool.
 Save images to $IMAGES_DIR/. Update edition.json with image paths like 'images/<file>.jpg'. ENGLISH ONLY." \
-        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m "$PIPELINE_MODEL" --provider spark -Q --yolo \
+        --profile "$PROFILE" -s image-gen -t file,image_gen,terminal -m "$PIPELINE_MODEL" --provider "$PIPELINE_PROVIDER" -Q --yolo \
         >>"$LOG_DIR/imagegen_${TODAY}.log" 2>&1 || true
 fi
 
@@ -539,7 +540,7 @@ if [ -f "$WIRE_SCRIPT" ]; then
     # --profile and --provider passed explicitly (rather than relying on
     # wire_articles.py's own defaults) so the subprocess lands on the same
     # profile+backend as every other step. Without --profile it used the
-    # operator's DEFAULT profile, which has no `spark` provider — the call
+    # operator's DEFAULT profile, which has no `litellm` provider — the call
     # then silently fell back to that profile's paid fallback chain
     # (observed 2026-08-27: five articles written by gpt-5.5/openai-codex
     # with fallback warnings pasted into the ticker).

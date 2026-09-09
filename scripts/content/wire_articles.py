@@ -84,8 +84,8 @@ DENY = [
     'allen iverson', 'air india', 'ai-ais', 'said ai',  # extend as you see noise
 ]
 
-MODEL = 'qwen-mia'   # AI model used for writing (DGX Spark LiteLLM)
-PROVIDER = 'spark'                # provider
+MODEL = 'deepseek-v4-flash-0731'   # AI model used for writing (DGX Spark LiteLLM)
+PROVIDER = 'litellm'                # provider
 PROFILE = 'paper'                 # Hermes profile (must define the provider)
 USE_Z = False       # True -> use `hermes -z` (purest stdout) instead of `chat -q`
 
@@ -414,9 +414,9 @@ def main():
     ap.add_argument('--max', type=int, default=MAX_ITEMS)
     ap.add_argument('--out', default=OUTPUT_PATH)
     ap.add_argument('--model', default=None,
-                    help='Override model (default: qwen-mia)')
+                    help='Override model (default: deepseek-v4-flash-0731)')
     ap.add_argument('--provider', default=None,
-                    help='Override provider (default: spark)')
+                    help='Override provider (default: litellm)')
     ap.add_argument('--profile', default=None,
                     help='Override Hermes profile (default: paper)')
     args = ap.parse_args()

@@ -38,12 +38,12 @@ ln -s ~/local-ai-news-pipeline/skills ~/.hermes/profiles/paper/skills/lain
 ### 3. The Hermes profile
 
 The pipeline invokes `hermes chat --profile paper -s <skill> -t <toolsets>
--m flash --provider spark`. Create the profile and give it the `spark`
+-m deepseek-v4-flash-0731 --provider litellm`. Create the profile and give it the `litellm`
 custom provider (in `~/.hermes/profiles/paper/config.yaml`):
 
 ```yaml
 custom_providers:
-  - name: spark
+  - name: litellm
     base_url: http://100.89.102.56:4000/v1
     api_key: <your LiteLLM key>
     models:
